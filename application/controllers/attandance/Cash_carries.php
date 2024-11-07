@@ -221,7 +221,8 @@ class Cash_carries extends CI_Controller
         return $arr;
     }
 
-    public function readGenerate(){
+    public function readGenerate()
+    {
         $period = $this->input->post('period');
         $division_id = $this->input->post('division_id');
         $departement_id = $this->input->post('departement_id');
@@ -490,7 +491,8 @@ class Cash_carries extends CI_Controller
         }
     }
 
-    public function datatableTemp(){
+    public function datatableTemp()
+    {
         $departement_id = base64_decode($this->input->get('departement_id'));
 
         $this->db->select('id as employee_id, name as employee_name');
@@ -498,7 +500,7 @@ class Cash_carries extends CI_Controller
         $this->db->where('departement_id', $departement_id);
         $this->db->order_by('name', 'ASC');
         $records = $this->db->get()->result_array();
-        
+
         echo json_encode($records);
     }
 
@@ -572,13 +574,14 @@ class Cash_carries extends CI_Controller
         }
     }
 
-    public function createGenerate(){
+    public function createGenerate()
+    {
         if ($this->input->post()) {
             $post = $this->input->post();
 
             $cash_carries = $this->crud->reads('cash_carries', [], [
-                "employee_id" => $post['employee_id'], 
-                "trans_date" => $post['trans_date'], 
+                "employee_id" => $post['employee_id'],
+                "trans_date" => $post['trans_date'],
                 "type" => $post['type']
             ]);
 
@@ -588,7 +591,7 @@ class Cash_carries extends CI_Controller
                 $send = $this->crud->create('cash_carries', $post);
                 echo $send;
             }
-        }else{
+        } else {
             show_error("Cannot Process your request");
         }
     }
@@ -742,7 +745,7 @@ class Cash_carries extends CI_Controller
                 'trans_date' => $data->val($i, 3),
                 'start' => date("H:i", strtotime($data->val($i, 4))),
                 'end' => date("H:i", strtotime($data->val($i, 5))),
-                'duration_hour' => $data->val($i, 6),
+                'duration_hour' => (int) $data->val($i, 6),
                 'break' => $data->val($i, 7),
                 'type' => $data->val($i, 8),
                 'meal' => $data->val($i, 9),
@@ -829,8 +832,12 @@ class Cash_carries extends CI_Controller
                         $template = "CC/" . $date . "/";
                         $templatefinal = $template . sprintf("%04s", $requestcode);
 
-                        $duration = $this->convertHour($data['trans_date'], $data['start'], $data['end'], $employee->id, $break);
-                        $ot_amount = $this->readOvertimePrice($employee->id, $data['trans_date'], $duration['duration_hour'], $meal);
+                        // $duration = $this->convertHour($data['trans_date'], $data['start'], $data['end'], $employee->id, $break);
+                        // $ot_amount = $this->readOvertimePrice($employee->id, $data['trans_date'], $duration['duration_hour'], $meal);
+
+                        // Rumus baru duration
+                        $duration = $data['duration_hour'] . " Hour 0 Minutes";
+                        $ot_amount = $this->readOvertimePrice($employee->id, $data['trans_date'], $data['duration_hour'], $meal);
 
                         $post_cash_carries = array(
                             'employee_id' => $employee->id,
@@ -844,8 +851,8 @@ class Cash_carries extends CI_Controller
                             'meal' => $meal,
                             'plan' => $data['plan'],
                             'actual' => $data['actual'],
-                            "duration" =>  $duration['duration'],
-                            "duration_hour" => $duration['duration_hour'],
+                            "duration" =>  $duration,
+                            "duration_hour" => $data['duration_hour'],
                             'remarks' => $data['remarks'],
                             'amount' =>  $ot_amount,
                             'idm_no' => $data['idm_no'],

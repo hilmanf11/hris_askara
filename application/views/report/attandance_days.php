@@ -40,6 +40,8 @@
                         <option value="LATE">LATE</option>
                         <option value="UN SETTING">UN SETTING</option>
                         <option value="ABSENCE">ABSENCE</option>
+                        <option value="WEEKEND">WEEKEND</option>
+                        <option value="HOLIDAY">HOLIDAY</option>
                     </select>
                 </div>
             </div>

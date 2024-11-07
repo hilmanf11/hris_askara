@@ -254,7 +254,7 @@
         $("#addrow").show();
     }
 
-    function generate(){
+    function generate() {
         $('#dlg_generate').dialog('open');
         $('#frm_generate').form('clear');
 
@@ -269,7 +269,7 @@
                     valueField: 'id',
                     textField: 'name',
                     prompt: 'Choose Departement',
-                    onSelect: function(dept){
+                    onSelect: function(dept) {
                         $('#gen_departement_sub_id').combobox({
                             url: '<?php echo base_url('employee/departement_subs/reads'); ?>?division_id=' + div.id + "&departement_id=" + dept.id,
                             valueField: 'id',
@@ -282,17 +282,17 @@
         });
     }
 
-    function generate_start(){
+    function generate_start() {
         var period = $("#period").datebox('getValue');
         var division = $("#gen_division_id").combobox('getValue');
         var departement = $("#gen_departement_id").combobox('getValue');
         var departement_sub = $("#gen_departement_sub_id").combobox('getValue');
 
-        if(period != ""){
-            $.messager.prompt('Confirmation', 'Please Input the Password', function(r){
+        if (period != "") {
+            $.messager.prompt('Confirmation', 'Please Input the Password', function(r) {
                 if (r == "GENERATEOT") {
                     $('#dlg_generate').dialog('close');
-                    
+
                     Swal.fire({
                         title: 'Please Wait for Generating Data',
                         showConfirmButton: false,
@@ -371,7 +371,7 @@
                     });
                 }
             });
-        }else{
+        } else {
             toastr.warning("Trans Date cannot empty");
         }
     }
@@ -459,7 +459,7 @@
                         editor: {
                             type: 'numberbox',
                             options: {
-                                required: true,
+                                required: false,
                             }
                         }
                     }, {
@@ -470,7 +470,7 @@
                         editor: {
                             type: 'numberbox',
                             options: {
-                                required: true,
+                                required: false,
                             }
                         }
                     }, {
@@ -1219,7 +1219,7 @@
                     valueField: 'id',
                     textField: 'name',
                     prompt: 'Choose Departement',
-                    onSelect: function(dept){
+                    onSelect: function(dept) {
                         addTable(dept.id);
                         var trans_date = $("#trans_date").datebox('getValue');
 
@@ -1237,7 +1237,7 @@
         });
 
         $("#trans_date").datebox({
-            onChange: function(trans_date){
+            onChange: function(trans_date) {
                 $.ajax({
                     url: '<?= base_url('attandance/cash_carries/requestCode') ?>',
                     type: 'post',

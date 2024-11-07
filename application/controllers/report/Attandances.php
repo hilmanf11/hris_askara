@@ -312,32 +312,47 @@ class Attandances extends CI_Controller
                         }
                     }
 
+                    // if (@$shift->start >= @$attandance->time_in) {
+                    //     $status_masuk = "ON TIME";
+                    // } elseif (@$shift->start == null) {
+                    //     $status_masuk = "UN SETTING";
+                    // } elseif (@$shift->start <= @$attandance->time_in) {
+                    //     $status_masuk = "LATE";
+                    // } else {
+                    //     $status_masuk = "ERROR";
+                    // }
+
+                    $dayName = date('l', strtotime(@$attandance->date_in));
                     if (@$shift->start >= @$attandance->time_in) {
                         $status_masuk = "ON TIME";
                     } elseif (@$shift->start == null) {
                         $status_masuk = "UN SETTING";
                     } elseif (@$shift->start <= @$attandance->time_in) {
-                        $status_masuk = "LATE";
+                        if (@$shift->days == "5" && $dayName == 'Saturday') {
+                            $status_masuk = "ON TIME";
+                        } else {
+                            $status_masuk = "LATE";
+                        }
                     } else {
                         $status_masuk = "ERROR";
                     }
+
 
                     //jika status tanggal merah nya kosong
                     if (@$holiday->description == null) {
                         //cek apakah harinya minggu jika iya maka default Weekend
                         if ($weekend == "Weekend") {
-                            if(@$cash_carry->start != null){
+                            if (@$cash_carry->start != null) {
                                 $holiday = "Overtime " . $cash_carry->request_code;
                                 $sts_overtime += $cash_carry->total_duration;
-                            }else if(@$change_day_end->end != null){
+                            } else if (@$change_day_end->end != null) {
                                 $holiday = "Overtime from " . $change_day_end->start;
-                            }else{
+                            } else {
                                 $holiday = $weekend;
                             }
                             $style = "style='background: #FFBEB0;'";
                             $sts_weekend += 1;
-
-                        }elseif (@$cash_carry->start != null) {
+                        } elseif (@$cash_carry->start != null) {
                             $holiday = "Overtime " . $cash_carry->request_code;
                             $style = "";
                             $sts_overtime += $cash_carry->total_duration;
@@ -400,7 +415,13 @@ class Attandances extends CI_Controller
                             $attandance_status = "UN CHECK IN";
                             $style_status = "style='color:blue; font-weight:bold;'";
                             $sts_uncheckin += 1;
-                            $sts_workingday += 1;
+                            // $sts_workingday += 1;
+
+                            if (@$shift->days == "5" && $dayName == 'Saturday') {
+                                // 
+                            } else {
+                                $sts_workingday += 1;
+                            }
                         } else {
                             $attandance_status = "ABSENCE";
                             $style_status = "style='color:red; font-weight:bold;'";
@@ -415,18 +436,34 @@ class Attandances extends CI_Controller
                             $attandance_status = @strtoupper($permit->permit_name);
                             $shiftName = "";
                             $style_status = "style='color:orange; font-weight:bold;'";
-                            $sts_workingday += 1;
+                            // $sts_workingday += 1;
+
+                            if (@$shift->days == "5" && $dayName == 'Saturday') {
+                                // 
+                            } else {
+                                $sts_workingday += 1;
+                            }
                         } else {
                             $attandance_status = @$status_masuk;
                             $shiftName = @$shift->name . " - " . @$shift->shift_name;
-                            $sts_workingday += 1;
+                            // $sts_workingday += 1;
+
+                            if (@$shift->days == "5" && $dayName == 'Saturday') {
+                                // 
+                            } else {
+                                $sts_workingday += 1;
+                            }
 
                             if (@$status_masuk == "LATE") {
                                 $style_status = "style='color:red; font-weight:bold;'";
                                 $sts_late += 1;
                             } else if (@$status_masuk == "ON TIME") {
                                 $style_status = "style='color:green; font-weight:bold;'";
-                                $sts_ontime += 1;
+                                if (@$shift->days == "5" && $dayName == 'Saturday') {
+                                    // 
+                                } else {
+                                    $sts_ontime += 1;
+                                }
                             } else {
                                 $style_status = "style='color:orange; font-weight:bold;'";
                                 $sts_unsetting += 1;
@@ -481,7 +518,7 @@ class Attandances extends CI_Controller
 
                     $no++;
                 }
-                
+
                 $html .= '</table>
                 <br><br>
                 <div style="width:100%; float:left; margin-bottom:20px;">
@@ -490,27 +527,27 @@ class Attandances extends CI_Controller
                             <tr>
                                 <td width="100" style="color:black; font-weight:bold;">WORKING DAY</td>
                                 <td width="5">:</td>
-                                <td>'.$sts_workingday.'</td>
+                                <td>' . $sts_workingday . '</td>
                             </tr>
                             <tr>
                                 <td width="100" style="color:green; font-weight:bold;">ON TIME</td>
                                 <td width="5">:</td>
-                                <td>'.$sts_ontime.'</td>
+                                <td>' . $sts_ontime . '</td>
                             </tr>
                             <tr>
                                 <td width="100" style="color:blue; font-weight:bold;">UN CHECK IN</td>
                                 <td width="5">:</td>
-                                <td>'.$sts_uncheckin.'</td>
+                                <td>' . $sts_uncheckin . '</td>
                             </tr>
                             <tr>
                                 <td width="100" style="color:orange; font-weight:bold;">UN SETTING</td>
                                 <td width="5">:</td>
-                                <td>'.$sts_unsetting.'</td>
+                                <td>' . $sts_unsetting . '</td>
                             </tr>
                             <tr>
                                 <td width="100" style="color:red; font-weight:bold;">LATE</td>
                                 <td width="5">:</td>
-                                <td>'.$sts_late.'</td>
+                                <td>' . $sts_late . '</td>
                             </tr>
                         </table>
                     </div>
@@ -519,27 +556,27 @@ class Attandances extends CI_Controller
                             <tr>
                                 <td width="150" style="color:red; font-weight:bold;">ABSENCE</td>
                                 <td width="5">:</td>
-                                <td>'.$sts_absence.'</td>
+                                <td>' . $sts_absence . '</td>
                             </tr>
                             <tr>
                                 <td width="100" style="color:red; font-weight:bold;">WEEKEND</td>
                                 <td width="5">:</td>
-                                <td>'.$sts_weekend.'</td>
+                                <td>' . $sts_weekend . '</td>
                             </tr>
                             <tr>
                                 <td width="100" style="color:blue; font-weight:bold;">CHANGE DAY</td>
                                 <td width="5">:</td>
-                                <td>'.$sts_changeday.'</td>
+                                <td>' . $sts_changeday . '</td>
                             </tr>
                             <tr>
                                 <td width="100" style="color:orange; font-weight:bold;">PERMIT</td>
                                 <td width="5">:</td>
-                                <td>'.$sts_permit.'</td>
+                                <td>' . $sts_permit . '</td>
                             </tr>
                             <tr>
                                 <td width="100" style="color:blue; font-weight:bold;">OVERTIME <i>(hour)</i></td>
                                 <td width="5">:</td>
-                                <td>'.$sts_overtime.'</td>
+                                <td>' . $sts_overtime . '</td>
                             </tr>
                         </table>
                     </div>

@@ -226,7 +226,7 @@ class Attandance_days extends CI_Controller
                         $style = "style='color:red; font-weight:bold;'";
                     }
 
-                    if ($status == $filter_status) {
+                    if ($status == $filter_status || $filter_status == "") {
                         $html .= '   <tr>
                                         <td>' . $no . '</td>
                                         <td>' . $data['departement_name'] . '</td>
@@ -239,17 +239,17 @@ class Attandance_days extends CI_Controller
                                         <td ' . $style . '>' . $status . '</td>
                                     </tr>';
                     } else {
-                        $html .= '   <tr>
-                                        <td>' . $no . '</td>
-                                        <td>' . $data['departement_name'] . '</td>
-                                        <td>' . $data['departement_sub_name'] . '</td>
-                                        <td style="mso-number-format:\@;">' . $data['employee_number'] . '</td>
-                                        <td>' . $data['employee_name'] . '</td>
-                                        <td>' . $data['shift_name'] . '</td>
-                                        <td>' . date("d F Y", strtotime(@$working_date)) . '</td>
-                                        <td>' . @$attandance->time_in . ' - ' . @$attandance->time_out . '</td>
-                                        <td ' . $style . '>' . $status . '</td>
-                                    </tr>';
+                        // $html .= '   <tr>
+                        //                 <td>' . $no . '</td>
+                        //                 <td>' . $data['departement_name'] . '</td>
+                        //                 <td>' . $data['departement_sub_name'] . '</td>
+                        //                 <td style="mso-number-format:\@;">' . $data['employee_number'] . '</td>
+                        //                 <td>' . $data['employee_name'] . '</td>
+                        //                 <td>' . $data['shift_name'] . '</td>
+                        //                 <td>' . date("d F Y", strtotime(@$working_date)) . '</td>
+                        //                 <td>' . @$attandance->time_in . ' - ' . @$attandance->time_out . '</td>
+                        //                 <td ' . $style . '>' . $status . '</td>
+                        //             </tr>';
                     }
 
                     $no++;

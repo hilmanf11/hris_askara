@@ -299,24 +299,16 @@
                 name: 'Total',
                 colorByPoint: true,
                 data: [{
-                    name: '<?= $chartEmployee[0]->name ?>',
-                    y: <?= $chartEmployee[0]->employee ?>,
-                }, {
-                    name: '<?= $chartEmployee[1]->name ?>',
-                    y: <?= $chartEmployee[1]->employee ?>,
-                }, {
-                    name: '<?= $chartEmployee[2]->name ?>',
-                    y: <?= $chartEmployee[2]->employee ?>,
-                }, {
-                    name: '<?= $chartEmployee[3]->name ?>',
-                    y: <?= $chartEmployee[3]->employee ?>,
-                }, {
-                    name: '<?= $chartEmployee[4]->name ?>',
-                    y: <?= $chartEmployee[4]->employee ?>,
-                }, {
-                    name: '<?= $chartEmployee[5]->name ?>',
-                    y: <?= $chartEmployee[5]->employee ?>
-                }]
+                        name: '<?= $chartEmployee[0]->name ?>',
+                        y: <?= $chartEmployee[0]->employee ?>,
+                    }, {
+                        name: '<?= $chartEmployee[1]->name ?>',
+                        y: <?= $chartEmployee[1]->employee ?>,
+                    }, {
+                        name: '<?= $chartEmployee[2]->name ?>',
+                        y: <?= $chartEmployee[2]->employee ?>,
+                    }
+                ]
             }]
         });
 

@@ -182,6 +182,7 @@ class Attandance_summary extends CI_Controller
                 //Ambil Employee berdasarkan departement dan divisionnnya
                 $this->db->select("
                     a.id as employee_id, 
+                    a.group_id,
                     a.number, a.name, 
                     a.division_id, 
                     a.departement_id, 
@@ -288,7 +289,12 @@ class Attandance_summary extends CI_Controller
                     }
 
                     $hkw = (@count($weekday_day) - @$calendar_amount);
-                    $absence = (@count($weekday_day) - @$calendar_amount - @$attandance_amount - $arr_total_permit - @$changeDays_amount + $arr_total_permit_absence);
+
+                    if ($data['group_id'] == '20231020000004') { //jika harian lepas-magang
+                        $absence = ($arr_total_permit + $arr_total_permit_absence);
+                    } else {
+                        $absence = (@count($weekday_day) - @$calendar_amount - @$attandance_amount - $arr_total_permit - @$changeDays_amount + $arr_total_permit_absence);
+                    }
 
                     if ($absence < 0) {
                         $absence_final = 0;

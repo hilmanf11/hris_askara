@@ -648,8 +648,14 @@ class Attandances extends CI_Controller
             //Employee
             $this->db->select('*');
             $this->db->from('employees');
-            $this->db->where('barcode', $data['barcode']);
-            $this->db->or_where('number', $data['pin']);
+            if ($data['barcode'] != '') {
+                $this->db->where('barcode', $data['barcode']);
+            }
+
+            if ($data['pin'] != '') {
+                $this->db->where('number', $data['pin']);
+            }
+
             $employee = $this->db->get()->row();
 
             if (!empty($employee->number)) {

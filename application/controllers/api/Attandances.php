@@ -33,16 +33,25 @@ class Attandances extends CI_Controller
 
                 $datas = array();
                 foreach ($attandances as $attandance) {
+                    $folder_in = date("Ym", strtotime($attandance->date_in));
+                    $folder_out = date("Ym", strtotime($attandance->date_out));
+
                     if(!empty($attandance->foto_in)){
-                        $folder = date("Ym", strtotime($attandance->date_in));
-                        $foto_in = 'assets/document/attendance/'.$folder.'/'.$attandance->foto_in;
+                        if(substr($attandance->foto_in, -4) == "jpeg"){
+                            $foto_in = 'assets/document/attendance/'.$folder_in.'/'. substr($attandance->foto_in, -15);
+                        }else{
+                            $foto_in = 'assets/document/attendance/'.$folder_in.'/'. substr($attandance->foto_in, -14);
+                        }
                     }else{
                         $foto_in = null;
                     }
-
+                    
                     if(!empty($attandance->foto_out)){
-                        $folder = date("Ym", strtotime($attandance->date_out));
-                        $foto_out = 'assets/document/attendance/'.$folder.'/'.$attandance->foto_out;
+                        if(substr($attandance->foto_out, -4) == "jpeg"){
+                            $foto_out = 'assets/document/attendance/'.$folder_out.'/'. substr($attandance->foto_out, -15);
+                        }else{
+                            $foto_out = 'assets/document/attendance/'.$folder_out.'/'. substr($attandance->foto_out, -14);
+                        }
                     }else{
                         $foto_out = null;
                     }
@@ -55,7 +64,6 @@ class Attandances extends CI_Controller
                         "foto_in" => $foto_in,
                         "foto_out" => $foto_out,
                     );
-
                 }
 
                 die(json_encode(array(
@@ -150,7 +158,8 @@ class Attandances extends CI_Controller
                                 'number' => $user->number,
                                 'date_out' => $post['date_out'],
                                 'time_out' => $post['time_out'],
-                                'foto_out' => @$foto
+                                'foto_out' => @$foto,
+                                'status' => 'MOBILE',
                             );
 
                             if($this->mobile->update('attandances', ["id" => @$attandance_in->id], $data, $user->username)){
@@ -186,6 +195,7 @@ class Attandances extends CI_Controller
                                 "shift_name" => @$shift->shift_name,
                                 "shift_detail" => @$shift->name,
                                 "shift_days" => @$shift->days,
+                                'status' => 'MOBILE',
                             );
 
                             if($this->mobile->create('attandances', $data, $user->username)){

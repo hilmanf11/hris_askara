@@ -138,8 +138,74 @@
             </div>
         </div>
     </div>
+
+    <div id="dlg_insert" class="easyui-dialog" title="Update Contract & Probation" data-options="closed: true,modal:true" style="width: 500px; padding:10px; top: 20px;">
+        <form id="frm_insert" method="post" enctype="multipart/form-data" novalidate>
+            <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
+                <legend><b>Form Data</b></legend>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Employee ID</span>
+                    <input style="width:60%;" name="number" id="number" readonly class="easyui-textbox">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Employee Name</span>
+                    <input style="width:60%;" name="name" id="name" disabled class="easyui-textbox">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Position</span>
+                    <input style="width:60%;" name="position_id" id="position_id" required="" class="easyui-combogrid">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Group</span>
+                    <input style="width:60%;" name="group_id" id="group_id" required="" class="easyui-combobox">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Employee Type</span>
+                    <input style="width:60%;" name="contract_id" id="contract_id" required="" class="easyui-combobox">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Date Sign</span>
+                    <input style="width:60%;" name="date_sign" id="date_sign" data-options="formatter:myformatter,parser:myparser" class="easyui-datebox">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Date Expired</span>
+                    <input style="width:60%;" name="date_expired" id="date_expired" data-options="formatter:myformatter,parser:myparser" class="easyui-datebox">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Attachment</span>
+                    <input style="width:60%;" name="attachment" id="attachment" class="easyui-filebox">
+                </div>
+                <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Note</span>
+                    <input style="width:60%; height: 80px;" name="note" id="note" multiline="true" class="easyui-textbox">
+                </div>
+            </fieldset>
+        </form>
+    </div>
 </body>
 <script>
+    function updateContract(number, name){
+        var employee_name = atob(name);
+        $('#dlg_insert').dialog('open');
+
+        $.ajax({
+            type: "post",
+            url: '<?= base_url('employee/agreements/reads') ?>',
+            data: "q=" + number,
+            dataType: "json",
+            success: function (json) {
+                $("#number").textbox('setValue', number);
+                $("#name").textbox('setValue', employee_name);
+                $("#position_id").combogrid('setValue', json[0].position_id);
+                $("#group_id").combobox('setValue', json[0].group_id);
+                $("#contract_id").combobox('setValue', json[0].contract_id);
+                $("#date_sign").datebox('setValue', json[0].date_sign);
+                $("#date_expired").datebox('setValue', json[0].date_expired);
+                $("#note").textbox('setValue', json[0].note);
+            }
+        });
+    }
+
     function guidlyBegin() {
         guidely.add({
             attachTo: '#check_in',
@@ -299,16 +365,24 @@
                 name: 'Total',
                 colorByPoint: true,
                 data: [{
-                        name: '<?= $chartEmployee[0]->name ?>',
-                        y: <?= $chartEmployee[0]->employee ?>,
-                    }, {
-                        name: '<?= $chartEmployee[1]->name ?>',
-                        y: <?= $chartEmployee[1]->employee ?>,
-                    }, {
-                        name: '<?= $chartEmployee[2]->name ?>',
-                        y: <?= $chartEmployee[2]->employee ?>,
-                    }
-                ]
+                    name: '<?= $chartEmployee[0]->name ?>',
+                    y: <?= $chartEmployee[0]->employee ?>,
+                }, {
+                    name: '<?= $chartEmployee[1]->name ?>',
+                    y: <?= $chartEmployee[1]->employee ?>,
+                }, {
+                    name: '<?= $chartEmployee[2]->name ?>',
+                    y: <?= $chartEmployee[2]->employee ?>,
+                }, {
+                    name: '<?= $chartEmployee[3]->name ?>',
+                    y: <?= $chartEmployee[3]->employee ?>,
+                }, {
+                    name: '<?= $chartEmployee[4]->name ?>',
+                    y: <?= $chartEmployee[4]->employee ?>,
+                }, {
+                    name: '<?= $chartEmployee[5]->name ?>',
+                    y: <?= $chartEmployee[5]->employee ?>
+                }]
             }]
         });
 
@@ -318,6 +392,72 @@
         // }, 30000);
 
         setInterval(jam, 1000);
+
+        $('#contract_id').combobox({
+            url: '<?php echo base_url('employee/contracts/reads'); ?>',
+            valueField: 'id',
+            textField: 'name',
+            prompt: 'Choose Employee Type',
+        });
+
+        $('#group_id').combobox({
+            url: '<?php echo base_url('employee/groups/reads'); ?>',
+            valueField: 'id',
+            textField: 'name',
+            prompt: 'Choose Group'
+        });
+
+        $('#position_id').combogrid({
+            url: '<?= base_url('employee/positions/reads') ?>',
+            panelWidth: 300,
+            idField: 'id',
+            textField: 'name',
+            mode: 'remote',
+            fitColumns: true,
+            prompt: 'Choose Position',
+            columns: [
+                [{
+                    field: 'name',
+                    title: 'Name',
+                    width: 200
+                }, {
+                    field: 'level',
+                    title: 'Level',
+                    width: 80
+                }]
+            ]
+        });
+
+        //SAVE DATA
+        $('#dlg_insert').dialog({
+            buttons: [{
+                text: 'Save',
+                iconCls: 'icon-ok',
+                handler: function() {
+                    $('#frm_insert').form('submit', {
+                        url: '<?= base_url('employee/agreements/create') ?>',
+                        onSubmit: function() {
+                            return $(this).form('validate');
+                        },
+                        success: function(result) {
+                            var result = eval('(' + result + ')');
+
+                            if (result.theme == "success") {
+                                toastr.success(result.message, result.title);
+                            } else {
+                                toastr.error(result.message, result.title);
+                            }
+
+                            $('#dlg_insert').dialog('close');
+                            
+                            setTimeout(function() {
+                                window.location.href = window.location;
+                            }, 4000);
+                        }
+                    });
+                }
+            }]
+        });
     });
 
     function calendars() {
@@ -343,6 +483,28 @@
                 standIn = '0' + standIn
             }
             return standIn;
+        }
+    }
+
+    //Format Datepicker
+    function myformatter(date) {
+        var y = date.getFullYear();
+        var m = date.getMonth() + 1;
+        var d = date.getDate();
+        return y + '-' + (m < 10 ? ('0' + m) : m) + '-' + (d < 10 ? ('0' + d) : d);
+    }
+
+    //Format Datepicker
+    function myparser(s) {
+        if (!s) return new Date();
+        var ss = (s.split('-'));
+        var y = parseInt(ss[0], 10);
+        var m = parseInt(ss[1], 10);
+        var d = parseInt(ss[2], 10);
+        if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+            return new Date(y, m - 1, d);
+        } else {
+            return new Date();
         }
     }
 </script>

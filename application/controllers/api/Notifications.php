@@ -92,6 +92,61 @@ class Notifications extends CI_Controller
         }
     }
 
+    public function approveAll($api_key)
+    {
+        $this->apps = $this->load->database('apps', TRUE);
+
+        if ($api_key != "") {
+            $dataUser = $this->mobile->read("users", [], ["api_key" => $api_key]);
+
+            if ($dataUser) {
+                $approved_to = $this->input->post('approved_to');
+                $created_by = $this->input->post('created_by');
+                $table_name = $this->input->post('module');
+
+                $datas = $this->mobile->reads($table_name, [], ["approved_to" => $approved_to, "created_by" => $created_by]);
+                
+                foreach ($datas as $data) {
+                    $id = $data->id;
+                    $user = $this->mobile->read('users', [], ["username" => $data->created_by]);
+                    $approval = $this->mobile->read('approvals', [], ["table_name" => $table_name, "departement_id" => @$user->departement_id]);
+                    
+                    if ($data->approved == 1) {
+                        $users_id = @$approval->user_approval_2;
+                        $approved = 2;
+                    } elseif ($data->approved == 2) {
+                        $users_id = @$approval->user_approval_3;
+                        $approved = 3;
+                    } elseif ($data->approved == 3) {
+                        $users_id = @$approval->user_approval_4;
+                        $approved = 4;
+                    } elseif ($data->approved == 4) {
+                        $users_id = @$approval->user_approval_5;
+                        $approved = 5;
+                    } else {
+                        $users_id = "";
+                        $approved = 0;
+                    }
+
+                    $values = array(
+                        "approved_by" => $dataUser->username,
+                        "approved_date" => date('Y-m-d H:i:s'),
+                        "approved_to" => $users_id,
+                        "approved" => $approved,
+                    );
+
+                    $this->db->update($table_name, $values, ["id" => $id]);
+                }
+
+                echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
+            } else {
+                show_error("Api Key Invalid");
+            }
+        } else {
+            show_error("Cannot Process your request");
+        }
+    }
+
     public function disapprove($api_key)
     {
         if ($api_key != "") {
@@ -113,6 +168,32 @@ class Notifications extends CI_Controller
         }
     }
 
+    public function disapproveAll($api_key)
+    {
+        if ($api_key != "") {
+            $dataUser = $this->mobile->read("users", [], ["api_key" => $api_key]);
+
+            if ($dataUser) {
+                $created_by = $this->input->post('created_by');
+                $approved_to = $this->input->post('approved_to');
+                $table_name = $this->input->post('module');
+                $username = $dataUser->username;
+                $datas = $this->mobile->reads($table_name, [], ["approved_to" => $approved_to, "created_by" => $created_by]);
+
+                /* Default */
+                foreach ($datas as $data) {
+                    $this->mobile->delete($table_name, ["id" => $data->id], $username);
+                }
+
+                echo json_encode(array("title" => "Disapproved", "message" => "Data Disapproved Successfully", "theme" => "success"));
+            } else {
+                show_error("Api Key Invalid");
+            }
+        } else {
+            show_error("Cannot Process your request");
+        }
+    }
+
     public function approvalList($api_key)
     {
         if ($api_key != "") {
@@ -120,28 +201,31 @@ class Notifications extends CI_Controller
 
             if ($user) {
                 //Cash Carries
-                $this->db->select('b.name as fullname, a.approved_to, a.created_by, a.created_date, b.avatar');
+                $this->db->select('b.name as fullname, a.approved_to, a.created_by, a.created_date, d.image_profile');
                 $this->db->from('cash_carries a');
                 $this->db->join('users b', 'a.approved_by = b.username');
                 $this->db->join('users c', 'a.approved_to = c.username');
+                $this->db->join('employees d', 'b.number = d.number');
                 $this->db->where('a.approved_to', $user->username);
                 $this->db->group_by('a.created_by');
                 $cash_carries = $this->db->get()->result_object();
 
                 //Permits
-                $this->db->select('b.name as fullname, a.approved_to, a.created_by, a.created_date, b.avatar');
+                $this->db->select('b.name as fullname, a.approved_to, a.created_by, a.created_date, d.image_profile');
                 $this->db->from('permits a');
                 $this->db->join('users b', 'a.approved_by = b.username');
                 $this->db->join('users c', 'a.approved_to = c.username');
+                $this->db->join('employees d', 'b.number = d.number');
                 $this->db->where('a.approved_to', $user->username);
                 $this->db->group_by('a.created_by');
                 $permits = $this->db->get()->result_object();
 
                 //Change Days
-                $this->db->select('b.name as fullname, a.approved_to, a.created_by, a.created_date, b.avatar');
+                $this->db->select('b.name as fullname, a.approved_to, a.created_by, a.created_date, d.image_profile');
                 $this->db->from('change_days a');
                 $this->db->join('users b', 'a.approved_by = b.username');
                 $this->db->join('users c', 'a.approved_to = c.username');
+                $this->db->join('employees d', 'b.number = d.number');
                 $this->db->where('a.approved_to', $user->username);
                 $this->db->group_by('a.created_by');
                 $change_days = $this->db->get()->result_object();
@@ -149,19 +233,19 @@ class Notifications extends CI_Controller
                 $records = array();
                 if (count($cash_carries) > 0) {
                     foreach ($cash_carries as $cash_carry) {
-                        $records[] = $this->approvalMessage($cash_carry->avatar, $cash_carry->fullname, $cash_carry->approved_to, $cash_carry->created_by, $cash_carry->created_date, "cash_carries");
+                        $records[] = $this->approvalMessage($cash_carry->image_profile, $cash_carry->fullname, $cash_carry->approved_to, $cash_carry->created_by, $cash_carry->created_date, "cash_carries");
                     }
                 }
 
                 if(count($permits) > 0) {
                     foreach ($permits as $permit) {
-                        $records[] = $this->approvalMessage($permit->avatar, $permit->fullname, $permit->approved_to, $permit->created_by, $permit->created_date, "permits");
+                        $records[] = $this->approvalMessage($permit->image_profile, $permit->fullname, $permit->approved_to, $permit->created_by, $permit->created_date, "permits");
                     }
                 }
 
                 if(count($change_days) > 0) {
                     foreach ($change_days as $change_day) {
-                        $records[] = $this->approvalMessage($change_day->avatar, $change_day->fullname, $change_day->approved_to, $change_day->created_by, $change_day->created_date, "change_days");
+                        $records[] = $this->approvalMessage($change_day->image_profile, $change_day->fullname, $change_day->approved_to, $change_day->created_by, $change_day->created_date, "change_days");
                     }
                 }
 
@@ -178,10 +262,15 @@ class Notifications extends CI_Controller
     }
 
     public function approvalMessage($foto, $fullname, $approved_to, $created_by, $created_date, $table){
-        if ($foto == "") {
+
+        if(!empty($foto)){
+            if(substr($foto, -4) == "jpeg"){
+                $avatar = 'assets/image/employee/profile/' . substr($foto, -15);
+            }else{
+                $avatar = 'assets/image/employee/profile/' . substr($foto, -14);
+            }
+        }else{
             $avatar = base_url('assets/image/users/default.png');
-        } else {
-            $avatar = "assets/image/users/" . $foto;
         }
 
         return array(
@@ -223,11 +312,26 @@ class Notifications extends CI_Controller
                 $this->db->order_by('a.trans_date', 'DESC');
                 $records = $this->db->get()->result_array();
 
+                $data = array();
+                foreach ($records as $record) {
+                    if(!empty($record['attachment'])){
+                        if(substr($record['attachment'], -4) == "jpeg"){
+                            $attachment = "assets/image/cash_carry/" . substr($record['attachment'], -15);
+                        }else{
+                            $attachment = "assets/image/cash_carry/" . substr($record['attachment'], -14);
+                        }
+                    }else{
+                        $attachment = null;
+                    }
+
+                    $data[] = array_merge($record, array("file_attachment" => $attachment));
+                }
+
                 die(json_encode(array(
                     "title" => "Success",
                     "message" => "Data Found",
                     "theme" => "success",
-                    "results" => $records
+                    "results" => $data
                 )));
                 
                 break;
@@ -256,11 +360,26 @@ class Notifications extends CI_Controller
                 $this->db->order_by('a.permit_date', 'DESC');
                 $records = $this->db->get()->result_array();
 
+                $data = array();
+                foreach ($records as $record) {
+                    if(!empty($record['attachment'])){
+                        if(substr($record['attachment'], -4) == "jpeg"){
+                            $attachment = "assets/image/attandance/" . substr($record['attachment'], -15);
+                        }else{
+                            $attachment = "assets/image/attandance/" . substr($record['attachment'], -14);
+                        }
+                    }else{
+                        $attachment = null;
+                    }
+
+                    $data[] = array_merge($record, array("file_attachment" => $attachment));
+                }
+
                 die(json_encode(array(
                     "title" => "Success",
                     "message" => "Data Found",
                     "theme" => "success",
-                    "results" => $records
+                    "results" => $data
                 )));
 
                 break;

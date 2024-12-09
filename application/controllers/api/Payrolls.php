@@ -28,17 +28,17 @@ class Payrolls extends CI_Controller
             $user = $this->mobile->read("users", [], ["api_key" => $api_key]);
 
             if ($user) {
-                $employee = $this->mobile->read("employees", [], ["number" => $user->number]);
-
-                $this->db->select('a.*, b.bank_branch, b.bank_no, b.national_id, b.tax_id, d.name as source_name, c.name as marital_name');
+                $this->db->select('a.*, b.bank_branch, b.bank_no, b.national_id, b.tax_id, d.name as source_name, c.name as marital_name, 
+                    b.name as employee_name, b.number as employee_number');
                 $this->db->from('payrolls a');
                 $this->db->join('employees b', 'a.employee_id = b.id');
                 $this->db->join('maritals c', 'a.marital = c.number', 'left');
                 $this->db->join('sources d', 'b.source_id = d.id', 'left');
-                $this->db->like('b.id', $employee->id);
-                $this->db->where("a.approved_to is null or a.approved_to = ''");
+                $this->db->where('b.number', $user->number);
+                $this->db->where("(a.approved_to is null or a.approved_to = '')");
                 $this->db->order_by('a.period_start', 'DESC');
                 $this->db->group_by('a.employee_id');
+                $this->db->group_by('a.period_start');
                 $records = $this->db->get()->result_array();
 
                 $corection_total = 0;
@@ -136,30 +136,59 @@ class Payrolls extends CI_Controller
                         }
                     }
 
+                    $bpjsKeyCom = json_decode($record['bpjs_company'], true);
+                    $html_bpjs_com = array();
+                    $arr_bpjs_com_amount_total = 0;
+                    foreach ($bpjsKeyCom as $bpjs_company => $bpjs_value_com) {
+                        $arr_bpjs = explode("_", $bpjs_company);
+                        $r_bpjs_com = $this->mobile->read('bpjs', ['status' => 0], ["number" => $arr_bpjs[0]]);
+
+                        $arr_bpjs_com_amount_total += !empty($bpjs_value_com) ? $bpjs_value_com : 0;
+                        if (!empty($r_bpjs_com->employee)) {
+                            $html_bpjs_com[] = array(
+                                "name" => $r_bpjs_com->name,
+                                "amount" => (int) $bpjs_value_com
+                            );
+                        }
+                    }
+
                     $total_income = ($record['salary'] + $allowance_fix_total + $record['total_overtime_amount'] + $record['correction_plus']);
                     $total_deduction = ($record['deduction_absence_amount'] + $total_deduction_amount + $deduction_total + $record['loan_bank'] + $record['loan_cooperative'] + $record['loan_other'] + $record['correction_minus']);
                 
                     $datas[] = array(
                         "period" => $record['period_start'],
+                        "employee_number" => $record['employee_number'],
+                        "employee_name" => $record['employee_name'],
+                        "departement" => $record['departement_name'],
+                        "departement_sub" => $record['departement_sub_name'],
+                        "national_id" => $record['national_id'],
+                        "tax_id" => $record['tax_id'],
+                        "marital" => $record['marital'],
+                        "marital_name" => $record['marital_name'],
+                        "ter_code" => $record['ter_number'],
+                        "working_days" => $record['attandance_wd'],
                         "cutoff" => date("d F Y", strtotime($filter_from)) . " to " . date("d F Y", strtotime($filter_to)),
                         "basic_salary" => (int) $record['salary'],
-                        "allowence_fix" => $allowance_fix_total,
+                        "allowance_fix" => $allowance_fix_total,
                         "allowance_temp" => $allowance_temp_total,
+                        "allowance_bpjs" => $arr_bpjs_com_amount_total,
                         "overtime_hour" => ($record['overtime_weekday'] + $record['overtime_holiday']),
                         "overtime_amount" => ($record['overtime_amount_weekday'] + $record['overtime_amount_holiday']),
                         "overtime_correction_hour" => (int) $record['overtime_correction'],
                         "overtime_correction_amount" => (int) $record['overtime_amount_correction'],
                         "correction_plus" => $corection_total,
-                        "bruto_income" => $total_income,
+                        "bruto_income" => ($total_income + $arr_bpjs_com_amount_total),
                         "absence_hour" => ($record['deduction_absence'] + $total_deduction_number),
                         "absence_amount" => ($record['deduction_absence_amount'] + $total_deduction_amount),
                         "loans" => ($record['loan_other'] + $record['loan_cooperative'] + $record['loan_bank']),
                         "correction_minus" => (int) $record['correction_minus'],
-                        "total_deduction" => $total_deduction,
+                        "total_deduction" => ($total_deduction + $arr_bpjs_com_amount_total),
                         "income" => ($total_income - $total_deduction),
                         "bpjs_employee" => $html_bpjs_emp,
-                        "total_bpjs" => $arr_bpjs_emp_amount_total,
-                        "pph_21" => (int) $record['pph'],
+                        "total_bpjs_employee" => $arr_bpjs_emp_amount_total,
+                        "bpjs_company" => $html_bpjs_com,
+                        "total_bpjs_company" => $arr_bpjs_com_amount_total,
+                        "ter" => (int) $record['ter'],
                         "net_income" => (int) $record['net_income'],
                     );
                 }

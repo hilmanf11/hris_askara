@@ -370,7 +370,7 @@ class Change_days extends CI_Controller
             $html .= '  <tr>
                             <td>' . $no . '</td>
                             <td>' . $data['request_code'] . '</td>
-                            <td>' . $data['employee_id'] . '</td>
+                            <td style="mso-number-format:\@;">' . $data['employee_number'] . '</td>
                             <td>' . $data['employee_name'] . '</td>
                             <td>' . $data['division_name'] . '</td>
                             <td>' . $data['departement_name'] . '</td>

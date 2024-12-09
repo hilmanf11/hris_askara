@@ -13,18 +13,21 @@
             <th rowspan="2" data-options="field:'position_name',width:100,halign:'center'">Position</th>
             <th rowspan="2" data-options="field:'type',width:100,halign:'center'">Job Type</th>
             <th rowspan="2" data-options="field:'contract_name',width:100,halign:'center'">Employee Type</th>
+            <th rowspan="2" data-options="field:'shift_name',width:100,halign:'center'">Shift Type</th>
             <th rowspan="2" data-options="field:'date_sign',width:100,halign:'center',formatter:FormatterDate">Join Date</th>
-            <th rowspan="2" data-options="field:'date_expired',width:120,halign:'center',formatter:FormatterDate">Contract Expired</th>
+            <th rowspan="2" data-options="field:'date_expired',width:100,halign:'center',formatter:FormatterDate">Contract<br>Expired</th>
+            <th rowspan="2" data-options="field:'resign_date',width:100,halign:'center',formatter:FormatterDate">Resign Date</th>
             <th rowspan="2" data-options="field:'service',width:180,halign:'center'">Fit Of Service</th>
-            <th rowspan="2" data-options="field:'bank_name',width:200,halign:'center'">Bank Name</th>
-            <th rowspan="2" data-options="field:'bank_no',width:100,halign:'center'">Bank Account</th>
-            <th rowspan="2" data-options="field:'barcode',width:100,halign:'center'">Barcode</th>
-            <th rowspan="2" data-options="field:'status_notification',width:100,align:'center',styler:statusStyler, formatter:statusFormatter">Approval</th>
-            <th rowspan="2" data-options="field:'status_check',width:120,align:'center'">Approval By</th>
+            <th rowspan="2" data-options="field:'bank_name',width:150,halign:'center'">Bank Name</th>
+            <th rowspan="2" data-options="field:'bank_no',width:120,halign:'center'">Bank Account</th>
+            <th colspan="3">Approval</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
         </tr>
         <tr>
+            <th data-options="field:'approved_to',width:100,align:'center',styler:statusStyler, formatter:statusFormatter"> Status</th>
+            <th data-options="field:'approved_by',width:100,align:'center'"> By</th>
+            <th data-options="field:'approved_date',width:150,align:'center'"> Date</th>
             <th data-options="field:'created_by',width:100,align:'center'"> By</th>
             <th data-options="field:'created_date',width:150,align:'center'"> Date</th>
             <th data-options="field:'updated_by',width:100,align:'center'"> By</th>
@@ -74,15 +77,24 @@
                         <span style="width:35%; display:inline-block;">Group</span>
                         <input style="width:60%;" id="filter_groups" class="easyui-combogrid">
                     </div>
-                    <div class="fitem">
+                    <div class="fitem" hidden>
                         <span style="width:35%; display:inline-block;">Religion</span>
                         <input style="width:60%;" id="filter_religions" class="easyui-combobox">
+                    </div>
+                    <div class="fitem">
+                        <span style="width:35%; display:inline-block;">Martial Status</span>
+                        <input style="width:60%;" id="filter_maritals" class="easyui-combogrid">
                     </div>
                 </div>
                 <div style="width:33%; float: left;">
                     <div class="fitem">
-                        <span style="width:35%; display:inline-block;">Martial Status</span>
-                        <input style="width:60%;" id="filter_maritals" class="easyui-combogrid">
+                        <span style="width:35%; display:inline-block;">Join Date</span>
+                        <input style="width:28%;" id="filter_from_join" class="easyui-datebox" data-options="formatter:myformatter,parser:myparser, editable:false"> To
+                        <input style="width:28%;" id="filter_to_join" class="easyui-datebox" data-options="formatter:myformatter,parser:myparser, editable:false">
+                    </div>
+                    <div class="fitem">
+                        <span style="width:35%; display:inline-block;">Shift Type</span>
+                        <input style="width:60%;" id="filter_shift" class="easyui-combobox">
                     </div>
                     <div class="fitem">
                         <span style="width:35%; display:inline-block;">Fit For Service</span>
@@ -109,10 +121,12 @@
                     </div>
                     <div class="fitem">
                         <span style="width:35%; display:inline-block;">Status</span>
-                        <select style="width:60%;" id="filter_status" class="easyui-combobox" data-options="panelHeight:'auto'">
+                        <select style="width:30%;" id="filter_status" class="easyui-combobox" data-options="panelHeight:'auto'">
                             <option value="0">Active</option>
                             <option value="1">Not Active</option>
                         </select>
+                        
+                        &nbsp; &nbsp; <input class="easyui-checkbox" id="filter_resign" value="1"> &nbsp; Resign
                     </div>
                 </div>
             </fieldset>
@@ -186,10 +200,6 @@
                     <span style="width:35%; display:inline-block;">Source</span>
                     <input style="width:60%;" name="source_id" id="source_id" class="easyui-combobox">
                 </div>
-                <div class="fitem">
-                    <span style="width:35%; display:inline-block;">Barcode</span>
-                    <input style="width:60%;" name="barcode" id="barcode" class="easyui-textbox">
-                </div>
                 <!-- <div class="fitem" style="margin-bottom: 5px;">
                     <span style="width:35%; display:inline-block;">Employee Status</span>
                     <input class="easyui-radiobutton status_active" name="status" checked="true" value="0"> Active &nbsp;
@@ -202,7 +212,7 @@
             </div>
         </fieldset>
 
-        <div class="easyui-tabs" style="width:100%; margin-bottom: 10px; float: left;">
+        <div class="easyui-tabs" style="width:100%; float: left;">
             <div title="Personal Data" style="padding: 10px;">
                 <fieldset style="width:50%; border:1px solid #d0d0d0; border-radius:4px; float: left;">
                     <legend style="font-weight: bold;">Personal Data</legend>
@@ -370,7 +380,6 @@
                         <span style="width:35%; display:inline-block;">Branch Name </span>
                         <select style="width:60%;" name="bank_name" id="bank_name" required class="easyui-combobox">
                             <option value="-">Cash</option>
-                            <option value="Bank BJB">Bank BJB</option>
                             <option value="Bank Mandiri">Bank Mandiri</option>
                             <option value="Bank Syariah Indonesia">Bank Syariah Indonesia</option>
                             <option value="Bank Central Asia">Bank Central Asia</option>
@@ -487,9 +496,9 @@
                 type: "post",
                 url: "<?= base_url('employee/employees/readNumber') ?>",
                 data: "departement_id=" + departement_id + "&contract_id=" + contract_id + "&source_id=" + source_id + "&date_sign=" + btoa(date_sign),
-                dataType: "html",
+                dataType: "json",
                 success: function(number) {
-                    $("#number").textbox("setValue", number);
+                    $("#number").textbox("setValue", number.id);
                 }
             });
         }
@@ -520,6 +529,7 @@
         });
         $("#jkn_family").combobox("setValue", "1");
         $("#form_status_date").hide();
+
         tableFamily();
         tableEducation();
         tableExperience();
@@ -536,31 +546,11 @@
                 $('#frm_insert').form('load', row);
                 url_save = '<?= base_url('employee/employees/update') ?>?id=' + btoa(row.id);
 
-                tableFamily();
-                tableEducation();
-                tableExperience();
-                tableTraining();
-                tableCarrer();
-
-                $('#dgFamily').datagrid({
-                    url: '<?= base_url('employee/employees/readFamilys/') ?>' + row.number
-                });
-
-                $('#dgEducation').datagrid({
-                    url: '<?= base_url('employee/employees/readEducation/') ?>' + row.number
-                });
-
-                $('#dgExperience').datagrid({
-                    url: '<?= base_url('employee/employees/readExperience/') ?>' + row.number
-                });
-
-                $('#dgTraining').datagrid({
-                    url: '<?= base_url('employee/employees/readTraining/') ?>' + row.number
-                });
-
-                $('#dgCarrer').datagrid({
-                    url: '<?= base_url('employee/employees/readCarrer/') ?>' + row.number
-                });
+                tableFamily(row.number);
+                tableEducation(row.number);
+                tableExperience(row.number);
+                tableTraining(row.number);
+                tableCarrer(row.number);
 
                 $("#number").textbox("disable");
                 $("#candidate_id").combogrid("disable");
@@ -1031,7 +1021,17 @@
         var filter_maritals = $("#filter_maritals").combogrid('getValue');
         var filter_services = $("#filter_services").combobox('getValue');
         var filter_expired = $("#filter_expired").combobox('getValue');
+        var filter_shift = $("#filter_shift").combobox('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
+        var filter_resign = $("#filter_resign").checkbox('options');
+        var filter_from_join = $("#filter_from_join").datebox('getValue');
+        var filter_to_join = $("#filter_to_join").datebox('getValue');
+
+        if(filter_resign.checked == true){
+            var resign = "1";
+        }else{
+            var resign = "0";
+        }
 
         var url = "?filter_divisions=" + filter_divisions +
             "&filter_departements=" + filter_departements +
@@ -1044,7 +1044,11 @@
             "&filter_maritals=" + filter_maritals +
             "&filter_services=" + filter_services +
             "&filter_expired=" + filter_expired +
-            "&filter_status=" + filter_status;
+            "&filter_shift=" + filter_shift +
+            "&filter_status=" + filter_status +
+            "&filter_from_join=" + btoa(filter_from_join) +
+            "&filter_to_join=" + btoa(filter_to_join) +
+            "&filter_resign=" + resign;
 
         $('#dg').datagrid({
             url: '<?= base_url('employee/employees/datatables') ?>' + url
@@ -1071,7 +1075,17 @@
         var filter_maritals = $("#filter_maritals").combogrid('getValue');
         var filter_services = $("#filter_services").combobox('getValue');
         var filter_expired = $("#filter_expired").combobox('getValue');
+        var filter_shift = $("#filter_shift").combobox('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
+        var filter_resign = $("#filter_resign").checkbox('options');
+        var filter_from_join = $("#filter_from_join").datebox('getValue');
+        var filter_to_join = $("#filter_to_join").datebox('getValue');
+
+        if(filter_resign.checked == true){
+            var resign = "1";
+        }else{
+            var resign = "0";
+        }
 
         var url = "?filter_divisions=" + filter_divisions +
             "&filter_departements=" + filter_departements +
@@ -1084,7 +1098,11 @@
             "&filter_maritals=" + filter_maritals +
             "&filter_services=" + filter_services +
             "&filter_expired=" + filter_expired +
-            "&filter_status=" + filter_status;
+            "&filter_shift=" + filter_shift +
+            "&filter_status=" + filter_status +
+            "&filter_from_join=" + btoa(filter_from_join) +
+            "&filter_to_join=" + btoa(filter_to_join) +
+            "&filter_resign=" + resign;
 
         window.location.assign('<?= base_url('employee/employees/print/excel') ?>' + url);
     }
@@ -1095,12 +1113,23 @@
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
-    function tableFamily() {
+    function tableFamily(number) {
         var lastIndex;
         var dgFamily = $('#dgFamily').datagrid({
+            url: '<?= base_url('employee/employees/readFamilys/') ?>' + number,
             singleSelect: true,
             columns: [
                 [{
+                    field: 'id',
+                    width: 150,
+                    readonly: true,
+                    halign: 'center',
+                    title: "Family ID",
+                    hidden: true,
+                    editor: {
+                        type: 'textbox',
+                    }
+                },{
                     field: 'name',
                     width: 150,
                     readonly: true,
@@ -1226,22 +1255,54 @@
         }
     }
 
-    function removeFamily() {
-        if (editIndexFamily == undefined) {
-            return true;
-        }
+    function removeFamily(target) {
+        var dg = $('#dgFamily');
+        var row = dg.datagrid('getSelected');
+        var rowIndex = dg.datagrid('getRowIndex', row);
+
+        var ed = dg.datagrid('getEditor', {
+            index: editIndexFamily,
+            field: 'id'
+        });
+
+        $.ajax({
+            method: 'post',
+            url: "<?= base_url('employee/employees/deleteFamily') ?>",
+            data: {
+                id: row.id
+            },
+            success: function(result) {
+                var result = eval('(' + result + ')');
+                toastr.success(result.message);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                //toastr.error(jqXHR.statusText);
+            },
+        });
+
         $('#dgFamily').datagrid('cancelEdit', editIndexFamily).datagrid('deleteRow', editIndexFamily);
         editIndexFamily = undefined;
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
-    function tableEducation() {
+    function tableEducation(number) {
         var lastIndex;
         var dgEducation = $('#dgEducation').datagrid({
+            url: '<?= base_url('employee/employees/readEducation/') ?>' + number,
             singleSelect: true,
             columns: [
                 [{
+                    field: 'id',
+                    width: 150,
+                    readonly: true,
+                    halign: 'center',
+                    title: "Education ID",
+                    hidden: true,
+                    editor: {
+                        type: 'textbox',
+                    }
+                },{
                     field: 'level',
                     width: 150,
                     readonly: true,
@@ -1374,21 +1435,53 @@
     }
 
     function removeEducation() {
-        if (editIndexEducation == undefined) {
-            return
-        }
+        var dg = $('#dgEducation');
+        var row = dg.datagrid('getSelected');
+        var rowIndex = dg.datagrid('getRowIndex', row);
+
+        var ed = dg.datagrid('getEditor', {
+            index: editIndexEducation,
+            field: 'id'
+        });
+
+        $.ajax({
+            method: 'post',
+            url: "<?= base_url('employee/employees/deleteEducation') ?>",
+            data: {
+                id: row.id
+            },
+            success: function(result) {
+                var result = eval('(' + result + ')');
+                toastr.success(result.message);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                //toastr.error(jqXHR.statusText);
+            },
+        });
+
         $('#dgEducation').datagrid('cancelEdit', editIndexEducation).datagrid('deleteRow', editIndexEducation);
         editIndexEducation = undefined;
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
-    function tableExperience() {
+    function tableExperience(number) {
         var lastIndex;
         var dgExperience = $('#dgExperience').datagrid({
+            url: '<?= base_url('employee/employees/readExperience/') ?>' + number,
             singleSelect: true,
             columns: [
                 [{
+                    field: 'id',
+                    width: 150,
+                    readonly: true,
+                    halign: 'center',
+                    title: "Experience ID",
+                    hidden: true,
+                    editor: {
+                        type: 'textbox',
+                    }
+                },{
                     field: 'name',
                     width: 150,
                     readonly: true,
@@ -1518,21 +1611,53 @@
     }
 
     function removeExperience() {
-        if (editIndexExperience == undefined) {
-            return
-        }
+        var dg = $('#dgExperience');
+        var row = dg.datagrid('getSelected');
+        var rowIndex = dg.datagrid('getRowIndex', row);
+
+        var ed = dg.datagrid('getEditor', {
+            index: editIndexExperience,
+            field: 'id'
+        });
+
+        $.ajax({
+            method: 'post',
+            url: "<?= base_url('employee/employees/deleteExperience') ?>",
+            data: {
+                id: row.id
+            },
+            success: function(result) {
+                var result = eval('(' + result + ')');
+                toastr.success(result.message);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                //toastr.error(jqXHR.statusText);
+            },
+        });
+
         $('#dgExperience').datagrid('cancelEdit', editIndexExperience).datagrid('deleteRow', editIndexExperience);
         editIndexExperience = undefined;
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
-    function tableTraining() {
+    function tableTraining(number) {
         var lastIndex;
         var dgTraining = $('#dgTraining').datagrid({
+            url: '<?= base_url('employee/employees/readTraining/') ?>' + number,
             singleSelect: true,
             columns: [
                 [{
+                    field: 'id',
+                    width: 150,
+                    readonly: true,
+                    halign: 'center',
+                    title: "Training ID",
+                    hidden: true,
+                    editor: {
+                        type: 'textbox',
+                    }
+                },{
                     field: 'name',
                     width: 150,
                     readonly: true,
@@ -1648,26 +1773,58 @@
     }
 
     function removeTraining() {
-        if (editIndexTraining == undefined) {
-            return
-        }
+        var dg = $('#dgTraining');
+        var row = dg.datagrid('getSelected');
+        var rowIndex = dg.datagrid('getRowIndex', row);
+
+        var ed = dg.datagrid('getEditor', {
+            index: editIndexTraining,
+            field: 'id'
+        });
+
+        $.ajax({
+            method: 'post',
+            url: "<?= base_url('employee/employees/deleteTraining') ?>",
+            data: {
+                id: row.id
+            },
+            success: function(result) {
+                var result = eval('(' + result + ')');
+                toastr.success(result.message);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                //toastr.error(jqXHR.statusText);
+            },
+        });
+
         $('#dgTraining').datagrid('cancelEdit', editIndexTraining).datagrid('deleteRow', editIndexTraining);
         editIndexTraining = undefined;
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
-    function tableCarrer() {
+    function tableCarrer(number) {
         var lastIndex;
         var dgCarrer = $('#dgCarrer').datagrid({
+            url: '<?= base_url('employee/employees/readCarrer/') ?>' + number,
             singleSelect: true,
             columns: [
                 [{
+                    field: 'id',
+                    width: 150,
+                    readonly: true,
+                    halign: 'center',
+                    title: "Carreer ID",
+                    hidden: true,
+                    editor: {
+                        type: 'textbox',
+                    }
+                },{
                     field: 'name',
                     width: 150,
                     readonly: true,
                     halign: 'center',
-                    title: "Family Name",
+                    title: "Carrer Name",
                     editor: {
                         type: 'textbox',
                         options: {
@@ -1778,9 +1935,30 @@
     }
 
     function removeCarrer() {
-        if (editIndexCarrer == undefined) {
-            return
-        }
+        var dg = $('#dgCarrer');
+        var row = dg.datagrid('getSelected');
+        var rowIndex = dg.datagrid('getRowIndex', row);
+
+        var ed = dg.datagrid('getEditor', {
+            index: editIndexCarrer,
+            field: 'id'
+        });
+
+        $.ajax({
+            method: 'post',
+            url: "<?= base_url('employee/employees/deleteCarrer') ?>",
+            data: {
+                id: row.id
+            },
+            success: function(result) {
+                var result = eval('(' + result + ')');
+                toastr.success(result.message);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                //toastr.error(jqXHR.statusText);
+            },
+        });
+
         $('#dgCarrer').datagrid('cancelEdit', editIndexCarrer).datagrid('deleteRow', editIndexCarrer);
         editIndexCarrer = undefined;
     }
@@ -1797,6 +1975,8 @@
             rowStyler: function(index, row) {
                 if (row.status == 1) {
                     return 'background-color:#FFDCDC;';
+                }else if(row.resign_date != null){
+                    return 'background-color:#FFD44D;';
                 }
             }
         });
@@ -1819,16 +1999,7 @@
                                 toastr.success(result.message, result.title);
                                 var number = $('#number').textbox('getValue');
 
-                                $.ajax({
-                                    type: "post",
-                                    url: "<?= base_url('employee/employees/deleteFamily') ?>",
-                                    data: "number=" + number,
-                                    dataType: "json",
-                                    success: function(response) {
-                                        //
-                                    }
-                                });
-
+                                $('#dgFamily').datagrid('acceptChanges');
                                 var rowFamily = $('#dgFamily').datagrid('getRows');
                                 var totalFamily = rowFamily.length;
                                 endEditingFamily();
@@ -1839,6 +2010,7 @@
                                             url: '<?= base_url('employee/employees/createFamily') ?>',
                                             data: {
                                                 number: number,
+                                                id: rowFamily[i].id,
                                                 name: rowFamily[i].name,
                                                 place: rowFamily[i].place,
                                                 birthday: rowFamily[i].birthday,
@@ -1854,26 +2026,18 @@
                                     }
                                 }
 
-                                $.ajax({
-                                    type: "post",
-                                    url: "<?= base_url('employee/employees/deleteEducation') ?>",
-                                    data: "number=" + number,
-                                    dataType: "json",
-                                    success: function(response) {
-                                        //
-                                    }
-                                });
-
+                                $('#dgEducation').datagrid('acceptChanges');
                                 var rowEducation = $('#dgEducation').datagrid('getRows');
                                 var totalEducation = rowEducation.length;
                                 endEditingEducation();
                                 for (let i = 0; i < totalEducation; i++) {
-                                    if (rowEducation[i].level) {
+                                    // if (rowEducation[i].level) {
                                         $.ajax({
                                             type: "post",
                                             url: '<?= base_url('employee/employees/createEducation') ?>',
                                             data: {
                                                 number: number,
+                                                id: rowEducation[i].id,
                                                 level: rowEducation[i].level,
                                                 degree: rowEducation[i].degree,
                                                 school: rowEducation[i].school,
@@ -1886,19 +2050,10 @@
                                                 //
                                             }
                                         });
-                                    }
+                                    // }
                                 }
 
-                                $.ajax({
-                                    type: "post",
-                                    url: "<?= base_url('employee/employees/deleteExperience') ?>",
-                                    data: "number=" + number,
-                                    dataType: "json",
-                                    success: function(response) {
-                                        //
-                                    }
-                                });
-
+                                $('#dgExperience').datagrid('acceptChanges');
                                 var rowExperience = $('#dgExperience').datagrid('getRows');
                                 var totalExperience = rowExperience.length;
                                 endEditingExperience();
@@ -1909,6 +2064,7 @@
                                             url: '<?= base_url('employee/employees/createExperience') ?>',
                                             data: {
                                                 number: number,
+                                                id: rowExperience[i].id,
                                                 name: rowExperience[i].name,
                                                 type: rowExperience[i].type,
                                                 start: rowExperience[i].start,
@@ -1924,16 +2080,7 @@
                                     }
                                 }
 
-                                $.ajax({
-                                    type: "post",
-                                    url: "<?= base_url('employee/employees/deleteTraining') ?>",
-                                    data: "number=" + number,
-                                    dataType: "json",
-                                    success: function(response) {
-                                        //
-                                    }
-                                });
-
+                                $('#dgTraining').datagrid('acceptChanges');
                                 var rowTraining = $('#dgTraining').datagrid('getRows');
                                 var totalTraining = rowTraining.length;
                                 endEditingTraining();
@@ -1944,6 +2091,7 @@
                                             url: '<?= base_url('employee/employees/createTraining') ?>',
                                             data: {
                                                 number: number,
+                                                id: rowTraining[i].id,
                                                 name: rowTraining[i].name,
                                                 description: rowTraining[i].description,
                                                 start: rowTraining[i].start,
@@ -1958,16 +2106,7 @@
                                     }
                                 }
 
-                                $.ajax({
-                                    type: "post",
-                                    url: "<?= base_url('employee/employees/deleteCarrer') ?>",
-                                    data: "number=" + number,
-                                    dataType: "json",
-                                    success: function(response) {
-                                        //
-                                    }
-                                });
-
+                                $('#dgCarrer').datagrid('acceptChanges');
                                 var rowCarrer = $('#dgCarrer').datagrid('getRows');
                                 var totalCarrer = rowCarrer.length;
                                 endEditingCarrer();
@@ -1978,6 +2117,7 @@
                                             url: '<?= base_url('employee/employees/createCarrer') ?>',
                                             data: {
                                                 number: number,
+                                                id: rowCarrer[i].id,
                                                 name: rowCarrer[i].name,
                                                 description: rowCarrer[i].description,
                                                 start: rowCarrer[i].start,
@@ -2166,6 +2306,19 @@
             }],
         });
 
+        $('#filter_shift').combobox({
+            url: '<?php echo base_url('attandance/shifts/reads'); ?>',
+            valueField: 'id',
+            textField: 'name',
+            prompt: 'Choose All',
+            icons: [{
+                iconCls: 'icon-clear',
+                handler: function(e) {
+                    $(e.data.target).combobox('clear').combobox('textbox').focus();
+                }
+            }],
+        });
+
         //--------------------------------------------------------------------------------------------------------------------------------------------------------------
         //Get Candidate
         $('#candidate_id').combogrid({
@@ -2270,18 +2423,10 @@
             textField: 'name',
             prompt: 'Choose Group',
             onSelect: function(group) {
-                if(group.name == "PKL" || group.name == "MAGANG"){
-                    var required = true;
-                    toastr.info("Please Select Source Name");
-                }else{
-                    var required = false;
-                }
-
                 $('#source_id').combobox({
                     url: '<?php echo base_url('employee/sources/reads'); ?>/' + group.id,
                     valueField: 'id',
                     textField: 'name',
-                    required: required,
                     prompt: 'Choose Source'
                 });
             }

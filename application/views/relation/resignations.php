@@ -8,6 +8,8 @@
             <th rowspan="2" data-options="field:'division_name',width:150,halign:'center'">Division</th>
             <th rowspan="2" data-options="field:'departement_name',width:150,halign:'center'">Departement</th>
             <th rowspan="2" data-options="field:'departement_sub_name',width:150,halign:'center'">Departement Sub</th>
+            <th rowspan="2" data-options="field:'contract_name',width:120,halign:'center'">Employee Type</th>
+            <th rowspan="2" data-options="field:'gender',width:80,halign:'center'">Gender</th>
             <th rowspan="2" data-options="field:'resign_type',width:100,align:'center'">Resign Type</th>
             <th rowspan="2" data-options="field:'date_sign',width:120,align:'center'">Join Date</th>
             <th rowspan="2" data-options="field:'request_date',width:100,align:'center'">Request Date</th>
@@ -511,7 +513,7 @@
         });
 
         $('#filter_employee').combogrid({
-            url: '<?= base_url('employee/employees/reads') ?>',
+            url: '<?= base_url('relation/resignations/readEmployees') ?>',
             panelWidth: 450,
             idField: 'id',
             textField: 'name',

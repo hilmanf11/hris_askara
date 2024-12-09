@@ -50,9 +50,9 @@
                             <option value="source_name">Source</option>
                             <option value="marital_name">Marital Status</option>
                             <option value="religion_name">Religion</option>
+                            <option value="education">Education</option>
                             <option value="date_sign">Sign In</option>
                             <option value="date_expired">Sign Expired</option>
-                            <option value="service">Fit of Services</option>
                             <option value="address">Address</option>
                             <option value="place_birth">Place Birth</option>
                             <option value="birthday">Birthday</option>

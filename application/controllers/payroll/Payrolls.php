@@ -26,7 +26,7 @@ class Payrolls extends CI_Controller
             $data['button'] = $this->getbutton($this->id_menu());
             $data['permit_type'] = $this->crud->reads('permit_types', [], ['payroll' => 'NON DEDUCTION']);
             $data['allowance'] = $this->crud->reads('allowances', [], [], "", "name", "asc");
-            $data['deduction'] = $this->crud->reads('deductions');
+            $data['deduction'] = $this->crud->reads('deductions', [], [], "", "name", "asc");
             $data['permit_type_d'] = $this->crud->reads('permit_types', [], ['payroll' => 'DEDUCTION']);
             $data['bpjs'] = $this->crud->reads('bpjs', ['status' => 0]);
 
@@ -78,6 +78,7 @@ class Payrolls extends CI_Controller
             $filter_employee = $this->input->get('filter_employee');
             $filter_employee_type = $this->input->get('filter_employee_type');
             $filter_group = $this->input->get('filter_group');
+            $filter_status = $this->input->get('filter_status');
             $username = $this->session->username;
 
             $page   = $this->input->post('page');
@@ -92,15 +93,22 @@ class Payrolls extends CI_Controller
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
 
-            $this->db->select('a.*, b.national_id, d.name as source_name, e.ter as ter_persentase');
+            $this->db->select('a.*, b.national_id, d.name as source_name, e.employee_id as status_resign, g.number as account_no');
             $this->db->from('payrolls a');
             $this->db->join('employees b', 'a.employee_id = b.id');
             $this->db->join('sources d', 'b.source_id = d.id', 'left');
-            $this->db->join('marital_categories e', 'a.ter_number = e.number', 'left');
             $this->db->join('privilege_groups c', "(b.group_id = c.group_id or b.group_id is null or b.group_id = '') and c.username = '$username' and c.status = '1'");
+            $this->db->join('resignations e', 'e.employee_id = b.id', 'left');
+            $this->db->join('account_coa f', 'b.division_id = f.division_id and b.departement_id = f.departement_id and b.position_id = f.position_id and b.contract_id = f.contract_id', 'left');
+            $this->db->join('accounts g', "f.account_id = g.id and g.category = 'payroll'", 'left');
             if ($filter_from != "" && $filter_to != "") {
                 $this->db->where('a.period_start =', $period_start);
                 $this->db->where('a.period_end =', $period_end);
+            }
+            if($filter_status == "0"){
+                $this->db->where('e.employee_id', null);
+            }elseif($filter_status == "1"){
+                $this->db->where('e.employee_id !=', null);
             }
             $this->db->like('b.division_id', $filter_division);
             $this->db->like('b.departement_id', $filter_departement);
@@ -124,6 +132,7 @@ class Payrolls extends CI_Controller
                     "name" => $record['name'],
                     "period_start" => $record['period_start'],
                     "period_end" => $record['period_end'],
+                    "status_resign" => $record['status_resign'],
                     "division_name" => $record['division_name'],
                     "departement_name" => $record['departement_name'],
                     "departement_sub_name" => $record['departement_sub_name'],
@@ -135,8 +144,8 @@ class Payrolls extends CI_Controller
                     "level" => $record['level'],
                     "marital" => $record['marital'],
                     "ter_number" => $record['ter_number'],
-                    "ter_persentase" => $record['ter_persentase'],
                     "tax_id" => $record['tax_id'],
+                    "account_no" => $record['account_no'],
                     "national_id" => $record['national_id'],
                     "shift_name" => $record['shift_name'],
                     //"attandance" => json_encode($arr_permit_combine),
@@ -228,7 +237,6 @@ class Payrolls extends CI_Controller
                     g.level,
                     i.id as group_id,
                     i.name as group_name,
-                    i.calculate as group_calculate,
                     n.name as shift_name,
                     l.name as shift_name_2,
                     l.days,
@@ -243,14 +251,14 @@ class Payrolls extends CI_Controller
                 JOIN departement_subs d ON a.departement_sub_id = d.id
                 LEFT JOIN contracts f ON a.contract_id = f.id
                 LEFT JOIN positions g ON a.position_id = g.id
-                LEFT JOIN `groups` i ON a.group_id = i.id
+                LEFT JOIN groups i ON a.group_id = i.id
                 LEFT JOIN shift_employees k ON a.id = k.employee_id
                 LEFT JOIN shifts n ON k.shift_id = n.id
                 LEFT JOIN shift_details l ON n.id = l.shift_id
                 JOIN setup_salaries p ON p.employee_id = a.id
                 LEFT JOIN maritals q ON a.marital_id = q.id
                 JOIN privilege_groups m ON (i.id = m.group_id or m.group_id is null or m.group_id = '') and m.username = '$username' and m.status = '1'
-                WHERE a.deleted = 0 and a.status = 0
+                WHERE a.deleted = 0 and a.status = 0 and a.date_sign <= '$filter_to'
                 AND a.division_id LIKE '%$filter_division%'
                 AND a.departement_id LIKE '%$filter_departement%'
                 AND a.departement_sub_id LIKE '%$filter_departement_sub%'
@@ -327,9 +335,7 @@ class Payrolls extends CI_Controller
             $this->db->from('calendars');
             $this->db->where('trans_date >=', $filter_from);
             $this->db->where('trans_date <=', $filter_to);
-            if (count($weekend_day) > 0) {
-                $this->db->where_not_in('trans_date', $weekend_day);
-            }
+            $this->db->where_not_in('trans_date', $weekend_day);
             $calendar = $this->db->get()->result_array();
             $calendar_amount = empty($calendar) ? 0 : count($calendar);
 
@@ -341,6 +347,12 @@ class Payrolls extends CI_Controller
             //Permit yang non deduction atau tidak potong gaji
             $permit_date = "'" . implode("', '", $weekend_day) . "'";
             $calendar_date = "'" . implode("', '", $w_calendars) . "'";
+
+            if(count($w_calendars) > 0){
+                $calendar_where = "and a.permit_date not in ($calendar_date)";
+            }else{
+                $calendar_where = "";
+            }
             $q_permit = $this->db->query("SELECT b.number, b.name, COUNT(a.permit_date) as amount
                     FROM permit_types b
                     LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$record[id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and a.permit_date not in ($permit_date)
@@ -363,7 +375,7 @@ class Payrolls extends CI_Controller
             //Permit yang deduction atau potong gaji
             $q_permit_deduction = $this->db->query("SELECT b.number, b.name, COUNT(a.permit_date) as amount
                     FROM permit_types b
-                    LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$record[id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and a.permit_date not in ($permit_date) and a.permit_date not in ($calendar_date)
+                    LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$record[id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and a.permit_date not in ($permit_date) $calendar_where
                     WHERE b.payroll = 'DEDUCTION' and (a.approved_to = '' or a.approved_to is null)
                     GROUP BY b.id");
 
@@ -374,26 +386,22 @@ class Payrolls extends CI_Controller
             }
 
             //Permit atau absen nya YES di anggap masuk kerja
-            $q_permit_absence = $this->db->query("SELECT a.permit_date, COUNT(a.permit_date) as amount
+            $q_permit_absence = $this->db->query("SELECT b.number, b.name, COUNT(a.permit_date) as amount
                     FROM permit_types b
-                    LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$record[id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and a.permit_date not in ($permit_date) and a.permit_date not in ($calendar_date)
+                    LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$record[id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and a.permit_date not in ($permit_date) $calendar_where
                     WHERE b.absence = 'YES' and (a.approved_to = '' or a.approved_to is null)
-                    GROUP BY a.permit_date");
+                    GROUP BY b.id");
 
             $r_permit_absence = $q_permit_absence->result_array();
             $arr_total_permit_absence = 0;
-            $permit_yes = array();
             foreach ($r_permit_absence as $permit_data_absence) {
-                if (!empty($permit_data_absence['permit_date'])) {
-                    $permit_yes[] = $permit_data_absence['permit_date'];
-                }
                 $arr_total_permit_absence += $permit_data_absence['amount'];
             }
 
             //Permit atau absen nya NO di anggap tidak kerja
             $q_permit_absence_no = $this->db->query("SELECT b.number, b.name, COUNT(a.permit_date) as amount
                     FROM permit_types b
-                    LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$record[id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and a.permit_date not in ($permit_date) and a.permit_date not in ($calendar_date)
+                    LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$record[id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and a.permit_date not in ($permit_date) $calendar_where
                     WHERE b.absence = 'NO' and (a.approved_to = '' or a.approved_to is null)
                     GROUP BY b.id");
 
@@ -407,12 +415,9 @@ class Payrolls extends CI_Controller
             $this->db->select("COUNT(*) as days");
             $this->db->from('change_days');
             $this->db->where('employee_id', $record['id']);
-            $this->db->where("(start between '$filter_from' and '$filter_to')");
-            if (count($weekend_day) > 0) {
-                $this->db->where_not_in('start', $weekend_day);
-            }
-            if (count($w_calendars) > 0) {
-                $this->db->where_not_in('start', $w_calendars);
+            $this->db->where("(start between '$filter_from' and '$filter_to' or end between '$filter_from' and '$filter_to')");
+            if (count($weekday_day) > 0) {
+                $this->db->where_in('end', $weekday_day);
             }
             $changeDays = $this->db->get()->row();
             $changeDays_amount = empty($changeDays->days) ? 0 : $changeDays->days;
@@ -467,144 +472,34 @@ class Payrolls extends CI_Controller
             $loan_other = $this->db->get()->row();
             $loan_other_amount = empty($loan_other->amount) ? 0 : $loan_other->amount;
 
-
-            $tomorow = date('Y-m-d', strtotime("+1 day", strtotime($filter_from)));
             //Attandances
-            $this->db->select("COUNT(a.date_in) as amount");
-            $this->db->from('(SELECT DISTINCT number, date_in FROM attandances) a');
-            $this->db->where('a.number', $record['number']);
-            $this->db->where("(a.date_in >= '$filter_from' and a.date_in <= '$filter_to')");
+            $tomorow = date('Y-m-d', strtotime("+1 day", strtotime($filter_from)));
+            $this->db->select("number, date_in");
+            $this->db->from('attandances');
+            $this->db->where('number', $record['number']);
+            $this->db->where("((date_in >= '$filter_from' and date_in <= '$filter_to') or (date_out >= '$tomorow' and date_out <= '$filter_to'))");
             if (count($weekend_day) > 0) {
-                $this->db->where_not_in('a.date_in', $weekend_day);
+                $this->db->where_not_in('date_in', $weekend_day);
             }
             if (count($w_calendars) > 0) {
-                $this->db->where_not_in('a.date_in', $w_calendars);
+                $this->db->where_not_in('date_in', $w_calendars);
             }
-            if ($arr_total_permit_absence > 0) {
-                $this->db->where_not_in('a.date_in', $permit_yes);
+            $this->db->group_by('date_in');
+            $attandances = $this->db->get()->result_array();
+
+            $attandance_amount = 0;
+            foreach ($attandances as $attandance) {
+                $attandance_amount++;
             }
-            $attandance = $this->db->get()->row();
-            $attandance_amount = empty($attandance->amount) ? 0 : $attandance->amount;
-
-            $employee_id = $record['id'];
-            //cash carries
-            $cash_carries = $this->crud->query("SELECT
-                a.employee_id,
-                a.trans_date,
-                a.duration_hour,
-                a.meal,
-                COALESCE(h.weekday, 0) as total_weekday,
-                COALESCE(h.sunday, 0) as total_sunday,
-                COALESCE(h.saturday, 0) as total_saturday,
-                COALESCE(h.holiday, 0) as total_holiday,
-                COALESCE(h.meal, 0) as total_meal,
-                f.days 
-            FROM cash_carries a 
-            JOIN employees b ON a.employee_id = b.id
-            JOIN shift_employees d ON a.employee_id = d.employee_id
-            JOIN shifts e ON e.id = d.shift_id
-            JOIN shift_details f ON e.id = f.shift_id
-            JOIN setup_cash_carries g ON a.employee_id = g.employee_id
-            JOIN allowance_cash_carries h ON g.allowance_id = h.id
-            WHERE a.employee_id = '$employee_id' and a.trans_date between '$filter_from' and '$filter_to'
-            GROUP BY a.employee_id, a.trans_date");
-
-            $overtime_weekday = 0;
-            $overtime_convert_weekday = 0;
-            $overtime_amount_weekday = 0;
-            $overtime_holiday = 0;
-            $overtime_convert_holiday = 0;
-            $overtime_amount_holiday = 0;
-            foreach ($cash_carries as $cash_carry) {
-                $this->db->select('trans_date');
-                $this->db->from('calendars');
-                $this->db->where('trans_date', $cash_carry->trans_date);
-                $calendars = $this->db->get()->result_array();
-
-                $this->db->select("*, SUM(duration_hour) as total_duration");
-                $this->db->from('cash_carries');
-                $this->db->where('employee_id', $cash_carry->employee_id);
-                $this->db->where('trans_date', $cash_carry->trans_date);
-                $this->db->group_by('employee_id');
-                $this->db->group_by('trans_date');
-                $cash_carry2 = $this->db->get()->row();
-
-                $start = strtotime($cash_carry->trans_date);
-                $hour = $cash_carry2->total_duration;
-
-                //Validasi Uang makan
-                if ($cash_carry->meal == 0 or @$cash_carry->time_in == "") {
-                    $meal = 0;
-                } else {
-                    $meal = @$cash_carry->total_meal;
-                }
-
-                if (@$cash_carry->days == "5") {
-                    if (date('w', $start) !== '0' && date('w', $start) !== '6') {
-
-                        //Kalo ada tanggal Merah
-                        if (count($calendars) > 0) {
-                            $overtime_holiday += 1;
-                            $overtime_convert_holiday += $hour;
-                            $overtime_amount_holiday += ((@$cash_carry->total_holiday * $hour) + $meal);
-                        } else {
-                            $overtime_weekday += 1;
-                            $overtime_convert_weekday += $hour;
-                            $overtime_amount_weekday += ((@$cash_carry->total_weekday * $hour) + $meal);
-                        }
-                    } else {
-                        if (date('w', $start) === '0') {
-                            $overtime_holiday += 1;
-                            $overtime_convert_holiday += $hour;
-                            $overtime_amount_holiday += ((@$cash_carry->total_sunday * $hour) + $meal);
-                        } else {
-                            $overtime_holiday += 1;
-                            $overtime_convert_holiday += $hour;
-                            $overtime_amount_holiday += ((@$cash_carry->total_saturday * $hour) + $meal);
-                        }
-                    }
-                } else {
-                    if (date('w', $start) !== '0') {
-
-                        //Kalo ada tanggal Merah
-                        if (count($calendars) > 0) {
-                            $overtime_holiday += 1;
-                            $overtime_convert_holiday += $hour;
-                            $overtime_amount_holiday += ((@$cash_carry->total_holiday * $hour) + $meal);
-                        } else {
-                            $overtime_weekday += 1;
-                            $overtime_convert_weekday += $hour;
-                            $overtime_amount_weekday += ((@$cash_carry->total_weekday * $hour) + $meal);
-                        }
-                    } else {
-                        if (date('w', $start) === '0') {
-                            $overtime_holiday += 1;
-                            $overtime_convert_holiday += $hour;
-                            $overtime_amount_holiday += ((@$cash_carry->total_sunday * $hour) + $meal);
-                        } else {
-                            $overtime_holiday += 1;
-                            $overtime_convert_holiday += $hour;
-                            $overtime_amount_holiday += ((@$cash_carry->total_saturday * $hour) + $meal);
-                        }
-                    }
-                }
-            }
-
-            $total_overtime = ($overtime_weekday + $overtime_holiday);
-            $total_overtime_convert = ($overtime_convert_weekday + $overtime_convert_holiday);
-            $total_overtime_amount = ($overtime_amount_weekday + $overtime_amount_holiday);
-
+            
+            //Hitung HKW atau jumlah hari kerja
             $hkw = (@count($weekday_day) - @$calendar_amount);
-            if ($record['group_id'] == '20231020000004' || $record['group_id'] == '20231020000003') { //jika harian lepas-magang atau operator
-                $absen = (@$arr_total_permit_absence_no);
-                //Hitung Hari dia masuk kerja
-                $working_days = ($attandance_amount + @$changeDays_amount - $arr_total_permit_absence_no);
-            } else {
-                $absen = (@count($weekday_day) - @$calendar_amount - @$attandance_amount - @$changeDays_amount - @$arr_total_permit_absence_no - $arr_total_permit_absence);
-                //Hitung Hari dia masuk kerja
-                $working_days = ($attandance_amount + $arr_total_permit_absence + @$changeDays_amount);
-            }
 
+            //Hitung bereapa hari dia ga ada absen
+            $absen = (@count($weekday_day) - @$calendar_amount - @$attandance_amount - @$changeDays_amount - @$arr_total_permit_absence_no - $arr_total_permit_absence);
+
+            //Hitung Hari dia masuk kerja
+            $working_days = ($attandance_amount + $arr_total_permit_absence + $changeDays_amount);
 
             //Jika hari kerja nya lebih besar dari HKW maka nilai ambil HKW
             if ($working_days >= $hkw) {
@@ -627,14 +522,13 @@ class Payrolls extends CI_Controller
             $arr_allowance_amount = "";
             $arr_allowance_amount_total = 0;
             $arr_allowance_amount_total_bpjs = 0;
-            $arr_allowance_amount_total_bpjs_employee = 0;
             $arr_allowance_amount_number = 0;
             $count_allowance_number = 0;
             foreach ($r_allowance as $allowance_data) {
                 if ($allowance_data['calculate_days'] == "1") {
                     $arr_allowance_number .= strtolower($allowance_data['number']) . ",";
-                    $arr_allowance_amount .= ($allowance_data['amount'] * $hkw) . ",";
-                    $arr_allowance_amount_total += ($allowance_data['amount'] * $hkw);
+                    $arr_allowance_amount .= ($allowance_data['amount'] * $masuk) . ",";
+                    $arr_allowance_amount_total += ($allowance_data['amount'] * $masuk);
                 } else {
                     $arr_allowance_number .= strtolower($allowance_data['number']) . ",";
                     $arr_allowance_amount .= $allowance_data['amount'] . ",";
@@ -643,11 +537,10 @@ class Payrolls extends CI_Controller
 
                 if ($allowance_data['type'] == "TEMPORARY" && $allowance_data['amount'] > 0) {
                     $arr_allowance_amount_total_bpjs += 0;
-                    $arr_allowance_amount_total_bpjs_employee += 0;
                     $count_allowance_number += 1;
 
                     if ($allowance_data['calculate_days'] == "1") {
-                        $arr_allowance_amount_number += ($allowance_data['amount'] * $hkw);
+                        $arr_allowance_amount_number += ($allowance_data['amount'] * $masuk);
                     } else {
                         $arr_allowance_amount_number += ($allowance_data['amount']);
                     }
@@ -655,12 +548,8 @@ class Payrolls extends CI_Controller
                     $arr_allowance_amount_total_bpjs += ($allowance_data['amount']);
                     $count_allowance_number += 0;
                     $arr_allowance_amount_number += 0;
-                    if ($allowance_data['number'] == 'TT-LDR01') {
-                        $arr_allowance_amount_total_bpjs_employee += ($allowance_data['amount']);
-                    }
                 } else {
                     $arr_allowance_amount_total_bpjs += 0;
-                    $arr_allowance_amount_total_bpjs_employee += 0;
                     $count_allowance_number += 0;
                     $arr_allowance_amount_number += 0;
                 }
@@ -706,8 +595,8 @@ class Payrolls extends CI_Controller
                 } elseif ($record['jamsostek'] == "" && $record['jkn'] != "") {
                     if ($bpjs_emp_data->number == "BPJS") {
                         if ($record['bpjs'] == "0") {
-                            $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs_employee) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
-                            $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs_employee) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
+                            $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
+                            $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
                         } else {
                             $arr_bpjs_emp_amount .= round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
                             $arr_bpjs_emp_amount_total += round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
@@ -718,13 +607,13 @@ class Payrolls extends CI_Controller
                     }
                 } elseif ($record['jamsostek'] != "" && $record['jkn'] == "") {
                     if ($bpjs_emp_data->number != "BPJS") {
-                        if ($record['bpjs'] == "0") {
-                            $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs_employee) * ($bpjs_emp_data->employee / 100))) . ",";
-                            $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs_employee) * ($bpjs_emp_data->employee / 100)));
-                        } else {
-                            $arr_bpjs_emp_amount .= round(($record['bpjs'] * ($bpjs_emp_data->employee / 100))) . ",";
-                            $arr_bpjs_emp_amount_total += round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)));
-                        }
+                        // if ($record['bpjs'] == "0") {
+                            $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100))) . ",";
+                            $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)));
+                        // } else {
+                        //     $arr_bpjs_emp_amount .= round(($record['bpjs'] * ($bpjs_emp_data->employee / 100))) . ",";
+                        //     $arr_bpjs_emp_amount_total += round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)));
+                        // }
                     } else {
                         $arr_bpjs_emp_amount .= 0 . ",";
                         $arr_bpjs_emp_amount_total += 0;
@@ -732,20 +621,15 @@ class Payrolls extends CI_Controller
                 } else {
                     if ($bpjs_emp_data->number == "BPJS") {
                         if ($record['bpjs'] == "0") {
-                            $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs_employee) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
-                            $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs_employee) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
+                            $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
+                            $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
                         } else {
                             $arr_bpjs_emp_amount .= round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
                             $arr_bpjs_emp_amount_total += round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
                         }
                     } else {
-                        if ($record['bpjs'] == "0") {
-                            $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs_employee) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
-                            $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs_employee) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
-                        } else {
-                            $arr_bpjs_emp_amount .= round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
-                            $arr_bpjs_emp_amount_total += round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
-                        }
+                        $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100))) . ",";
+                        $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)));
                     }
                 }
             }
@@ -760,6 +644,7 @@ class Payrolls extends CI_Controller
             $arr_bpjs_com_number = "";
             $arr_bpjs_com_amount = "";
             $arr_bpjs_com_amount_total = 0;
+            $arr_bpjs_com_amount_total_ter = 0;
             $arr_bpjs_com_amount_salary_total = 0;
             $arr_bpjs_com_amount_jabatan_total = 0;
             foreach ($r_bpjs_com as $bpjs_com_data) {
@@ -768,6 +653,7 @@ class Payrolls extends CI_Controller
                 if ($record['jamsostek'] == "" && $record['jkn'] == "") {
                     $arr_bpjs_com_amount .= 0 . ",";
                     $arr_bpjs_com_amount_total += 0;
+                    $arr_bpjs_com_amount_total_ter += 0;
                     $arr_bpjs_com_amount_salary_total += 0;
                     $arr_bpjs_com_amount_jabatan_total += 0;
                 } elseif ($record['jamsostek'] == "" && $record['jkn'] != "") {
@@ -775,114 +661,82 @@ class Payrolls extends CI_Controller
                         if ($record['bpjs'] == "0") {
                             $arr_bpjs_com_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']) . ",";
                             $arr_bpjs_com_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
+                            $arr_bpjs_com_amount_total_ter += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
                             $arr_bpjs_com_amount_salary_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
                             $arr_bpjs_com_amount_jabatan_total += 0;
                         } else {
                             $arr_bpjs_com_amount .= round((($record['bpjs']) * ($bpjs_com_data->company / 100))) . ",";
                             $arr_bpjs_com_amount_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
+                            $arr_bpjs_com_amount_total_ter += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_salary_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_jabatan_total += 0;
                         }
                     } else {
                         $arr_bpjs_com_amount .= 0 . ",";
                         $arr_bpjs_com_amount_total += 0;
+                        $arr_bpjs_com_amount_total_ter += 0;
                         $arr_bpjs_com_amount_salary_total += 0;
                         $arr_bpjs_com_amount_jabatan_total += 0;
                     }
                 } elseif ($record['jamsostek'] != "" && $record['jkn'] == "") {
                     if ($bpjs_com_data->number != "BPJS") {
-                        if ($record['bpjs'] == "0") {
-                            $arr_bpjs_com_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100))) . ",";
-                            $arr_bpjs_com_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
-
-                            //Perhitungan PPH Salary - Jabatan
-                            if ($bpjs_com_data->number == "JKK") {
-                                $arr_bpjs_com_amount_salary_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
-                                $arr_bpjs_com_amount_jabatan_total += 0;
-                            } elseif ($bpjs_com_data->number == "JKM") {
-                                $arr_bpjs_com_amount_salary_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
-                                $arr_bpjs_com_amount_jabatan_total += 0;
-                            } elseif ($bpjs_com_data->number == "JHT") {
-                                $arr_bpjs_com_amount_salary_total += 0;
-                                $arr_bpjs_com_amount_jabatan_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
-                            } elseif ($bpjs_com_data->number == "JP") {
-                                $arr_bpjs_com_amount_salary_total += 0;
-                                $arr_bpjs_com_amount_jabatan_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
-                            } else {
-                                $arr_bpjs_com_amount_salary_total += 0;
-                                $arr_bpjs_com_amount_jabatan_total += 0;
-                            }
-                        } else {
-                            $arr_bpjs_com_amount .= round((($record['bpjs']) * ($bpjs_com_data->company / 100))) . ",";
-                            $arr_bpjs_com_amount_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
-
-                            //Perhitungan PPH Salary - Jabatan
-                            if ($bpjs_com_data->number == "JKK") {
-                                $arr_bpjs_com_amount_salary_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
-                                $arr_bpjs_com_amount_jabatan_total += 0;
-                            } elseif ($bpjs_com_data->number == "JKM") {
-                                $arr_bpjs_com_amount_salary_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
-                                $arr_bpjs_com_amount_jabatan_total += 0;
-                            } elseif ($bpjs_com_data->number == "JHT") {
-                                $arr_bpjs_com_amount_salary_total += 0;
-                                $arr_bpjs_com_amount_jabatan_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
-                            } elseif ($bpjs_com_data->number == "JP") {
-                                $arr_bpjs_com_amount_salary_total += 0;
-                                $arr_bpjs_com_amount_jabatan_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
-                            } else {
-                                $arr_bpjs_com_amount_salary_total += 0;
-                                $arr_bpjs_com_amount_jabatan_total += 0;
-                            }
-                        }
-                    } else {
-                        $arr_bpjs_com_amount .= 0 . ",";
-                        $arr_bpjs_com_amount_total += 0;
-                        $arr_bpjs_com_amount_salary_total += 0;
-                        $arr_bpjs_com_amount_jabatan_total += 0;
-                    }
-                } else {
-                    if ($record['bpjs'] == "0") {
                         $arr_bpjs_com_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100))) . ",";
                         $arr_bpjs_com_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
 
                         //Perhitungan PPH Salary - Jabatan
                         if ($bpjs_com_data->number == "JKK") {
+                            $arr_bpjs_com_amount_total_ter += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_salary_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_jabatan_total += 0;
                         } elseif ($bpjs_com_data->number == "JKM") {
+                            $arr_bpjs_com_amount_total_ter += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_salary_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_jabatan_total += 0;
                         } elseif ($bpjs_com_data->number == "JHT") {
+                            $arr_bpjs_com_amount_total_ter += 0;
                             $arr_bpjs_com_amount_salary_total += 0;
                             $arr_bpjs_com_amount_jabatan_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
                         } elseif ($bpjs_com_data->number == "JP") {
+                            $arr_bpjs_com_amount_total_ter += 0;
                             $arr_bpjs_com_amount_salary_total += 0;
                             $arr_bpjs_com_amount_jabatan_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
                         } else {
+                            $arr_bpjs_com_amount_total_ter += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_salary_total += 0;
                             $arr_bpjs_com_amount_jabatan_total += 0;
                         }
                     } else {
-                        $arr_bpjs_com_amount .= round((($record['bpjs']) * ($bpjs_com_data->company / 100))) . ",";
-                        $arr_bpjs_com_amount_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
+                        $arr_bpjs_com_amount .= 0 . ",";
+                        $arr_bpjs_com_amount_total += 0;
+                        $arr_bpjs_com_amount_total_ter += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
+                        $arr_bpjs_com_amount_salary_total += 0;
+                        $arr_bpjs_com_amount_jabatan_total += 0;
+                    }
+                } else {
+                    $arr_bpjs_com_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100))) . ",";
+                    $arr_bpjs_com_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
 
-                        //Perhitungan PPH Salary - Jabatan
-                        if ($bpjs_com_data->number == "JKK") {
-                            $arr_bpjs_com_amount_salary_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
-                            $arr_bpjs_com_amount_jabatan_total += 0;
-                        } elseif ($bpjs_com_data->number == "JKM") {
-                            $arr_bpjs_com_amount_salary_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
-                            $arr_bpjs_com_amount_jabatan_total += 0;
-                        } elseif ($bpjs_com_data->number == "JHT") {
-                            $arr_bpjs_com_amount_salary_total += 0;
-                            $arr_bpjs_com_amount_jabatan_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
-                        } elseif ($bpjs_com_data->number == "JP") {
-                            $arr_bpjs_com_amount_salary_total += 0;
-                            $arr_bpjs_com_amount_jabatan_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
-                        } else {
-                            $arr_bpjs_com_amount_salary_total += 0;
-                            $arr_bpjs_com_amount_jabatan_total += 0;
-                        }
+                    //Perhitungan PPH Salary - Jabatan
+                    if ($bpjs_com_data->number == "JKK") {
+                        $arr_bpjs_com_amount_total_ter += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
+                        $arr_bpjs_com_amount_salary_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
+                        $arr_bpjs_com_amount_jabatan_total += 0;
+                    } elseif ($bpjs_com_data->number == "JKM") {
+                        $arr_bpjs_com_amount_total_ter += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
+                        $arr_bpjs_com_amount_salary_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
+                        $arr_bpjs_com_amount_jabatan_total += 0;
+                    } elseif ($bpjs_com_data->number == "JHT") {
+                        $arr_bpjs_com_amount_total_ter += 0;
+                        $arr_bpjs_com_amount_salary_total += 0;
+                        $arr_bpjs_com_amount_jabatan_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
+                    } elseif ($bpjs_com_data->number == "JP") {
+                        $arr_bpjs_com_amount_total_ter += 0;
+                        $arr_bpjs_com_amount_salary_total += 0;
+                        $arr_bpjs_com_amount_jabatan_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
+                    } else {
+                        $arr_bpjs_com_amount_total_ter += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)));
+                        $arr_bpjs_com_amount_salary_total += 0;
+                        $arr_bpjs_com_amount_jabatan_total += 0;
                     }
                 }
             }
@@ -923,8 +777,10 @@ class Payrolls extends CI_Controller
                 // @$arr_permit_type_amount_b_total += round(($record['salary'] / 30) * $arr_permit_type_amount_qty) . ",";
 
                 if ($record['group_name'] == "MAGANG") {
-                    $arr_permit_type_amount .= round((($record['salary'] - $arr_deduction_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
-                    @$arr_permit_type_amount_b_total += round((($record['salary'] - $arr_deduction_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
+                    // $arr_permit_type_amount .= round((($record['salary'] - $arr_deduction_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
+                    // @$arr_permit_type_amount_b_total += round((($record['salary'] - $arr_deduction_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
+                    $arr_permit_type_amount .= round(($record['salary'] / $hkw) * $arr_permit_type_amount_qty) . ",";
+                    @$arr_permit_type_amount_b_total += round(($record['salary'] / $hkw) * $arr_permit_type_amount_qty) . ",";
                 } elseif ($count_allowance_number > 0) {
                     $arr_permit_type_amount .= round(($arr_allowance_amount_number / $hkw) * $arr_permit_type_amount_qty) . ",";
                     @$arr_permit_type_amount_b_total += round(($arr_allowance_amount_number / $hkw) * $arr_permit_type_amount_qty) . ",";
@@ -957,7 +813,7 @@ class Payrolls extends CI_Controller
 
             //Harga Potong Gaji kalo dia ga masuk kerja
             if ($record['group_name'] == "MAGANG") {
-                $absence_amount = round((($record['salary'] - $arr_deduction_amount_total) / $hkw) * $absence_qty_final);
+                $absence_amount = round(($record['salary'] / $hkw) * $absence_qty_final);
             } elseif ($count_allowance_number > 0) {
                 $absence_amount = round(($arr_allowance_amount_number / $hkw) * $absence_qty_final);
             } else {
@@ -965,7 +821,8 @@ class Payrolls extends CI_Controller
             }
 
             //Total Pendapatan Gaji (Gaji + Tunjangan + BPJS dari perusahaan + Koreksi plus + lembur hari biasa + lembur hari libur)
-            $total_all_allowance = ($record['salary'] + $arr_allowance_amount_total + $arr_bpjs_com_amount_total + @$correction_plus_amount + $total_overtime_amount);
+            $total_all_allowance = ($record['salary'] + $arr_allowance_amount_total + $arr_bpjs_com_amount_total + @$correction_plus_amount);
+            $total_all_allowance_ter = ($record['salary'] + $arr_allowance_amount_total + $arr_bpjs_com_amount_total_ter + @$correction_plus_amount);
 
             //Total Potongan Gaji (Ijin/Sakit + Koreksi Minus + alpha)
             $total_all_deduction = ($arr_permit_type_amount_b_total + @$correction_minus_amount + $absence_amount);
@@ -999,6 +856,28 @@ class Payrolls extends CI_Controller
             //     "hasil_akhir" => $pph_pasal . " (pph_debt / 12)",
             // )));
 
+            if($record['gender'] == "FEMALE"){
+                $ter_type = "A";
+            }else{
+                $ter_type = $record['ter_type'];
+            }
+
+            //Rumus TER
+            $this->db->select("number, ter");
+            $this->db->from('marital_categories');
+            $this->db->where('ter_from <', $total_all_allowance_ter);
+            $this->db->where('ter_to >', $total_all_allowance_ter);
+            $this->db->where('type', $ter_type);
+            $marital_category = $this->db->get()->row();
+            
+            if(empty($marital_category)){
+                $ter_number = "-";
+                $ter = 0;
+            }else{
+                $ter_number = $marital_category->number;
+                $ter = (($total_all_allowance_ter * $marital_category->ter) / 100);
+            }
+
             //Kalo gaji per tahun nya lebih dari master ptkp
             if ($netto_year >= @$r_ptkp->amount) {
                 //jika npwp nya kosong maka kena potongan 120%
@@ -1010,23 +889,6 @@ class Payrolls extends CI_Controller
                 //kalo kurang ga kena pajak pph
             } else {
                 $pph_final = 0;
-            }
-
-            //Rumus TER
-            $this->db->select("number, ter");
-            $this->db->from('marital_categories');
-            $this->db->where('ter_from <', $total_all_allowance);
-            $this->db->where('ter_to >', $total_all_allowance);
-            $this->db->where('type', $record['ter_type']);
-            $marital_category = $this->db->get()->row();
-
-
-            if (empty($marital_category)) {
-                $ter_number = "-";
-                $ter = 0;
-            } else {
-                $ter_number = $marital_category->number;
-                $ter = (($total_all_allowance * $marital_category->ter) / 100);
             }
 
             //Total keseluruhan
@@ -1056,24 +918,24 @@ class Payrolls extends CI_Controller
                 "shift_name" => $record['shift_name_2'],
                 "attandance" => json_encode($arr_permit_combine),
                 "attandance_wd" => ($masuk),
-                "working_day" => $hkw,
+                "working_day" => @count($weekday_day) - @$calendar_amount,
                 "salary" => $record['salary'],
                 "allowence" => json_encode($arr_allowance_combine),
                 "bpjs_company" => json_encode($arr_bpjs_com_combine),
                 "bpjs_company_total" => $arr_bpjs_com_amount_total,
                 "correction_plus" => @$correction_plus_amount,
-                "overtime_weekday" => $overtime_weekday,
-                "overtime_convert_weekday" => $overtime_convert_weekday,
-                "overtime_amount_weekday" => $overtime_amount_weekday,
-                "overtime_holiday" => $overtime_holiday,
-                "overtime_convert_holiday" => $overtime_convert_holiday,
-                "overtime_amount_holiday" => $overtime_amount_holiday,
+                "overtime_weekday" => 0,
+                "overtime_convert_weekday" => 0,
+                "overtime_amount_weekday" => 0,
+                "overtime_holiday" => 0,
+                "overtime_convert_holiday" => 0,
+                "overtime_amount_holiday" => 0,
                 "overtime_correction" => 0,
                 "overtime_convert_correction" => 0,
                 "overtime_amount_correction" => 0,
-                "total_overtime" => $total_overtime,
-                "total_overtime_convert" => $total_overtime_convert,
-                "total_overtime_amount" => $total_overtime_amount,
+                "total_overtime" => 0,
+                "total_overtime_convert" => 0,
+                "total_overtime_amount" => 0,
                 "total_all_allowance" => $total_all_allowance,
                 "deduction_number" => json_encode($arr_permit_type_combine_b),
                 "deduction_amount" => json_encode($arr_permit_type_combine),
@@ -1191,7 +1053,7 @@ class Payrolls extends CI_Controller
 
         $permit_type = $this->crud->reads('permit_types', [], ['payroll' => 'NON DEDUCTION']);
         $allowance = $this->crud->reads('allowances', [], [], "", "name", "asc");
-        $deduction = $this->crud->reads('deductions');
+        $deduction = $this->crud->reads('deductions', [], [], "", "name", "asc");
         $permit_type_d = $this->crud->reads('permit_types', [], ['payroll' => 'DEDUCTION']);
         $bpjs = $this->crud->reads('bpjs', ['status' => 0]);
 
@@ -1203,25 +1065,37 @@ class Payrolls extends CI_Controller
         $filter_employee = $this->input->get('filter_employee');
         $filter_employee_type = $this->input->get('filter_employee_type');
         $filter_group = $this->input->get('filter_group');
+        $filter_status = $this->input->get('filter_status');
         $username = $this->session->username;
 
         $period_start = date("Y-m", strtotime($filter_from));
         $period_end = date("Y-m", strtotime($filter_to));
 
-        $query = $this->db->query("SELECT a.*, b.national_id, d.name as source_name, e.ter as ter_persentase FROM payrolls a
-                JOIN employees b on a.employee_id = b.id
-                LEFT JOIN sources d on b.source_id = d.id
-                LEFT JOIN marital_categories e ON a.ter_number = e.number
-                JOIN privilege_groups c ON b.group_id = c.group_id and c.username = '$username' and c.status = '1'
-                WHERE a.period_start = '$period_start' 
-                AND a.period_end = '$period_end'
-                AND b.division_id LIKE '%$filter_division%'
-                AND b.departement_id LIKE '%$filter_departement%'
-                AND b.departement_sub_id LIKE '%$filter_departement_sub%'
-                AND a.employee_id LIKE '%$filter_employee%'
-                AND b.contract_id LIKE '%$filter_employee_type%'
-                AND b.group_id LIKE '%$filter_group%'
-                ORDER BY a.name ASC");
+        if($filter_status == "0"){
+            $where_status = "AND e.employee_id IS NULL";
+        }elseif($filter_status == "1"){
+            $where_status = "AND e.employee_id IS NOT NULL";
+        }else{
+            $where_status = "";
+        }
+
+        $query = $this->db->query("SELECT a.*, b.national_id, d.name as source_name, e.employee_id as status_resign, g.number as account_no FROM payrolls a
+            JOIN employees b on a.employee_id = b.id
+            LEFT JOIN sources d on b.source_id = d.id
+            JOIN privilege_groups c ON b.group_id = c.group_id and c.username = '$username' and c.status = '1'
+            LEFT JOIN resignations e ON b.id = e.employee_id
+            LEFT JOIN account_coa f ON b.division_id = f.division_id and b.departement_id = f.departement_id and b.position_id = f.position_id and b.contract_id = f.contract_id
+            LEFT JOIN accounts g ON f.account_id = g.id and g.category = 'payroll'
+            WHERE a.period_start = '$period_start' $where_status
+            AND a.period_end = '$period_end'
+            AND b.division_id LIKE '%$filter_division%'
+            AND b.departement_id LIKE '%$filter_departement%'
+            AND b.departement_sub_id LIKE '%$filter_departement_sub%'
+            AND a.employee_id LIKE '%$filter_employee%'
+            AND b.contract_id LIKE '%$filter_employee_type%'
+            AND b.group_id LIKE '%$filter_group%'
+            GROUP BY a.employee_id
+            ORDER BY a.name ASC");
         $records = $query->result_array();
 
         //Config
@@ -1262,6 +1136,7 @@ class Payrolls extends CI_Controller
                 <th rowspan="2" width="20">No</th>
                 <th rowspan="2">Employee ID</th>
                 <th rowspan="2">Employee Name</th>
+                <th rowspan="2">Status</th>
                 <th rowspan="2">Division</th>
                 <th rowspan="2">Departement</th>
                 <th rowspan="2">Departement Sub</th>
@@ -1273,10 +1148,10 @@ class Payrolls extends CI_Controller
                 <th rowspan="2">Level</th>
                 <th rowspan="2">Marital</th>
                 <th rowspan="2">TER Code</th>
-                <th rowspan="2">TER %</th>
                 <th rowspan="2">Group</th>
                 <th rowspan="2">National ID</th>
                 <th rowspan="2">NPWP</th>
+                <th rowspan="2">Account No</th>
                 <th colspan="' . (count($permit_type) + 1) . '">Attandance</th>
                 <th rowspan="2">Working Calendar</th>
                 <th rowspan="2">Salary</th>
@@ -1339,10 +1214,17 @@ class Payrolls extends CI_Controller
 
         $no = 1;
         foreach ($records as $record) {
+            if(empty($record['status_resign'])){
+                $status_resign = "ACTIVE";
+            }else{
+                $status_resign = "NOT ACTIVE";
+            }
+
             $html .= '<tr>
                     <td>' . $no . '</td>
                     <td class="str">' . $record['number'] . '</td>
                     <td>' . $record['name'] . '</td>
+                    <td>' . $status_resign . '</td>
                     <td>' . $record['division_name'] . '</td>
                     <td>' . $record['departement_name'] . '</td>
                     <td>' . $record['departement_sub_name'] . '</td>
@@ -1354,10 +1236,10 @@ class Payrolls extends CI_Controller
                     <td>' . $record['level'] . '</td>
                     <td>' . $record['marital'] . '</td>
                     <td>' . $record['ter_number'] . '</td>
-                    <td>' . $record['ter_persentase'] . '</td>
                     <td>' . $record['group_name'] . '</td>
                     <td class="str">' . $record['national_id'] . '</td>
-                    <td>' . $record['tax_id'] . '</td>';
+                    <td class="str">' . $record['tax_id'] . '</td>
+                    <td>' . $record['account_no'] . '</td>';
             foreach (json_decode($record['attandance'], true) as $attandance => $val_attandance) {
                 $html .= '<td>' . $val_attandance . '</td>';
             }
@@ -1406,7 +1288,6 @@ class Payrolls extends CI_Controller
                 $html .= '<td>' . $val_bpjs_employee . '</td>';
             }
             $html .= '<td>' . $record['bpjs_employee_total'] . '</td>';
-            // $html .= '<td>' . $record['pph'] . '</td>';
             $html .= '<td>' . $record['ter'] . '</td>';
             $html .= '<td>' . $record['net_income'] . '</td>';
             $no++;

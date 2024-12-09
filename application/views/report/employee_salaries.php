@@ -39,7 +39,6 @@
                     <span style="width:35%; display:inline-block;">Bank Name</span>
                     <select style="width:60%;" name="filter_bank" id="filter_bank" class="easyui-combobox">
                         <option value="-">Cash</option>
-                        <option value="Bank BJB">Bank BJB</option>
                         <option value="Bank Mandiri">Bank Mandiri</option>
                         <option value="Bank Syariah Indonesia">Bank Syariah Indonesia</option>
                         <option value="Bank Central Asia">Bank Central Asia</option>

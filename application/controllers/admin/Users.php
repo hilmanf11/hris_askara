@@ -65,16 +65,21 @@ class Users extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
             //Select Query
-            $this->db->select('*');
-            $this->db->from('users');
-            $this->db->where('deleted', 0);
+            $this->db->select('a.*, b.name as departement_name');
+            $this->db->from('users a');
+            $this->db->join('departements b', 'a.departement_id = b.id', 'left');
+            $this->db->where('a.deleted', 0);
             //Filter Automatic
             if (@count($filters) > 0) {
                 foreach ($filters as $filter) {
-                    $this->db->like($filter->field, $filter->value);
+                    if($filter->field == "departement_name"){
+                        $this->db->like("b.name", $filter->value);
+                    }else{
+                        $this->db->like("a.".$filter->field, $filter->value);
+                    }
                 }
             }
-            $this->db->order_by('name', 'ASC');
+            $this->db->order_by('a.name', 'ASC');
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
             //Limit 1 - 10

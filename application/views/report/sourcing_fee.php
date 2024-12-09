@@ -45,7 +45,7 @@
         var filter_group = $("#filter_group").combobox('getValue');
         var filter_source = $("#filter_source").combobox('getValue');
 
-        if (filter_from == "" || filter_to == "" || filter_group == "") {
+        if (filter_from == "" || filter_to == "") {
             toastr.warning("Please Choose Filter Date and Group");
         } else {
             var url = "?filter_from=" + filter_from +
@@ -64,7 +64,7 @@
         var filter_group = $("#filter_group").combobox('getValue');
         var filter_source = $("#filter_source").combobox('getValue');
 
-        if (filter_from == "" || filter_to == "" || filter_group == "") {
+        if (filter_from == "" || filter_to == "") {
             toastr.warning("Please Choose Filter Date and Group");
         } else {
             var url = "?filter_from=" + filter_from +

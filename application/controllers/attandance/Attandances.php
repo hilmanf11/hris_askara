@@ -138,8 +138,8 @@ class Attandances extends CI_Controller
     function formatTanggal($date)
     {
         // menggunakan class Datetime
-        $datetime = DateTime::createFromFormat('d/m/Y H.i.s', $date);
-        return @$datetime->format('Y-m-d H:i:s');
+        $datetime = DateTime::createFromFormat('d/m/Y', $date);
+        return @$datetime->format('Y-m-d');
     }
 
     public function create_temp($number, $date, $time)
@@ -210,13 +210,12 @@ class Attandances extends CI_Controller
             $total_row = $data->rowcount($sheet_index = 0);
 
             for ($i = 2; $i <= $total_row; $i++) {
-                $datein = explode(" ", $data->val($i, 4));
+                $datein = explode(";", $data->val($i, 4));
                 $datas[] = array(
                     'lokasi' => $data->val($i, 5),
-                    'barcode' => trim($data->val($i, 3)),
-                    'date_in' => $data->val($i, 4),
-                    'date_out' => $data->val($i, 4),
-                    'pin' => $data->val($i, 6)
+                    'number' => trim($data->val($i, 6)),
+                    'date_in' => $datein[0] . " " . $datein[1],
+                    'date_out' => $datein[0] . " " . $datein[1]
                 );
                 //$this->create_temp(trim($data->val($i, 6)), trim(date('Y-m-d', strtotime($data->val($i, 4)))), trim(date('H:i:s', strtotime($data->val($i, 4)))));
             }
@@ -274,6 +273,157 @@ class Attandances extends CI_Controller
         @readfile($file);
     }
 
+    public function uploadcreate()
+    {
+        if ($this->input->post()) {
+            $data = $this->input->post('data');
+            $explode = explode(" ", $data['date_in']);
+            $date_in = $this->formatTanggal($explode[0]);
+            $time_in = $explode[1];
+
+            //Employee
+            $this->db->select('*');
+            $this->db->from('employees');
+            $this->db->where('number', $data['number']);
+            $employee = $this->db->get()->row();
+
+            //Jika Terdaftar di master employee
+            if (!empty($employee->number)) {
+                if ($data['lokasi'] == 1) {
+
+                    //Attandance
+                    $this->db->select('*');
+                    $this->db->from('attandances');
+                    $this->db->where('number', $data['number']);
+                    $this->db->where("date_in = '$date_in'");
+                    $attandance_in = $this->db->get()->row();
+
+                    $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$time_in)));
+                    $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$time_in)));
+                    $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
+                    $this->db->from('shift_employees b');
+                    $this->db->join('shifts c', 'c.id = b.shift_id');
+                    $this->db->join('shift_details d', 'd.shift_id = c.id');
+                    $this->db->where('b.employee_id', $employee->id);
+                    $this->db->where("TIME(d.start) >=  TIME('$tolerance_hour_min') && TIME(d.start) <= TIME('$tolerance_hour_plus')");
+                    $shift = $this->db->get()->row();
+
+                    $time_begin = strtotime($date_in . " " . $time_in);
+                    $time_end = strtotime($date_in . " " . @$shift->end);
+                    $tomorrow = date("Y-m-d", strtotime('+1 days', strtotime($date_in)));
+
+                    $diff = $time_begin - $time_end;
+                    $hour = floor($diff / (60 * 60));
+
+                    //die($date_in . " " . $tolerance_hour_plus . " - " . $date_in . " " . @$shift->end . " | " . $hour);
+                    if ($hour < 0) {
+                        $date_out = $date_in;
+                    } else {
+                        $date_out = $tomorrow;
+                    }
+
+                    if (!empty($attandance_in->number)) {
+                        $data_attandance = array(
+                            'number' => $data['number'],
+                            'date_in' => $date_in,
+                            'time_in' => $time_in,
+                            'shift_start' => @$shift->start,
+                            'shift_name' => @$shift->name,
+                            'shift_detail' => @$shift->shift_name,
+                            'shift_days' => @$shift->days,
+                            'status' => "UPLOAD",
+                        );
+
+                        $this->crud->update('attandances', ["id" => $attandance_in->id], $data_attandance);
+                        echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check In", "theme" => "success"));
+                    } else {
+                        $data_attandance = array(
+                            'number' => $data['number'],
+                            'date_in' => $date_in,
+                            'time_in' => $time_in,
+                            'date_out' => $date_out,
+                            'shift_start' => @$shift->start,
+                            'shift_name' => @$shift->name,
+                            'shift_detail' => @$shift->shift_name,
+                            'shift_days' => @$shift->days,
+                            // 'time_out' => @$shift->end,
+                            'status' => "UPLOAD",
+                        );
+                        $this->crud->create('attandances', $data_attandance);
+                        echo json_encode(array("title" => "Created", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create data Check In", "theme" => "success"));
+                    }
+                    //echo json_encode(array("title" => "Warning", "message" => $data['number'] . " Next", "theme" => "error"));
+                } else {
+                    $yesterday = date("Y-m-d", strtotime('-1 days', strtotime($date_in)));
+
+                    //Attandance
+                    $this->db->select('*');
+                    $this->db->from('attandances');
+                    $this->db->where('number', $data['number']);
+                    $this->db->where("date_out = '$date_in'");
+                    $attandance_out = $this->db->get()->row();
+
+                    $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$time_in)));
+                    $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$time_in)));
+                    $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
+                    $this->db->from('shift_employees b');
+                    $this->db->join('shifts c', 'c.id = b.shift_id');
+                    $this->db->join('shift_details d', 'd.shift_id = c.id');
+                    $this->db->where('b.employee_id', $employee->id);
+                    $this->db->where("TIME(d.end) >=  TIME('$tolerance_hour_min') && TIME(d.end) <= TIME('$tolerance_hour_plus')");
+                    $shift = $this->db->get()->row();
+
+                    $time_begin = strtotime($date_in . " " . @$shift->start);
+                    $time_end = strtotime($date_in . " " . $time_in);
+
+                    $diff = $time_begin - $time_end;
+                    $hour = floor($diff / (60 * 60));
+
+                    // die($date_in . " " . @$shift->start . " - " . $date_in . " " . @$time_in . " | " . $hour);
+                    // die($hour);
+                    if ($hour < 0) {
+                        $date_out = $date_in;
+                    } else {
+                        $date_out = $yesterday;
+                    }
+
+                    if (!empty($attandance_out->number)) {
+                        $data_attandance = array(
+                            'number' => $data['number'],
+                            'date_out' => $date_in,
+                            'time_out' => $time_in,
+                            'shift_start' => @$shift->start,
+                            'shift_name' => @$shift->name,
+                            'shift_detail' => @$shift->shift_name,
+                            'shift_days' => @$shift->days,
+                            'status' => "UPLOAD",
+                        );
+                        $this->crud->update('attandances', ["id" => $attandance_out->id], $data_attandance);
+                        echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check Out", "theme" => "success"));
+                    } else {
+                        $data_attandance = array(
+                            'number' => $data['number'],
+                            'date_in' => $date_out,
+                            // 'time_in' => @$shift->start,
+                            'date_out' => $date_in,
+                            'time_out' => $time_in,
+                            'shift_start' => @$shift->start,
+                            'shift_name' => @$shift->name,
+                            'shift_detail' => @$shift->shift_name,
+                            'shift_days' => @$shift->days,
+                            'status' => "UPLOAD",
+                        );
+                        $this->crud->create('attandances', $data_attandance);
+                        echo json_encode(array("title" => "Created", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create data Check Out", "theme" => "success"));
+                    }
+                    //echo json_encode(array("title" => "Warning", "message" => $data['number'] . " Next", "theme" => "error"));
+                }
+            } else {
+                echo json_encode(array("title" => "Warning", "message" => $data['number'] . " Empoyee ID Un Registered", "theme" => "error"));
+            }
+        }
+    }
+
     // public function uploadcreate()
     // {
     //     if ($this->input->post()) {
@@ -281,6 +431,13 @@ class Attandances extends CI_Controller
     //         $explode = explode(" ", $data['date_in']);
     //         $date_in = $this->formatTanggal($explode[0]);
     //         $time_in = $explode[1];
+
+    //         //Attandance
+    //         $this->db->select('*');
+    //         $this->db->from('attandances');
+    //         $this->db->where('number', $data['number']);
+    //         $this->db->where('date_in', $date_in);
+    //         $attandance = $this->db->get()->row();
 
     //         //Employee
     //         $this->db->select('*');
@@ -290,231 +447,42 @@ class Attandances extends CI_Controller
 
     //         //Jika Terdaftar di master employee
     //         if (!empty($employee->number)) {
-    //             if ($data['lokasi'] == 1) {
-
-    //                 //Attandance
-    //                 $this->db->select('*');
-    //                 $this->db->from('attandances');
-    //                 $this->db->where('number', $data['number']);
-    //                 $this->db->where("date_in = '$date_in'");
-    //                 $attandance_in = $this->db->get()->row();
-
-    //                 $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$time_in)));
-    //                 $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$time_in)));
-    //                 $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
-    //                 $this->db->from('shift_employees b');
-    //                 $this->db->join('shifts c', 'c.id = b.shift_id');
-    //                 $this->db->join('shift_details d', 'd.shift_id = c.id');
-    //                 $this->db->where('b.employee_id', $employee->id);
-    //                 $this->db->where("TIME(d.start) >=  TIME('$tolerance_hour_min') && TIME(d.start) <= TIME('$tolerance_hour_plus')");
-    //                 $shift = $this->db->get()->row();
-
-    //                 $time_begin = strtotime($date_in . " " . $time_in);
-    //                 $time_end = strtotime($date_in . " " . @$shift->end);
-    //                 $tomorrow = date("Y-m-d", strtotime('+1 days', strtotime($date_in)));
-
-    //                 $diff = $time_begin - $time_end;
-    //                 $hour = floor($diff / (60 * 60));
-
-    //                 //die($date_in . " " . $tolerance_hour_plus . " - " . $date_in . " " . @$shift->end . " | " . $hour);
-    //                 if ($hour < 0) {
-    //                     $date_out = $date_in;
-    //                 } else {
-    //                     $date_out = $tomorrow;
-    //                 }
-
-    //                 if (!empty($attandance_in->number)) {
-    //                     $data_attandance = array(
-    //                         'number' => $data['number'],
-    //                         'date_in' => $date_in,
-    //                         'time_in' => $time_in,
-    //                         'shift_start' => @$shift->start,
-    //                         'shift_name' => @$shift->name,
-    //                         'shift_detail' => @$shift->shift_name,
-    //                         'shift_days' => @$shift->days,
-    //                     );
-
-    //                     $this->crud->update('attandances', ["id" => $attandance_in->id], $data_attandance);
-    //                     echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check In", "theme" => "success"));
-    //                 } else {
-    //                     $data_attandance = array(
-    //                         'number' => $data['number'],
-    //                         'date_in' => $date_in,
-    //                         'time_in' => $time_in,
-    //                         'date_out' => $date_out,
-    //                         'shift_start' => @$shift->start,
-    //                         'shift_name' => @$shift->name,
-    //                         'shift_detail' => @$shift->shift_name,
-    //                         'shift_days' => @$shift->days,
-    //                         // 'time_out' => @$shift->end,
-    //                     );
-    //                     $this->crud->create('attandances', $data_attandance);
-    //                     echo json_encode(array("title" => "Created", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create data Check In", "theme" => "success"));
-    //                 }
-    //                 //echo json_encode(array("title" => "Warning", "message" => $data['number'] . " Next", "theme" => "error"));
-    //             } else {
-    //                 $yesterday = date("Y-m-d", strtotime('-1 days', strtotime($date_in)));
-
-    //                 //Attandance
-    //                 $this->db->select('*');
-    //                 $this->db->from('attandances');
-    //                 $this->db->where('number', $data['number']);
-    //                 $this->db->where("date_out = '$date_in'");
-    //                 $attandance_out = $this->db->get()->row();
-
-    //                 $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$time_in)));
-    //                 $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$time_in)));
-    //                 $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
-    //                 $this->db->from('shift_employees b');
-    //                 $this->db->join('shifts c', 'c.id = b.shift_id');
-    //                 $this->db->join('shift_details d', 'd.shift_id = c.id');
-    //                 $this->db->where('b.employee_id', $employee->id);
-    //                 $this->db->where("TIME(d.end) >=  TIME('$tolerance_hour_min') && TIME(d.end) <= TIME('$tolerance_hour_plus')");
-    //                 $shift = $this->db->get()->row();
-
-    //                 $time_begin = strtotime($date_in . " " . @$shift->start);
-    //                 $time_end = strtotime($date_in . " " . $time_in);
-
-    //                 $diff = $time_begin - $time_end;
-    //                 $hour = floor($diff / (60 * 60));
-
-    //                 // die($date_in . " " . @$shift->start . " - " . $date_in . " " . @$time_in . " | " . $hour);
-    //                 // die($hour);
-    //                 if ($hour < 0) {
-    //                     $date_out = $date_in;
-    //                 } else {
-    //                     $date_out = $yesterday;
-    //                 }
-
-    //                 if (!empty($attandance_out->number)) {
-    //                     $data_attandance = array(
-    //                         'number' => $data['number'],
-    //                         'date_out' => $date_in,
-    //                         'time_out' => $time_in,
-    //                         'shift_start' => @$shift->start,
-    //                         'shift_name' => @$shift->name,
-    //                         'shift_detail' => @$shift->shift_name,
-    //                         'shift_days' => @$shift->days,
-    //                     );
-    //                     $this->crud->update('attandances', ["id" => $attandance_out->id], $data_attandance);
-    //                     echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check Out", "theme" => "success"));
-    //                 } else {
-    //                     $data_attandance = array(
-    //                         'number' => $data['number'],
-    //                         'date_in' => $date_out,
-    //                         // 'time_in' => @$shift->start,
-    //                         'date_out' => $date_in,
-    //                         'time_out' => $time_in,
-    //                         'shift_start' => @$shift->start,
-    //                         'shift_name' => @$shift->name,
-    //                         'shift_detail' => @$shift->shift_name,
-    //                         'shift_days' => @$shift->days,
-    //                     );
-    //                     $this->crud->create('attandances', $data_attandance);
-    //                     echo json_encode(array("title" => "Created", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create data Check Out", "theme" => "success"));
-    //                 }
-    //                 //echo json_encode(array("title" => "Warning", "message" => $data['number'] . " Next", "theme" => "error"));
-    //             }
-    //         } else {
-    //             echo json_encode(array("title" => "Warning", "message" => $data['number'] . " Empoyee ID Un Registered", "theme" => "error"));
-    //         }
-    //     }
-    // }
-
-    // public function uploadcreate()
-    // {
-    //     if ($this->input->post()) {
-    //         $data = $this->input->post('data');
-    //         $formatTanggal = $this->formatTanggal($data['date_in']);
-    //         $explode = explode(" ", $formatTanggal);
-    //         $date_in = $explode[0];
-    //         $time_in = $explode[1];
-
-    //         //Employee
-    //         $this->db->select('*');
-    //         $this->db->from('employees');
-    //         $this->db->where('barcode', $data['barcode']);
-    //         $this->db->or_where('number', $data['pin']);
-    //         $employee = $this->db->get()->row();
-
-    //         if (!empty($employee->number)) {
-    //             $number = $employee->number;
-
-    //             //Attandance
-    //             $this->db->select('*');
-    //             $this->db->from('attandances');
-    //             $this->db->where('number', $number);
-    //             $this->db->where('date_in', $date_in);
-    //             $attandance = $this->db->get()->row();
-
-    //             $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$time_in)));
-    //             $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$time_in)));
-    //             $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
-    //             $this->db->from('shift_employees b');
-    //             $this->db->join('shifts c', 'c.id = b.shift_id');
-    //             $this->db->join('shift_details d', 'd.shift_id = c.id');
-    //             $this->db->where('b.employee_id', $employee->id);
-    //             $this->db->where("TIME(d.end) >=  TIME('$tolerance_hour_min') && TIME(d.end) <= TIME('$tolerance_hour_plus')");
-    //             $shift = $this->db->get()->row();
-
     //             //Jika sudah absen jam masuk
     //             if (!empty($attandance->date_in)) {
     //                 //Shift 2 check
     //                 if ((substr($attandance->time_in, 0, 2) == "00" or substr($attandance->time_in, 0, 2) == "01") and (substr($time_in, 0, 2) == "15" or substr($time_in, 0, 2) == "16")) {
     //                     $data_attandance = array(
-    //                         'number' => $number,
+    //                         'number' => $data['number'],
     //                         'date_out' => $attandance->date_in,
     //                         'time_out' => $attandance->time_in,
     //                         'date_in' => $date_in,
     //                         'time_in' => $time_in,
-    //                         'shift_start' => @$shift->start,
-    //                         'shift_end' => @$shift->end,
-    //                         'shift_name' => @$shift->name,
-    //                         'shift_detail' => @$shift->shift_name,
-    //                         'shift_days' => @$shift->days,
     //                     );
-
-    //                     $this->crud->update('attandances', ["id" => $attandance->id], $data_attandance);
-    //                     echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check In", "theme" => "success"));
-
     //                     //Shift 3 check
     //                 } elseif ((substr($attandance->time_in, 0, 2) == "08" or substr($attandance->time_in, 0, 2) == "07") and (substr($time_in, 0, 2) == "23" or substr($time_in, 0, 2) == "00")) {
     //                     $data_attandance = array(
-    //                         'number' => $number,
+    //                         'number' => $data['number'],
     //                         'date_out' => $attandance->date_in,
     //                         'time_out' => $attandance->time_in,
     //                         'date_in' => $date_in,
     //                         'time_in' => $time_in,
-    //                         'shift_start' => @$shift->start,
-    //                         'shift_end' => @$shift->end,
-    //                         'shift_name' => @$shift->name,
-    //                         'shift_detail' => @$shift->shift_name,
-    //                         'shift_days' => @$shift->days,
     //                     );
-
-    //                     $this->crud->update('attandances', ["id" => $attandance->id], $data_attandance);
-    //                     echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check In", "theme" => "success"));
     //                 } else {
     //                     $data_attandance = array(
-    //                         'number' => $number,
+    //                         'number' => $data['number'],
     //                         'date_out' => $date_in,
     //                         'time_out' => $time_in,
-    //                         'shift_start' => @$shift->start,
-    //                         'shift_end' => @$shift->end,
-    //                         'shift_name' => @$shift->name,
-    //                         'shift_detail' => @$shift->shift_name,
-    //                         'shift_days' => @$shift->days,
     //                     );
-
-    //                     $this->crud->update('attandances', ["id" => $attandance->id], $data_attandance);
-    //                     echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check Out", "theme" => "success"));
     //                 }
+
+    //                 $this->crud->update('attandances', ["id" => $attandance->id], $data_attandance);
+    //                 echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check Out", "theme" => "success"));
     //             } else {
     //                 //Cek tanggal kemarin
     //                 $yesterday = date("Y-m-d", strtotime('-1 days', strtotime($date_in)));
     //                 $this->db->select("*");
     //                 $this->db->from('attandances');
-    //                 $this->db->where('number', $number);
+    //                 $this->db->where('number', $data['number']);
     //                 $this->db->where('date_in', $yesterday);
     //                 $attandance_2 = $this->db->get()->row();
 
@@ -529,14 +497,9 @@ class Attandances extends CI_Controller
     //                         //Jika jam masuk kemarin sama dengan jam masuk hari ini
     //                         if (substr($attandance_2->time_in, 0, 2) == substr($time_in, 0, 2)) {
     //                             $data_attandance = array(
-    //                                 'number' => $number,
+    //                                 'number' => $data['number'],
     //                                 'date_in' => $date_in,
     //                                 'time_in' => $time_in,
-    //                                 'shift_start' => @$shift->start,
-    //                                 'shift_end' => @$shift->end,
-    //                                 'shift_name' => @$shift->name,
-    //                                 'shift_detail' => @$shift->shift_name,
-    //                                 'shift_days' => @$shift->days,
     //                             );
 
     //                             $this->crud->create('attandances', $data_attandance);
@@ -545,21 +508,16 @@ class Attandances extends CI_Controller
     //                             //Jika jam masuk kemarin kurang dari jam masuk sekarang
     //                         } elseif ($attandance_plus < $date_plus) {
     //                             $data_attandance = array(
-    //                                 'number' => $number,
+    //                                 'number' => $data['number'],
     //                                 'date_in' => $date_in,
     //                                 'time_in' => $time_in,
-    //                                 'shift_start' => @$shift->start,
-    //                                 'shift_end' => @$shift->end,
-    //                                 'shift_name' => @$shift->name,
-    //                                 'shift_detail' => @$shift->shift_name,
-    //                                 'shift_days' => @$shift->days,
     //                             );
 
     //                             $this->crud->create('attandances', $data_attandance);
     //                             echo json_encode(array("title" => "Saved", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create Check in", "theme" => "success"));
     //                         } else {
     //                             $data_attandance = array(
-    //                                 'number' => $number,
+    //                                 'number' => $data['number'],
     //                                 'date_out' => $date_in,
     //                                 'time_out' => $time_in,
     //                             );
@@ -569,274 +527,30 @@ class Attandances extends CI_Controller
     //                         }
     //                     } else {
     //                         $data_attandance = array(
-    //                             'number' => $number,
+    //                             'number' => $data['number'],
     //                             'date_in' => $date_in,
     //                             'time_in' => $time_in,
-    //                             'shift_start' => @$shift->start,
-    //                             'shift_end' => @$shift->end,
-    //                             'shift_name' => @$shift->name,
-    //                             'shift_detail' => @$shift->shift_name,
-    //                             'shift_days' => @$shift->days,
     //                         );
 
     //                         $this->crud->create('attandances', $data_attandance);
     //                         echo json_encode(array("title" => "Saved", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create Check in", "theme" => "success"));
     //                     }
     //                 } else {
-    //                     $this->db->select('*');
-    //                     $this->db->from('employees');
-    //                     $this->db->where('number', $number);
-    //                     $employee = $this->db->get()->row();
+    //                     $data_attandance = array(
+    //                         'number' => $data['number'],
+    //                         'date_in' => $date_in,
+    //                         'time_in' => $time_in,
+    //                     );
 
-    //                     $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$time_in)));
-    //                     $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$time_in)));
-    //                     $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
-    //                     $this->db->from('shift_employees b');
-    //                     $this->db->join('shifts c', 'c.id = b.shift_id');
-    //                     $this->db->join('shift_details d', 'd.shift_id = c.id');
-    //                     $this->db->where('b.employee_id', $employee->id);
-    //                     $this->db->where("TIME(d.start) >=  TIME('$tolerance_hour_min') && TIME(d.start) <= TIME('$tolerance_hour_plus')");
-    //                     $shift = $this->db->get()->row();
-
-    //                     if (empty($shift)) {
-    //                         $data_attandance = array(
-    //                             'number' => $number,
-    //                             'date_in' => $date_in,
-    //                             'date_out' => $date_in,
-    //                             'time_out' => $time_in,
-    //                             'shift_start' => @$shift->start,
-    //                             'shift_end' => @$shift->end,
-    //                             'shift_name' => @$shift->name,
-    //                             'shift_detail' => @$shift->shift_name,
-    //                             'shift_days' => @$shift->days,
-    //                         );
-
-    //                         $this->crud->create('attandances', $data_attandance);
-    //                         echo json_encode(array("title" => "Saved", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create Check out", "theme" => "success"));
-    //                     } else {
-    //                         $data_attandance = array(
-    //                             'number' => $number,
-    //                             'date_in' => $date_in,
-    //                             'time_in' => $time_in,
-    //                             'shift_start' => @$shift->start,
-    //                             'shift_end' => @$shift->end,
-    //                             'shift_name' => @$shift->name,
-    //                             'shift_detail' => @$shift->shift_name,
-    //                             'shift_days' => @$shift->days,
-    //                         );
-
-    //                         $this->crud->create('attandances', $data_attandance);
-    //                         echo json_encode(array("title" => "Saved", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create Check in", "theme" => "success"));
-    //                     }
+    //                     $this->crud->create('attandances', $data_attandance);
+    //                     echo json_encode(array("title" => "Saved", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create Check in", "theme" => "success"));
     //                 }
     //             }
     //         } else {
-    //             echo json_encode(array("title" => "Warning", "message" => $data['barcode'] . " Barcode Un Registered", "theme" => "error"));
+    //             echo json_encode(array("title" => "Warning", "message" => $data['number'] . " Empoyee ID Un Registered", "theme" => "error"));
     //         }
     //     }
     // }
-
-    public function uploadcreate()
-    {
-        if ($this->input->post()) {
-            $data = $this->input->post('data');
-            $formatTanggal = $this->formatTanggal($data['date_in']);
-            $explode = explode(" ", $formatTanggal);
-            $date_in = $explode[0];
-            $time_in = $explode[1];
-
-            //Employee
-            $this->db->select('*');
-            $this->db->from('employees');
-            if ($data['barcode'] != '') {
-                $this->db->where('barcode', $data['barcode']);
-            }
-
-            if ($data['pin'] != '') {
-                $this->db->where('number', $data['pin']);
-            }
-
-            $employee = $this->db->get()->row();
-
-            if (!empty($employee->number)) {
-                $number = $employee->number;
-
-                //Attandance
-                $this->db->select('*');
-                $this->db->from('attandances');
-                $this->db->where('number', $number);
-                $this->db->where('date_in', $date_in);
-                $attandance = $this->db->get()->row();
-
-                $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$time_in)));
-                $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$time_in)));
-                $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
-                $this->db->from('shift_employees b');
-                $this->db->join('shifts c', 'c.id = b.shift_id');
-                $this->db->join('shift_details d', 'd.shift_id = c.id');
-                $this->db->where('b.employee_id', $employee->id);
-                $this->db->where("TIME(d.end) >=  TIME('$tolerance_hour_min') && TIME(d.end) <= TIME('$tolerance_hour_plus')");
-                $shift = $this->db->get()->row();
-
-                //Jika sudah absen jam masuk
-                if (!empty($attandance->date_in)) {
-                    if ((substr($attandance->time_in, 0, 2) <= "12")) {
-                        $data_attandance = array(
-                            'number' => $number,
-                            'date_out' => $date_in,
-                            'time_out' => $time_in,
-                            'date_in' => $attandance->date_in,
-                            'time_in' => $attandance->time_in,
-                            'shift_start' => @$shift->start,
-                            'shift_end' => @$shift->end,
-                            'shift_name' => @$shift->name,
-                            'shift_detail' => @$shift->shift_name,
-                            'shift_days' => @$shift->days,
-                        );
-
-                        $this->crud->update('attandances', ["id" => $attandance->id], $data_attandance);
-                        echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check In", "theme" => "success"));
-                    } else {
-                        $data_attandance = array(
-                            'number' => $number,
-                            'date_out' => $date_in,
-                            'time_out' => $time_in,
-                            'shift_start' => @$shift->start,
-                            'shift_end' => @$shift->end,
-                            'shift_name' => @$shift->name,
-                            'shift_detail' => @$shift->shift_name,
-                            'shift_days' => @$shift->days,
-                        );
-
-                        $this->crud->update('attandances', ["id" => $attandance->id], $data_attandance);
-                        echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check Out", "theme" => "success"));
-                    }
-                } else {
-                    //Cek tanggal kemarin
-                    $yesterday = date("Y-m-d", strtotime('-1 days', strtotime($date_in)));
-                    $this->db->select("*");
-                    $this->db->from('attandances');
-                    $this->db->where('number', $number);
-                    $this->db->where('date_in', $yesterday);
-                    $attandance_2 = $this->db->get()->row();
-
-                    //jika tanggal kemarin ada jam masuk
-                    if (!empty($attandance_2->date_in)) {
-                        //jika jam keluar nya kosong
-                        if (@$attandance_2->time_out == "" or @$attandance_2->time_out == null) {
-
-                            $attandance_plus = date_create($attandance_2->date_in . " " . $attandance_2->time_in);
-                            $date_plus = date_create($date_in . " " . $time_in);
-
-                            //Jika jam masuk kemarin sama dengan jam masuk hari ini
-                            if (substr($attandance_2->time_in, 0, 2) == substr($time_in, 0, 2)) {
-                                $data_attandance = array(
-                                    'number' => $number,
-                                    'date_in' => $date_in,
-                                    'time_in' => $time_in,
-                                    'shift_start' => @$shift->start,
-                                    'shift_end' => @$shift->end,
-                                    'shift_name' => @$shift->name,
-                                    'shift_detail' => @$shift->shift_name,
-                                    'shift_days' => @$shift->days,
-                                );
-
-                                $this->crud->create('attandances', $data_attandance);
-                                echo json_encode(array("title" => "Saved", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create Check in", "theme" => "success"));
-
-                                //Jika jam masuk kemarin kurang dari jam masuk sekarang
-                            } elseif ($attandance_plus < $date_plus) {
-                                $data_attandance = array(
-                                    'number' => $number,
-                                    'date_in' => $date_in,
-                                    'time_in' => $time_in,
-                                    'shift_start' => @$shift->start,
-                                    'shift_end' => @$shift->end,
-                                    'shift_name' => @$shift->name,
-                                    'shift_detail' => @$shift->shift_name,
-                                    'shift_days' => @$shift->days,
-                                );
-
-                                $this->crud->create('attandances', $data_attandance);
-                                echo json_encode(array("title" => "Saved", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create Check in", "theme" => "success"));
-                            } else {
-                                $data_attandance = array(
-                                    'number' => $number,
-                                    'date_out' => $date_in,
-                                    'time_out' => $time_in,
-                                );
-
-                                $this->crud->update('attandances', ["id" => @$attandance_2->id], $data_attandance);
-                                echo json_encode(array("title" => "Updated", "message" => $employee->name . " Update data time out yesterday", "theme" => "success"));
-                            }
-                        } else {
-                            $data_attandance = array(
-                                'number' => $number,
-                                'date_in' => $date_in,
-                                'time_in' => $time_in,
-                                'shift_start' => @$shift->start,
-                                'shift_end' => @$shift->end,
-                                'shift_name' => @$shift->name,
-                                'shift_detail' => @$shift->shift_name,
-                                'shift_days' => @$shift->days,
-                            );
-
-                            $this->crud->create('attandances', $data_attandance);
-                            echo json_encode(array("title" => "Saved", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create Check in", "theme" => "success"));
-                        }
-                    } else {
-                        $this->db->select('*');
-                        $this->db->from('employees');
-                        $this->db->where('number', $number);
-                        $employee = $this->db->get()->row();
-
-                        $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$time_in)));
-                        $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$time_in)));
-                        $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
-                        $this->db->from('shift_employees b');
-                        $this->db->join('shifts c', 'c.id = b.shift_id');
-                        $this->db->join('shift_details d', 'd.shift_id = c.id');
-                        $this->db->where('b.employee_id', $employee->id);
-                        $this->db->where("TIME(d.start) >=  TIME('$tolerance_hour_min') && TIME(d.start) <= TIME('$tolerance_hour_plus')");
-                        $shift = $this->db->get()->row();
-
-                        if (empty($shift)) {
-                            $data_attandance = array(
-                                'number' => $number,
-                                'date_in' => $date_in,
-                                'date_out' => $date_in,
-                                'time_out' => $time_in,
-                                'shift_start' => @$shift->start,
-                                'shift_end' => @$shift->end,
-                                'shift_name' => @$shift->name,
-                                'shift_detail' => @$shift->shift_name,
-                                'shift_days' => @$shift->days,
-                            );
-
-                            $this->crud->create('attandances', $data_attandance);
-                            echo json_encode(array("title" => "Saved", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create Check out", "theme" => "success"));
-                        } else {
-                            $data_attandance = array(
-                                'number' => $number,
-                                'date_in' => $date_in,
-                                'time_in' => $time_in,
-                                'shift_start' => @$shift->start,
-                                'shift_end' => @$shift->end,
-                                'shift_name' => @$shift->name,
-                                'shift_detail' => @$shift->shift_name,
-                                'shift_days' => @$shift->days,
-                            );
-
-                            $this->crud->create('attandances', $data_attandance);
-                            echo json_encode(array("title" => "Saved", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create Check in", "theme" => "success"));
-                        }
-                    }
-                }
-            } else {
-                echo json_encode(array("title" => "Warning", "message" => $data['barcode'] . " Barcode Un Registered", "theme" => "error"));
-            }
-        }
-    }
 
     //PRINT & EXCEL DATA
     public function print($option = "")

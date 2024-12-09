@@ -1,5 +1,5 @@
 <!-- TABLE DATAGRID -->
-<table id="dg" class="easyui-datagrid" style="width:99.5%;" toolbar="#toolbar">
+<table id="dg" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar">
     <thead>
         <tr>
             <th rowspan="2" field="ck" checkbox="true"></th>
@@ -7,8 +7,8 @@
             <th rowspan="2" data-options="field:'name',width:200,halign:'center'">Name</th>
             <th rowspan="2" data-options="field:'tolerance',width:100,halign:'center'">Time Tolerance</th>
             <th rowspan="2" data-options="field:'briefing',width:100,halign:'center'">Time Briefing</th>
-            <th colspan="2" data-options="field:'',width:100,halign:'center'"> Working Day</th>
-            <th colspan="2" data-options="field:'',width:100,halign:'center'"> Generate Overtime</th>
+            <th rowspan="2" data-options="field:'start',width:100,halign:'center'">Start</th>
+            <th rowspan="2" data-options="field:'end',width:100,halign:'center'">End</th>
             <th rowspan="2" data-options="field:'working',width:120,halign:'center'">Working Status</th>
             <th rowspan="2" data-options="field:'days',width:150,halign:'center'">Working Day</th>
             <th rowspan="2" data-options="field:'description',width:200,halign:'center'">Remarks</th>
@@ -16,10 +16,6 @@
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
         </tr>
         <tr>
-            <th data-options="field:'start',width:100,halign:'center'">Start</th>
-            <th data-options="field:'end',width:100,halign:'center'">End</th>
-            <th data-options="field:'ot_start',width:100,halign:'center'">Start</th>
-            <th data-options="field:'ot_end',width:100,halign:'center'">End</th>
             <th data-options="field:'created_by',width:100,align:'center'"> By</th>
             <th data-options="field:'created_date',width:150,align:'center'"> Date</th>
             <th data-options="field:'updated_by',width:100,align:'center'"> By</th>
@@ -51,63 +47,51 @@
 </div>
 
 <!-- DIALOG SAVE AND UPDATE -->
-<div id="dlg_insert" class="easyui-dialog" title="Add New" data-options="closed: true,modal:true" style="width: 800px; padding:10px; top: 20px;">
+<div id="dlg_insert" class="easyui-dialog" title="Add New" data-options="closed: true,modal:true" style="width: 400px; padding:10px; top: 20px;">
     <form id="frm_insert" method="post" novalidate>
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
             <legend><b>Form Data</b></legend>
-            <div style="float: left; width:50%;">
-                <div class="fitem" style="margin-bottom: 2px;">
-                    <span style="width:30%; display:inline-block;">Category</span>
-                    <input style="width:60%;" name="shift_id" panelHeight="auto" required="" id="shift_id" class="easyui-combobox">
-                </div>
-                <div class="fitem" style="margin-bottom: 2px;">
-                    <span style="width:30%; display:inline-block;">Name</span>
-                    <input style="width:60%;" name="name" required="" id="name" class="easyui-textbox">
-                </div>
-                <div class="fitem" style="margin-bottom: 2px;">
-                    <span style="width:30%; display:inline-block;">Time Tolerance</span>
-                    <input style="width:30%;" name="tolerance" required="" data-options="buttonText:'Hour', buttonAlign:'right'" class="easyui-numberbox">
-                </div>
-                <div class="fitem" style="margin-bottom: 2px;">
-                    <span style="width:30%; display:inline-block;">Time Briefing</span>
-                    <input style="width:30%;" name="briefing" required="" mask="99:99:99" class="easyui-maskedbox">
-                </div>
-                <div class="fitem" style="margin-bottom: 2px;">
-                    <span style="width:30%; display:inline-block;">Time Start</span>
-                    <input style="width:30%;" name="start" required="" mask="99:99:99" class="easyui-maskedbox">
-                </div>
-                <div class="fitem" style="margin-bottom: 2px;">
-                    <span style="width:30%; display:inline-block;">Time Ending</span>
-                    <input style="width:30%;" name="end" required="" mask="99:99:99" class="easyui-maskedbox">
-                </div>
+            <div class="fitem" style="margin-bottom: 2px;">
+                <span style="width:30%; display:inline-block;">Category</span>
+                <input style="width:60%;" name="shift_id" panelHeight="auto" required="" id="shift_id" class="easyui-combobox">
             </div>
-            <div style="float: left; width:50%;">
-                <div class="fitem" style="margin-bottom: 2px;">
-                    <span style="width:30%; display:inline-block;">OT Start</span>
-                    <input style="width:30%;" name="ot_start" required="" mask="99:99:99" class="easyui-maskedbox">
-                </div>
-                <div class="fitem" style="margin-bottom: 2px;">
-                    <span style="width:30%; display:inline-block;">OT Ending</span>
-                    <input style="width:30%;" name="ot_end" required="" mask="99:99:99" class="easyui-maskedbox">
-                </div>
-                <div class="fitem" style="margin-bottom: 2px;">
-                    <span style="width:30%; display:inline-block;">Working Status</span>
-                    <select style="width:60%;" name="working" panelHeight="auto" required="" id="status_working" class="easyui-combobox">
-                        <option value="WEEKDAY">WEEKDAY</option>
-                        <option value="WEEKEND">WEEKEND</option>
-                    </select>
-                </div>
-                <div class="fitem" style="margin-bottom: 2px;">
-                    <span style="width:30%; display:inline-block;">Working Day</span>
-                    <select style="width:60%;" name="days" panelHeight="auto" required="" id="working_day" class="easyui-combobox">
-                        <option value="5">5 Days a Week</option>
-                        <option value="6">6 Days a Week</option>
-                    </select>
-                </div>
-                <div class="fitem" style="margin-bottom: 2px;">
-                    <span style="width:30%; display:inline-block;">Remarks</span>
-                    <input style="width:60%; height: 50px;" name="description" multiline="true" id="remarks" class="easyui-textbox">
-                </div>
+            <div class="fitem" style="margin-bottom: 2px;">
+                <span style="width:30%; display:inline-block;">Name</span>
+                <input style="width:60%;" name="name" required="" id="name" class="easyui-textbox">
+            </div>
+            <div class="fitem" style="margin-bottom: 2px;">
+                <span style="width:30%; display:inline-block;">Time Tolerance</span>
+                <input style="width:30%;" name="tolerance" required="" data-options="buttonText:'Hour', buttonAlign:'right'" class="easyui-numberbox">
+            </div>
+            <div class="fitem" style="margin-bottom: 2px;">
+                <span style="width:30%; display:inline-block;">Time Briefing</span>
+                <input style="width:30%;" name="briefing" required="" mask="99:99:99" class="easyui-maskedbox">
+            </div>
+            <div class="fitem" style="margin-bottom: 2px;">
+                <span style="width:30%; display:inline-block;">Time Start</span>
+                <input style="width:30%;" name="start" required="" mask="99:99:99" class="easyui-maskedbox">
+            </div>
+            <div class="fitem" style="margin-bottom: 2px;">
+                <span style="width:30%; display:inline-block;">Time Ending</span>
+                <input style="width:30%;" name="end" required="" mask="99:99:99" class="easyui-maskedbox">
+            </div>
+            <div class="fitem" style="margin-bottom: 2px;">
+                <span style="width:30%; display:inline-block;">Working Status</span>
+                <select style="width:60%;" name="working" panelHeight="auto" required="" id="status_working" class="easyui-combobox">
+                    <option value="WEEKDAY">WEEKDAY</option>
+                    <option value="WEEKEND">WEEKEND</option>
+                </select>
+            </div>
+            <div class="fitem" style="margin-bottom: 2px;">
+                <span style="width:30%; display:inline-block;">Working Day</span>
+                <select style="width:60%;" name="days" panelHeight="auto" required="" id="working_day" class="easyui-combobox">
+                    <option value="5">5 Days a Week</option>
+                    <option value="6">6 Days a Week</option>
+                </select>
+            </div>
+            <div class="fitem" style="margin-bottom: 2px;">
+                <span style="width:30%; display:inline-block;">Remarks</span>
+                <input style="width:60%; height: 50px;" name="description" multiline="true" id="remarks" class="easyui-textbox">
             </div>
         </fieldset>
     </form>

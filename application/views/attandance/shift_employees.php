@@ -50,6 +50,13 @@
                         <span style="width:35%; display:inline-block;">Employee</span>
                         <input style="width:60%;" id="filter_employee" class="easyui-combogrid">
                     </div>
+                    <div class="fitem">
+                        <span style="width:35%; display:inline-block;">Status</span>
+                        <select style="width:60%;" id="filter_status" class="easyui-combobox" data-options="panelHeight:'auto'">
+                            <option value="0">Active</option>
+                            <option value="1">Not Active</option>
+                        </select>
+                    </div>
                 </div>
             </fieldset>
         </div>
@@ -177,8 +184,9 @@
         var filter_departement = $("#filter_departement").combobox('getValue');
         var filter_departement_sub = $("#filter_departement_sub").combobox('getValue');
         var filter_employee = $("#filter_employee").combogrid('getValue');
+        var filter_status = $("#filter_status").combobox('getValue');
 
-        var url = "?filter_division=" + filter_division + "&filter_departement=" + filter_departement + "&filter_departement_sub=" + filter_departement_sub + "&filter_employee=" + filter_employee;
+        var url = "?filter_division=" + filter_division + "&filter_departement=" + filter_departement + "&filter_departement_sub=" + filter_departement_sub + "&filter_employee=" + filter_employee + "&filter_status=" + filter_status;
 
         $('#dg').datagrid({
             url: '<?= base_url('attandance/shift_employees/datatables') ?>' + url
@@ -198,8 +206,9 @@
         var filter_departement = $("#filter_departement").combobox('getValue');
         var filter_departement_sub = $("#filter_departement_sub").combobox('getValue');
         var filter_employee = $("#filter_employee").combogrid('getValue');
+        var filter_status = $("#filter_status").combobox('getValue');
 
-        var url = "?filter_division=" + filter_division + "&filter_departement=" + filter_departement + "&filter_departement_sub=" + filter_departement_sub + "&filter_employee=" + filter_employee;
+        var url = "?filter_division=" + filter_division + "&filter_departement=" + filter_departement + "&filter_departement_sub=" + filter_departement_sub + "&filter_employee=" + filter_employee + "&filter_status=" + filter_status;
 
         window.location.assign('<?= base_url('attandance/shift_employees/print/excel') ?>' + url);
     }
@@ -230,6 +239,11 @@
             fit: true,
             pageList: [20, 50, 100, 500, 1000],
             pageSize: 20,
+            rowStyler: function(index, row) {
+                if (row.status_employee == 1) {
+                    return 'background-color:#FFDCDC;';
+                }
+            }
         });
 
         //SAVE DATA

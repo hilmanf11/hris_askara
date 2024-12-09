@@ -79,10 +79,7 @@ class Corrections extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
             //Select Query
-            $this->db->select('a.*, 
-                g.users_id_from as status_check,
-                g.users_id_to as status_notification, 
-                g.updated_date as status_date,
+            $this->db->select('a.*,
                 c.name as division_name,
                 d.name as departement_name,
                 e.name as departement_sub_name,
@@ -97,10 +94,7 @@ class Corrections extends CI_Controller
             $this->db->join('departements d', 'b.departement_id = d.id');
             $this->db->join('departement_subs e', 'b.departement_sub_id = e.id');
             $this->db->join('users f', "a.created_by = f.username");
-            $this->db->join('notifications g', "a.id = g.table_id and g.table_name = 'corrections'", 'left');
-            $this->db->where('b.deleted', 0);
             $this->db->where('b.status', 0);
-            $this->db->where('a.deleted', 0);
             $this->db->like('b.departement_id', $aprvDepartement);
             if ($filter_from != "" && $filter_to != "") {
                 $this->db->where('a.trans_date >=', $filter_from);
@@ -282,17 +276,14 @@ class Corrections extends CI_Controller
         $config = $this->db->get()->row();
 
         //Select Query
-        $this->db->select('a.*, 
-                g.users_id_from as status_check,
-                g.users_id_to as status_notification, 
-                g.updated_date as status_date,
-                c.name as division_name,
-                d.name as departement_name,
-                e.name as departement_sub_name,
-                b.number as employee_number,
-                b.name as employee_name,
-                f.name as fullname
-            ');
+        $this->db->select('a.*,
+            c.name as division_name,
+            d.name as departement_name,
+            e.name as departement_sub_name,
+            b.number as employee_number,
+            b.name as employee_name,
+            f.name as fullname
+        ');
 
         $this->db->from('corrections a');
         $this->db->join('employees b', 'a.employee_id = b.id');
@@ -300,15 +291,10 @@ class Corrections extends CI_Controller
         $this->db->join('departements d', 'b.departement_id = d.id');
         $this->db->join('departement_subs e', 'b.departement_sub_id = e.id');
         $this->db->join('users f', "a.created_by = f.username");
-        $this->db->join('notifications g', "a.id = g.table_id and g.table_name = 'corrections'", 'left');
-        $this->db->where('b.deleted', 0);
         $this->db->where('b.status', 0);
-        $this->db->where('a.deleted', 0);
         $this->db->like('b.departement_id', $aprvDepartement);
-        if ($filter_from != "" && $filter_to != "") {
-            $this->db->where('a.trans_date >=', $filter_from);
-            $this->db->where('a.trans_date <=', $filter_to);
-        }
+        $this->db->where('a.trans_date >=', $filter_from);
+        $this->db->where('a.trans_date <=', $filter_to);
         $this->db->like('b.division_id', $filter_division);
         $this->db->like('b.departement_id', $filter_departement);
         $this->db->like('b.departement_sub_id', $filter_departement_sub);

@@ -74,38 +74,22 @@ class Cash_carries extends CI_Controller
 
     public function requestCode()
     {
-        $trans_date = $this->input->post('trans_date');
+        $date = date("ym");
+        $post = $this->input->post();
+        $departement = $this->crud->read('departements', [], ["id" => $post['departement_id']]);
 
-        $date = date("ymd", strtotime($trans_date));
+        $template = "CC" . $departement->number . $date;
         $this->db->select('max(SUBSTRING(request_code, -4)) as code');
         $this->db->from('cash_carries');
         $this->db->where('deleted', 0);
-        $this->db->where('SUBSTRING(request_code, 4, 6)=', $date);
-        $records = $this->db->get()->row();
+        $this->db->like('request_code', $template);
+        $records = $this->db->get()->result_array();
 
-        $requestcode = (int) $records->code;
+        $requestcode = (int) $records[0]['code'];
         $requestcode++;
 
-        $template = "CC/" . $date . "/";
-        echo $template . sprintf("%04s", $requestcode);
-    }
-
-    public function requestIdm()
-    {
-        $trans_date = $this->input->post('trans_date');
-        $departement = $this->input->post('departement');
-
-        $date = $departement . date("ym", strtotime($trans_date));
-        $this->db->select('max(idm_no) as code');
-        $this->db->from('cash_carries');
-        $this->db->where('deleted', 0);
-        $this->db->like('idm_no', $date);
-        $records = $this->db->get()->row();
-
-        $requestcode = (int) $records->code;
-        $requestcode++;
-
-        echo $date . sprintf("%04s", $requestcode);
+        $templatefinal = $template . sprintf("%04s", $requestcode);
+        echo $templatefinal;
     }
 
     public function readOvertimePrice($employee_id, $trans_date, $duration, $meal)
@@ -148,9 +132,17 @@ class Cash_carries extends CI_Controller
                 }
             } else {
                 if (date('w', $hourTrans) === '0') {
-                    $total = ((@$allowance_cash_carry->sunday * $duration) + $meal);
+                    if (count($calendars) > 0) {
+                        $total = ((@$allowance_cash_carry->holiday * $duration) + $meal);
+                    } else {
+                        $total = ((@$allowance_cash_carry->sunday * $duration) + $meal);
+                    }
                 } else {
-                    $total = ((@$allowance_cash_carry->saturday * $duration) + $meal);
+                    if (count($calendars) > 0) {
+                        $total = ((@$allowance_cash_carry->holiday * $duration) + $meal);
+                    } else {
+                        $total = ((@$allowance_cash_carry->saturday * $duration) + $meal);
+                    }
                 }
             }
         } else {
@@ -164,9 +156,17 @@ class Cash_carries extends CI_Controller
                 }
             } else {
                 if (date('w', $hourTrans) === '0') {
-                    $total = ((@$allowance_cash_carry->sunday * $duration) + $meal);
+                    if (count($calendars) > 0) {
+                        $total = ((@$allowance_cash_carry->holiday * $duration) + $meal);
+                    } else {
+                        $total = ((@$allowance_cash_carry->sunday * $duration) + $meal);
+                    }
                 } else {
-                    $total = ((@$allowance_cash_carry->saturday * $duration) + $meal);
+                    if (count($calendars) > 0) {
+                        $total = ((@$allowance_cash_carry->holiday * $duration) + $meal);
+                    } else {
+                        $total = ((@$allowance_cash_carry->saturday * $duration) + $meal);
+                    }
                 }
             }
         }
@@ -190,123 +190,44 @@ class Cash_carries extends CI_Controller
 
         $diff = ($time_end - $time_begin - ($break * 60));
         $hour = floor($diff / (60 * 60));
-        $minutes = ($diff - $hour * (60 * 60));
+        // $minutes = ($diff - $hour * (60 * 60));
+        $minutes = (($diff % 3600) / 60);
 
         if ($hour < 0) {
             $diff = ($tomorrow - $time_begin - ($break * 60));
             $hour = floor($diff / (60 * 60));
-            $minutes = ($diff - $hour * (60 * 60));
+            $minutes = (($diff % 3600) / 60);
         }
 
-        $final_minutes = floor($minutes / 60);
-        $final_duration = ($final_minutes / 60);
+        $final_minutes2 = floor($minutes / 60);
+        $final_duration = ($final_minutes2 / 60);
 
-        //if($setup->name == "DRIVER"){
-        //if (floor(($minutes / 60) - $break) == 59) {
-        //$final_minutes = floor(($minutes / 60) - $break);
-        // } else if (floor(($minutes / 60) - $break) >= 29 and floor(($minutes / 60) - $break) <= 58) {
-        //     $final_minutes = "50";
-        // } else {
-        //     $final_minutes = "0";
-        // }
+        if($minutes > 0 && $minutes < 30){
+            $final_minutes = "00";
+        }else if($minutes >= 30 && $minutes <= "59"){
+            $final_minutes = "50";
+        }else{
+            $final_minutes = "00";
+        }
+
+        // if($setup->name == "DRIVER"){
+        //     if (floor($final_minutes2 / 60) == 59) {
+        //         $final_minutes = "59";
+        //     } else if (floor($final_minutes2 / 60) >= 29 and floor($final_minutes2 / 60) <= 58) {
+        //         $final_minutes = "50";
+        //     } else {
+        //         $final_minutes = "0";
+        //     }
         // }else{
-        //     $final_minutes = floor($minutes / 60);
+        //     $final_minutes = floor($final_minutes2 / 60);
         // }
 
         $duration = $hour . " Hour " . $final_minutes . " Minutes";
-        $duration_hour = ($hour + $final_duration);
+        $duration_hour = $hour . "." . $final_minutes;
 
         // $duration_hour = round($diff / (60 * 60), 2);
         $arr = array("duration" => $duration, "duration_hour" => $duration_hour);
         return $arr;
-    }
-
-    public function readGenerate()
-    {
-        $period = $this->input->post('period');
-        $division_id = $this->input->post('division_id');
-        $departement_id = $this->input->post('departement_id');
-        $departement_sub_id = $this->input->post('departement_sub_id');
-
-        $this->db->select('a.time_in, a.time_out, b.id, c.overtime_duration');
-        $this->db->from('employees b');
-        $this->db->join('groups c', 'b.group_id = c.id');
-        $this->db->join('attandances a', "a.number = b.number and a.date_in = '$period'", 'left');
-        $this->db->where('c.overtime_duration >', 0);
-        $this->db->like('b.division_id', $division_id);
-        $this->db->like('b.departement_id', $departement_id);
-        $this->db->like('b.departement_sub_id', $departement_sub_id);
-        $this->db->group_by('b.id');
-        $employees = $this->db->get()->result_array();
-
-        $date = date("ymd", strtotime($period));
-        $this->db->select('max(SUBSTRING(request_code, -4)) as code');
-        $this->db->from('cash_carries');
-        $this->db->where('deleted', 0);
-        $this->db->where('SUBSTRING(request_code, 4, 6)=', $date);
-        $records = $this->db->get()->row();
-
-        $requestcode = (int) $records->code;
-        $requestcode++;
-
-        $template = "GN/" . $date . "/";
-        $templatefinal = $template . sprintf("%04s", $requestcode);
-
-        //IDM NO
-        $template_2 = "GNRT" . date("ym", strtotime($period));
-        $this->db->select('max(idm_no) as code');
-        $this->db->from('cash_carries');
-        $this->db->where('deleted', 0);
-        $this->db->like('idm_no', $date);
-        $records2 = $this->db->get()->row();
-
-        $requestcode2 = (int) $records2->code;
-        $requestcode2++;
-
-        $templatefinal2 = $template_2 . sprintf("%04s", $requestcode2);
-
-        $arr = array();
-        foreach ($employees as $employee) {
-            $ot_amount = $this->readOvertimePrice($employee['id'], $period, $employee['overtime_duration'], 0);
-
-            //Shift and Setting Group
-            $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$employee['time_in'])));
-            $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$employee['time_in'])));
-            $this->db->select("d.ot_start, d.ot_end");
-            $this->db->from('shift_employees b');
-            $this->db->join('shifts c', 'c.id = b.shift_id');
-            $this->db->join('shift_details d', 'd.shift_id = c.id');
-            $this->db->where('b.employee_id', $employee['id']);
-            if (@$employee['time_in'] > "23:00:00") {
-                $this->db->where("d.start >= '$tolerance_hour_min'");
-            } elseif (@$employee['time_in'] != "") {
-                $this->db->where("d.start >= '$tolerance_hour_min' and d.start <= '$tolerance_hour_plus'");
-            }
-            $shift = $this->db->get()->row();
-
-            $arr[] = array(
-                "trans_date" =>  $period,
-                "employee_id" =>  $employee['id'],
-                "request_code" =>  $templatefinal,
-                "request_name" =>  $this->session->name,
-                "start" => @$shift->ot_start,
-                "end" =>  @$shift->ot_end,
-                "type" =>  "REGULAR",
-                "duration" =>  "-",
-                "duration_hour" => $employee['overtime_duration'],
-                "amount" =>  $ot_amount,
-                "meal" =>  0,
-                "plan" =>  0,
-                "actual" =>  0,
-                "break" =>  0,
-                "remarks" =>  "GENERATE",
-                "idm_no" => $templatefinal2,
-            );
-        }
-
-        $data['total'] = count($arr);
-        $data['rows'] = $arr;
-        die(json_encode($data));
     }
 
     //GET DATATABLES
@@ -385,7 +306,7 @@ class Cash_carries extends CI_Controller
             }
             $this->db->group_by('a.trans_date');
             $this->db->group_by('a.employee_id');
-            $this->db->group_by('a.request_code');
+            $this->db->group_by('a.type');
             $this->db->order_by('a.trans_date', 'DESC');
 
             //Total Data
@@ -491,27 +412,13 @@ class Cash_carries extends CI_Controller
         }
     }
 
-    public function datatableTemp()
-    {
-        $departement_id = base64_decode($this->input->get('departement_id'));
-
-        $this->db->select('id as employee_id, name as employee_name');
-        $this->db->from('employees');
-        $this->db->where('departement_id', $departement_id);
-        $this->db->order_by('name', 'ASC');
-        $records = $this->db->get()->result_array();
-
-        echo json_encode($records);
-    }
-
     public function datatable_updates()
     {
-        $id = base64_decode($this->input->get('id'));
-
+        $request_code = base64_decode($this->input->get('request_code'));
         $this->db->select('a.*, b.name as employee_name');
         $this->db->from('cash_carries a');
         $this->db->join('employees b', 'a.employee_id = b.id');
-        $this->db->where('a.id', $id);
+        $this->db->where('a.request_code', $request_code);
         $this->db->order_by('b.name', 'ASC');
         $records = $this->db->get()->result_array();
         echo json_encode($records);
@@ -561,34 +468,11 @@ class Cash_carries extends CI_Controller
                 "attachment" =>  $attachment,
             );
 
-            $cash_carries = $this->crud->reads('cash_carries', [], ["employee_id" => $employee_id, "trans_date" => $trans_date, "request_code" => $request_code]);
-
+            $cash_carries = $this->crud->reads('cash_carries', [], ["employee_id" => $employee_id, "trans_date" => $trans_date, "type" => $type]);
             if (count($cash_carries) > 0) {
                 echo json_encode(array("title" => "Duplicate", "message" => "Cash Carry has been created", "theme" => "error"));
             } else {
                 $send = $this->crud->create('cash_carries', $post_final);
-                echo $send;
-            }
-        } else {
-            show_error("Cannot Process your request");
-        }
-    }
-
-    public function createGenerate()
-    {
-        if ($this->input->post()) {
-            $post = $this->input->post();
-
-            $cash_carries = $this->crud->reads('cash_carries', [], [
-                "employee_id" => $post['employee_id'],
-                "trans_date" => $post['trans_date'],
-                "type" => $post['type']
-            ]);
-
-            if (count($cash_carries) > 0) {
-                echo json_encode(array("title" => "Duplicate", "message" => "Cash Carry has been created", "theme" => "error"));
-            } else {
-                $send = $this->crud->create('cash_carries', $post);
                 echo $send;
             }
         } else {
@@ -745,7 +629,7 @@ class Cash_carries extends CI_Controller
                 'trans_date' => $data->val($i, 3),
                 'start' => date("H:i", strtotime($data->val($i, 4))),
                 'end' => date("H:i", strtotime($data->val($i, 5))),
-                'duration_hour' => (int) $data->val($i, 6),
+                'duration_hour' => $data->val($i, 6),
                 'break' => $data->val($i, 7),
                 'type' => $data->val($i, 8),
                 'meal' => $data->val($i, 9),
@@ -799,7 +683,7 @@ class Cash_carries extends CI_Controller
             if ($data['trans_date'] == "") {
                 echo json_encode(array("title" => "Format Date", "message" => $data['number'] . " Format Date is Null", "theme" => "error"));
             } else {
-                $employee = $this->crud->read('employees', [], ["number" => $data['number']]);
+                $employee = $this->crud->read('employees', [], ["number" => $data['number'], "status" => 0]);
 
                 if (!empty($employee)) {
                     $cash_carries = $this->crud->read('cash_carries', [], ["employee_id" => $employee->id, "trans_date" => $data['trans_date'], "type" => $data['type']]);
@@ -832,12 +716,8 @@ class Cash_carries extends CI_Controller
                         $template = "CC/" . $date . "/";
                         $templatefinal = $template . sprintf("%04s", $requestcode);
 
-                        // $duration = $this->convertHour($data['trans_date'], $data['start'], $data['end'], $employee->id, $break);
-                        // $ot_amount = $this->readOvertimePrice($employee->id, $data['trans_date'], $duration['duration_hour'], $meal);
-
-                        // Rumus baru duration
-                        $duration = $data['duration_hour'] . " Hour 0 Minutes";
-                        $ot_amount = $this->readOvertimePrice($employee->id, $data['trans_date'], $data['duration_hour'], $meal);
+                        $duration = $this->convertHour($data['trans_date'], $data['start'], $data['end'], $employee->id, $break);
+                        $ot_amount = $this->readOvertimePrice($employee->id, $data['trans_date'], $duration['duration_hour'], $meal);
 
                         $post_cash_carries = array(
                             'employee_id' => $employee->id,
@@ -851,8 +731,8 @@ class Cash_carries extends CI_Controller
                             'meal' => $meal,
                             'plan' => $data['plan'],
                             'actual' => $data['actual'],
-                            "duration" =>  $duration,
-                            "duration_hour" => $data['duration_hour'],
+                            "duration" =>  $duration['duration'],
+                            "duration_hour" => $duration['duration_hour'],
                             'remarks' => $data['remarks'],
                             'amount' =>  $ot_amount,
                             'idm_no' => $data['idm_no'],

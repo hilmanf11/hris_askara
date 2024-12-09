@@ -32,6 +32,34 @@ class Resignations extends CI_Controller
         }
     }
 
+    public function readEmployees()
+    {
+        $post = isset($_POST['q']) ? $_POST['q'] : "";
+        $get = $this->input->get();
+
+        $session_id = $this->session->id;
+        $session_dept = $this->session->departement_id;
+
+        $user = $this->crud->read("users", [], ["id" => $session_id]);
+        if ($user->access == "0") {
+            $departement_id = "";
+        } else {
+            $departement_id = $session_dept;
+        }
+
+        $this->db->select('a.*');
+        $this->db->from('employees a');
+        $this->db->join('resignations b', 'a.id = b.employee_id');
+        $this->db->like('a.departement_id', $departement_id);
+        $this->db->group_start();
+        $this->db->like('a.number', $post);
+        $this->db->or_like('a.name', $post);
+        $this->db->group_end();
+        $this->db->order_by('a.name', 'asc');
+        $records = $this->db->get()->result_array();
+        echo json_encode($records);
+    }
+
     public function readEmployeeResign(){
         $dateNow = date("Y-m-d");
         $date = date("Y-m-d", strtotime('-3 days', strtotime($dateNow)));
@@ -119,17 +147,20 @@ class Resignations extends CI_Controller
             $this->db->select('a.*, 
                 b.name as employee_name, 
                 b.number as employee_number, 
-                b.date_sign, 
+                b.date_sign,
+                b.gender,
                 d.name as division_name, 
                 e.name as departement_name, 
                 f.name as departement_sub_name, 
-                c.name as reason_name');
+                c.name as reason_name,
+                g.name as contract_name');
             $this->db->from('resignations a');
             $this->db->join('employees b', 'a.employee_id = b.id');
             $this->db->join('reason_resignations c', 'a.reason_resignation_id = c.id');
             $this->db->join('divisions d', 'b.division_id = d.id');
             $this->db->join('departements e', 'b.departement_id = e.id');
             $this->db->join('departement_subs f', 'b.departement_sub_id = f.id');
+            $this->db->join('contracts g', 'b.contract_id = g.id');
             $this->db->where('a.deleted', 0);
             $this->db->where('a.resign_date >=', $filter_from);
             $this->db->where('a.resign_date <=', $filter_to);
@@ -324,13 +355,23 @@ class Resignations extends CI_Controller
         $this->db->from('config');
         $config = $this->db->get()->row();
 
-        $this->db->select('a.*, b.name as employee_name, b.number as employee_number, b.date_sign, d.name as division_name, e.name as departement_name, f.name as departement_sub_name, c.name as reason_name');
+        $this->db->select('a.*, 
+            b.name as employee_name, 
+            b.number as employee_number, 
+            b.date_sign,
+            b.gender,
+            d.name as division_name, 
+            e.name as departement_name, 
+            f.name as departement_sub_name, 
+            c.name as reason_name,
+            g.name as contract_name');
         $this->db->from('resignations a');
         $this->db->join('employees b', 'a.employee_id = b.id');
         $this->db->join('reason_resignations c', 'a.reason_resignation_id = c.id');
         $this->db->join('divisions d', 'b.division_id = d.id');
         $this->db->join('departements e', 'b.departement_id = e.id');
         $this->db->join('departement_subs f', 'b.departement_sub_id = f.id');
+        $this->db->join('contracts g', 'b.contract_id = g.id');
         $this->db->where('a.deleted', 0);
         $this->db->where('a.resign_date >=', $filter_from);
         $this->db->where('a.resign_date <=', $filter_to);
@@ -373,12 +414,15 @@ class Resignations extends CI_Controller
                 <th>Division</th>
                 <th>Departement</th>
                 <th>Departement Sub</th>
+                <th>Employee Type</th>
+                <th>Gender</th>
                 <th>Resign Type</th>
                 <th>Join Date</th>
                 <th>Resign Date</th>
                 <th>Fit For Service</th>
                 <th>Reason</th>
                 <th>Remarks</th>
+                <th>Status</th>
             </tr>';
         $no = 1;
         foreach ($records as $data) {
@@ -389,12 +433,15 @@ class Resignations extends CI_Controller
                             <td>' . $data['division_name'] . '</td>
                             <td>' . $data['departement_name'] . '</td>
                             <td>' . $data['departement_sub_name'] . '</td>
+                            <td>' . $data['contract_name'] . '</td>
+                            <td>' . $data['gender'] . '</td>
                             <td>' . $data['resign_type'] . '</td>
                             <td>' . $data['date_sign'] . '</td>
                             <td>' . $data['resign_date'] . '</td>
                             <td>' . $this->readService($data['date_sign'], $data['resign_date']) . '</td>
                             <td>' . $data['reason_name'] . '</td>
                             <td>' . $data['remarks'] . '</td>
+                            <td>' . $data['status_resign'] . '</td>
                         </tr>';
             $no++;
         }

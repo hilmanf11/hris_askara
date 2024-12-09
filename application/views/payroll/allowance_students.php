@@ -5,6 +5,7 @@
             <th rowspan="2" field="ck" checkbox="true"></th>
             <th rowspan="2" data-options="field:'number',width:100,align:'center'">Code</th>
             <th rowspan="2" data-options="field:'group_name',width:150,halign:'center'">Group</th>
+            <th rowspan="2" data-options="field:'type',width:200,halign:'center'">Type</th>
             <th rowspan="2" data-options="field:'months',width:100,halign:'center'">Month</th>
             <th rowspan="2" data-options="field:'name',width:200,halign:'center'">Name</th>
             <th rowspan="2" data-options="field:'amount',width:150,halign:'center',align:'right',formatter:numberformat">Amount</th>
@@ -39,17 +40,26 @@
                 <input style="width:60%;" name="group_id" id="group_id" required="" class="easyui-comobobox">
             </div>
             <div class="fitem">
+                <span style="width:35%; display:inline-block;">Type</span>
+                <select style="width:60%;" name="type" id="type" required="" class="easyui-combobox" panelHeight="auto">
+                    <option value="SALARY">SALARY</option>
+                    <option value="THR">THR</option>
+                </select>
+            </div>
+            <div class="fitem">
                 <span style="width:35%; display:inline-block;">Month</span>
                 <select style="width:60%;" name="months" id="months" required="" class="easyui-combobox" panelHeight="auto">
                     <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="3">3</option>
+                    <option value="4">4</option>
                 </select>
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Name</span>
                 <input style="width:60%;" name="name" required="" class="easyui-textbox">
             </div>
+            
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Amount</span>
                 <input style="width:60%;" name="amount" required="" data-options="buttonText:'Rp', buttonAlign:'left'" class="easyui-numberbox">

@@ -304,18 +304,6 @@
                 text: 'Save',
                 iconCls: 'icon-ok',
                 handler: function() {
-                    $('#dlg_insert').dialog('close');
-
-                    Swal.fire({
-                        title: 'Please Wait for Save Data',
-                        showConfirmButton: false,
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        },
-                    });
-
                     $('#frm_insert').form('submit', {
                         url: url_save,
                         onSubmit: function() {
@@ -330,8 +318,8 @@
                                 toastr.error(result.message, result.title);
                             }
 
+                            $('#dlg_insert').dialog('close');
                             $('#dg').datagrid('reload');
-                            Swal.close();
                         }
                     });
                 }
@@ -609,7 +597,6 @@
             prompt: "Choose Permit Type",
             onSelect: function(permit) {
                 var employee_id = $('#employee_id').combogrid('getValue');
-
                 $.ajax({
                     url: '<?= base_url('attandance/permits/readLeave') ?>',
                     type: 'post',
@@ -652,11 +639,9 @@
                                 success: function(days) {
                                     var leave = $("#leave").numberbox('getValue');
 
-                                    if(permit.cutoff == "YES"){
-                                        if (parseInt(leave - days) < 0) {
-                                            toastr.error("the Leave is over", "Leave 0");
-                                            $("#date_from").datebox('clear');
-                                        }
+                                    if (parseInt(leave - days) < 0) {
+                                        toastr.error("the Leave is over", "Leave 0");
+                                        $("#date_from").datebox('clear');
                                     }
                                 }
                             });
@@ -679,11 +664,9 @@
                                 success: function(days) {
                                     var leave = $("#leave").numberbox('getValue');
 
-                                    if(permit.cutoff == "YES"){
-                                        if (parseInt(leave - days) < 0) {
-                                            toastr.error("the Leave is over", "Leave 0");
-                                            $("#date_to").datebox('clear');
-                                        }
+                                    if (parseInt(leave - days) < 0) {
+                                        toastr.error("the Leave is over", "Leave 0");
+                                        $("#date_to").datebox('clear');
                                     }
                                 }
                             });

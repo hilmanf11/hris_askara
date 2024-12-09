@@ -5,6 +5,7 @@
             <th rowspan="2" field="ck" checkbox="true"></th>
             <th rowspan="2" data-options="field:'number',width:120,halign:'center'">COA Code</th>
             <th rowspan="2" data-options="field:'name',width:100,halign:'center'">COA Number</th>
+            <th rowspan="2" data-options="field:'category',width:100,halign:'center'">Category</th>
             <th rowspan="2" data-options="field:'description',width:300,halign:'center'">Description</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
@@ -35,6 +36,13 @@
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">COA Number</span>
                 <input style="width:60%;" name="name" required="" class="easyui-textbox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Category</span>
+                <select style="width:60%;" name="category" required="" class="easyui-combobox">
+                    <option value="payroll">Payroll</option>
+                    <option value="cash carry">Cash Carry</option>
+                </select>
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Description</span>

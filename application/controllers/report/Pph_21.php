@@ -61,7 +61,7 @@ class Pph_21 extends CI_Controller
             $query = $this->db->query("SELECT b.name, b.tax_id, b.national_id, b.address, a.attandance_wd, a.marital, a.income
                 FROM payrolls a
                 JOIN employees b ON a.employee_id = b.id
-                JOIN groups d ON b.group_id = d.id
+                JOIN groups d ON b.group_id = d.id and d.ppt = 1
                 LEFT JOIN sources c ON b.source_id = c.id
                 WHERE a.period_start = '$period_start' and a.period_end = '$period_end' and d.id like '%$filter_group%'
                 GROUP BY a.id
@@ -129,10 +129,10 @@ class Pph_21 extends CI_Controller
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
 
-            $query = $this->db->query("SELECT b.name, b.tax_id, b.national_id, c.name as alamat, a.attandance_wd, a.marital, a.net_income
+            $query = $this->db->query("SELECT a.number, b.name, b.tax_id, b.national_id, c.name as alamat, a.attandance_wd, a.marital, a.net_income, d.name as group_name
                 FROM payrolls a
                 JOIN employees b ON a.employee_id = b.id
-                JOIN groups d ON b.group_id = d.id
+                JOIN groups d ON b.group_id = d.id and d.ppt = 1
                 LEFT JOIN sources c ON b.source_id = c.id
                 WHERE a.period_start = '$period_start' and a.period_end = '$period_end' and d.id like '%$filter_group%'
                 GROUP BY a.id
@@ -148,7 +148,7 @@ class Pph_21 extends CI_Controller
                     <style> .str{ mso-number-format:\@; } </style>
                     <body>
                     <center>
-                        <h3 style="margin:0;">TEMPLATE ESINDO (PPH 21) PPT</h3>
+                        <h3 style="margin:0;">TEMPLATE ESINDO (PPH 21) PTT</h3>
                         <b>Period ' . $filter_from . ' and ' . $filter_to . '</b>
                     </center>
                     <br><br>
@@ -160,6 +160,8 @@ class Pph_21 extends CI_Controller
                             <th style="text-align:center;">No BP</th>
                             <th style="text-align:center;">Tgl BP</th>
                             <th style="text-align:center;">Penerima Penghasilan</th>
+                            <th style="text-align:center;">Group</th>
+                            <th style="text-align:center;">NIK</th>
                             <th style="text-align:center;">Nama</th>
                             <th style="text-align:center;">NPWP</th>
                             <th style="text-align:center;">NIK/No. Pasport</th>
@@ -181,6 +183,8 @@ class Pph_21 extends CI_Controller
                             <td style="text-align:center;">1.3-01.23-' . sprintf("%07s", $no) . '</td>
                             <td style="text-align:center;">' . $tgl_bp . '</td>
                             <td>PTT atau Pegawai Lepas</td>
+                            <td>' . $record['group_name'] . '</td>
+                            <td>' . $record['number'] . '</td>
                             <td>' . $record['name'] . '</td>
                             <td style="text-align:center;">' . $record['tax_id'] . '</td>
                             <td style="text-align:center;" class="str">' . $record['national_id'] . '</td>

@@ -36,7 +36,7 @@ class Shifts extends CI_Controller
     public function reads()
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
-        $send = $this->crud->reads('shifts', ["name" => $post]);
+        $send = $this->crud->reads('shifts', ["name" => $post], [], "", "name", "asc");
         echo json_encode($send);
     }
 

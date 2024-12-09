@@ -220,7 +220,12 @@
             "&filter_correction=" + filter_correction;
 
         $('#dg').datagrid({
-            url: '<?= base_url('payroll/corrections/datatables') ?>' + url
+            url: '<?= base_url('payroll/corrections/datatables') ?>' + url,
+            pagination: true,
+            rownumbers: true,
+            fit: true,
+            pageList: [20, 50, 100, 500, 1000],
+            pageSize: 20,
         });
 
         $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
@@ -257,14 +262,7 @@
     }
 
     $(function() {
-        $('#dg').datagrid({
-            url: '<?= base_url('payroll/corrections/datatables') ?>',
-            pagination: true,
-            rownumbers: true,
-            fit: true,
-            pageList: [20, 50, 100, 500, 1000],
-            pageSize: 20,
-        });
+        filter();
 
         //SAVE DATA
         $('#dlg_insert').dialog({

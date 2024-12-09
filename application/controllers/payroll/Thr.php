@@ -88,7 +88,7 @@ class Thr extends CI_Controller
         if ($dateSign == "") {
             echo $y . $m . $d;
         } else {
-            return $y . $m . $d;
+            return array("periode" => "$y $m $d", "day" => $diff->d, "month" => $diff->m, "year" => $diff->y);
         }
     }
 
@@ -102,8 +102,21 @@ class Thr extends CI_Controller
             $filter_departement_sub = $this->input->get('filter_departement_sub');
             $filter_employee = $this->input->get('filter_employee');
             $filter_employee_type = $this->input->get('filter_employee_type');
+            $filter_service = $this->input->get('filter_service');
             $filter_group = $this->input->get('filter_group');
+            $filter_source = $this->input->get('filter_source');
             $username = $this->session->username;
+
+            if ($filter_service == "0") {
+                $whereService1 = $this->db->where("datediff(current_date(), b.date_sign) <", 365);
+                $whereService2 = "";
+            } elseif ($filter_service == "1") {
+                $whereService1 = $this->db->where("datediff(current_date(), b.date_sign) >", 365);
+                $whereService2 = $this->db->where("datediff(current_date(), b.date_sign) <", 730);
+            }else{
+                $whereService1 = "";
+                $whereService2 = "";
+            }
 
             $page   = $this->input->post('page');
             $rows   = $this->input->post('rows');
@@ -114,10 +127,11 @@ class Thr extends CI_Controller
             $result = array();
             //Select Query
 
-            $this->db->select('a.*');
+            $this->db->select('a.*, c.name as source_name');
             $this->db->from('thr a');
             $this->db->join('employees b', 'a.employee_id = b.id');
-            $this->db->join("privilege_groups c", "b.group_id = c.group_id and c.username = '$username' and c.status = '1'");
+            $this->db->join('sources c', 'b.source_id = c.id', 'left');
+            $this->db->join("privilege_groups d", "b.group_id = d.group_id and d.username = '$username' and d.status = '1'");
             if ($filter_year != "") {
                 $this->db->where('a.period =', $filter_year);
             }
@@ -126,7 +140,12 @@ class Thr extends CI_Controller
             $this->db->like('b.departement_sub_id', $filter_departement_sub);
             $this->db->like('b.contract_id', $filter_employee_type);
             $this->db->like('b.group_id', $filter_group);
+            if($filter_source != ""){
+                $this->db->like('b.source_id', $filter_source);
+            }
             $this->db->like('b.id', $filter_employee);
+            $whereService1;
+            $whereService2;
             $this->db->order_by('a.departement_name', 'ASC');
             $this->db->order_by('a.departement_sub_name', 'ASC');
             $this->db->order_by('a.employee_name', 'ASC');
@@ -155,6 +174,9 @@ class Thr extends CI_Controller
             $filter_employee = $this->input->get('filter_employee');
             $filter_employee_type = $this->input->get('filter_employee_type');
             $filter_group = $this->input->get('filter_group');
+            $filter_cutoff = base64_decode($this->input->get('filter_cutoff'));
+            $filter_period = date("Y-m", strtotime("-1 month", strtotime($filter_cutoff)));
+
             $username = $this->session->username;
 
             $query = $this->db->query("SELECT a.*, 
@@ -174,12 +196,16 @@ class Thr extends CI_Controller
                     p.amount as salary,
                     p.bpjs,
                     q.number as marital,
+                    q.ter_type,
                     a.tax_id,
-                    o.thr_fee
+                    o.thr_fee,
+                    e.total_all_allowance,
+                    e.bpjs_company
                 FROM employees a
                 JOIN divisions b ON a.division_id = b.id
                 JOIN departements c ON a.departement_id = c.id
                 JOIN departement_subs d ON a.departement_sub_id = d.id
+                JOIN payrolls e ON a.id = e.employee_id and e.period_end = '$filter_period'
                 LEFT JOIN contracts f ON a.contract_id = f.id
                 LEFT JOIN positions g ON a.position_id = g.id
                 LEFT JOIN groups i ON a.group_id = i.id
@@ -187,7 +213,7 @@ class Thr extends CI_Controller
                 LEFT JOIN shifts n ON k.shift_id = n.id
                 LEFT JOIN shift_details l ON n.id = l.shift_id
                 LEFT JOIN sources o ON o.id = a.source_id
-                JOIN setup_salaries p ON p.employee_id = a.id
+                LEFT JOIN setup_salaries p ON p.employee_id = a.id
                 LEFT JOIN maritals q ON a.marital_id = q.id
                 JOIN privilege_groups m ON i.id = m.group_id and m.username = '$username' and m.status = '1'
                 WHERE a.deleted = 0 and a.status = 0
@@ -213,15 +239,24 @@ class Thr extends CI_Controller
     {
         if ($this->input->post()) {
             $record = $this->input->post();
-            $employee_id = $record['id'];
+            $cutoff = base64_decode($this->input->get('filter_cutoff'));
+            $salary = empty($record['salary']) ? 0 : $record['salary'];
 
+            $this->db->select('*');
+            $this->db->from('cutoff');
+            $this->db->order_by('start', 'desc');
+            $cutoffperiod = $this->db->get()->row();
+            $days = date("d", strtotime($cutoffperiod->start));
+            
             $filter_year = $this->input->get('filter_year');
+            $employee_id = $record['id'];
+            $service = $this->readService($record['date_sign'], $cutoff);
 
             $allowence = $this->db->query("SELECT b.number, b.name, coalesce(a.amount, 0) as amount, b.calculate_days, b.type
-                    FROM allowances b
-                    LEFT JOIN setup_allowances a ON a.allowance_id = b.id and a.employee_id = '$employee_id'
-                    WHERE b.type = 'FIX'
-                    GROUP BY b.id ORDER BY b.name asc");
+                FROM allowances b
+                LEFT JOIN setup_allowances a ON a.allowance_id = b.id and a.employee_id = '$employee_id'
+                WHERE b.type = 'FIX'
+                GROUP BY b.id ORDER BY b.name asc");
             $allowenceDatas = $allowence->result_array();
 
             $totalAllowence = 0;
@@ -233,73 +268,113 @@ class Thr extends CI_Controller
                 $totalAllowence += $record['thr_fee'];
             }
 
+            // $date = date("Y-m-d");
+            // $timeStart = strtotime($record['date_sign']);
+            // $timeEnd = strtotime($date);
+            // // Menambah bulan ini + semua bulan pada tahun sebelumnya
+            // $numBulan = 1 + (date("Y", $timeEnd) - date("Y", $timeStart)) * 12;
+            // // menghitung selisih bulan
+            // $numBulan += date("m", $timeEnd) - date("m", $timeStart);
+            // // $month = $service['month'];
 
-            $date = date("Y-m-d");
-            $timeStart = strtotime($record['date_sign']);
-            $timeEnd = strtotime($date);
-            // Menambah bulan ini + semua bulan pada tahun sebelumnya
-            $numBulan = 1 + (date("Y", $timeEnd) - date("Y", $timeStart)) * 12;
-            // menghitung selisih bulan
-            $numBulan += date("m", $timeEnd) - date("m", $timeStart);
+            $numTahun = ($service['year'] * 12);
+            $numBulan = ($numTahun + $service['month']);
+
+            if($service['day'] >= $days){
+                $numBulan += 1;
+            }
 
             //Menghitung jika fit for service lebih dari 12 bulan
-            if ($record['source_id'] == "") {
-                if ($numBulan >= 12) {
-                    $thr = ($record['salary'] + $totalAllowence);
-                } else {
-                    $thr = round((($record['salary'] + $totalAllowence) / 12) * $numBulan);
+            if($record['group_name'] == "PKL"){
+                if($numBulan < 3){
+                    $allowance = $this->crud->read("allowance_students", [], ["group_id" => $record['group_id'], "months" => "2", "type" => "THR"]);
+                }elseif($numBulan == 3){
+                    $allowance = $this->crud->read("allowance_students", [], ["group_id" => $record['group_id'], "months" => "3", "type" => "THR"]);
+                }elseif($numBulan > 3){
+                    $allowance = $this->crud->read("allowance_students", [], ["group_id" => $record['group_id'], "months" => "4", "type" => "THR"]);
                 }
-            } else {
-                if ($numBulan >= 12) {
-                    $thr = $record['thr_fee'];
+
+                $thr = $allowance->amount;
+            }else{
+                if ($record['source_id'] == "") {
+                    if ($numBulan >= 12) {
+                        $thr = ($salary + $totalAllowence);
+                    } else {
+                        $thr = round((($salary + $totalAllowence) / 12) * $numBulan);
+                    }
                 } else {
-                    $thr = round(($record['thr_fee'] / 12) * $numBulan);
+                    if ($numBulan >= 12) {
+                        $thr = $record['thr_fee'];
+                    } else {
+                        $thr = round(($record['thr_fee'] / 12) * $numBulan);
+                    }
                 }
             }
-
 
             //Menghitung PPH 21
-            $config = $this->db->get('payroll_config')->result();
-            $income_pph = $thr;
-            $netto_year = ($income_pph * 12);
-            $r_marital = $this->crud->read('maritals', ["number" => $record['marital']]);
-            $r_ptkp = $this->crud->read('ptkp', ["marital_id" => @$r_marital->id]);
-            $tax_amount = ($netto_year - @$r_ptkp->amount);
-            $pph_debt = (($tax_amount * $config[0]->payroll_pph_payable) / 100);
-            $pph_pasal = round($pph_debt / 12);
+            // $config = $this->db->get('payroll_config')->result();
+            // $income_pph = $thr;
+            // $netto_year = ($income_pph * 12);
+            // $r_marital = $this->crud->read('maritals', ["number" => $record['marital']]);
+            // $r_ptkp = $this->crud->read('ptkp', ["marital_id" => @$r_marital->id]);
+            // $tax_amount = ($netto_year - @$r_ptkp->amount);
+            // $pph_debt = (($tax_amount * $config[0]->payroll_pph_payable) / 100);
+            // $pph_pasal = round($pph_debt / 12);
 
-            //Kalo gaji per tahun nya lebih dari master ptkp
-            if ($netto_year >= @$r_ptkp->amount) {
-                //jika npwp nya kosong maka kena potongan 120%
-                if ($record['tax_id'] == "" or $record['tax_id'] == null or $record['tax_id'] == "-") {
-                    $pph_final = round(($pph_pasal * $config[0]->payroll_npwp_null) / 100);
-                } else {
-                    $pph_final = $pph_pasal;
-                }
-                //kalo kurang ga kena pajak pph
-            } else {
-                $pph_final = 0;
+            // //Kalo gaji per tahun nya lebih dari master ptkp
+            // if ($netto_year >= @$r_ptkp->amount) {
+            //     //jika npwp nya kosong maka kena potongan 120%
+            //     if ($record['tax_id'] == "" or $record['tax_id'] == null or $record['tax_id'] == "-") {
+            //         $pph_final = round(($pph_pasal * $config[0]->payroll_npwp_null) / 100);
+            //     } else {
+            //         $pph_final = $pph_pasal;
+            //     }
+            //     //kalo kurang ga kena pajak pph
+            // } else {
+            //     $pph_final = 0;
+            // }
+            
+            $bpjs = json_decode($record['bpjs_company'], true);
+            $income_thr = (($record['total_all_allowance'] - $bpjs['jht_company'] - $bpjs['jp_company']) + $thr);
+
+            //Rumus TER
+            $this->db->select("number, ter");
+            $this->db->from('marital_categories');
+            $this->db->where('ter_from <', $income_thr);
+            $this->db->where('ter_to >', $income_thr);
+            $this->db->where('type', $record['ter_type']);
+            $marital_category = $this->db->get()->row();
+            
+            if(empty($marital_category)){
+                $ter = 0;
+            }else{
+                $ter = (($income_thr * $marital_category->ter) / 100);
             }
 
-            $arr = array(
-                "employee_id" => $record['id'],
-                "employee_number" => $record['number'],
-                "employee_name" => $record['name'],
-                "period" => $filter_year,
-                "date_sign" => $record['date_sign'],
-                "services" => $this->readService($record['date_sign'], date("Y-m-d")),
-                "departement_name" => $record['departement_name'],
-                "departement_sub_name" => $record['departement_sub_name'],
-                "position_name" => $record['position_name'],
-                "marital" => $record['marital'],
-                "tax_id" => $record['tax_id'],
-                "salary" => $record['salary'],
-                "allowence" => $totalAllowence,
-                "total" => ($record['salary'] + $totalAllowence),
-                "thr" => $thr,
-                "pph" => ($pph_final),
-                "total_thr" => ($thr - $pph_final),
-            );
+            if($numBulan >= 1){
+                $arr = array(
+                    "employee_id" => $record['id'],
+                    "employee_number" => $record['number'],
+                    "employee_name" => $record['name'],
+                    "period" => $filter_year,
+                    "cutoff" => $cutoff,
+                    "date_sign" => $record['date_sign'],
+                    "services" => $service['periode'],
+                    "departement_name" => $record['departement_name'],
+                    "departement_sub_name" => $record['departement_sub_name'],
+                    "position_name" => $record['position_name'],
+                    "marital" => $record['marital'],
+                    "tax_id" => $record['tax_id'],
+                    "salary" => $salary,
+                    "allowence" => $totalAllowence,
+                    "total" => ($salary + $totalAllowence),
+                    "thr" => $thr,
+                    "income" => ($record['total_all_allowance'] - $bpjs['jht_company'] - $bpjs['jp_company']),
+                    "income_thr" => $income_thr,
+                    "pph" => ($ter),
+                    "total_thr" => ($thr - $ter),
+                );
+            }
 
             if (@$arr == null) {
                 $result = [];
@@ -381,7 +456,9 @@ class Thr extends CI_Controller
         $filter_departement_sub = $this->input->get('filter_departement_sub');
         $filter_employee = $this->input->get('filter_employee');
         $filter_employee_type = $this->input->get('filter_employee_type');
+        $filter_service = $this->input->get('filter_service');
         $filter_group = $this->input->get('filter_group');
+        $filter_source = $this->input->get('filter_source');
         $username = $this->session->username;
 
         //Config
@@ -390,18 +467,27 @@ class Thr extends CI_Controller
         $config = $this->db->get()->row();
 
         //Select Query
-        $this->db->select('a.*');
+        $this->db->select('a.*,  c.name as source_name');
         $this->db->from('thr a');
         $this->db->join('employees b', 'a.employee_id = b.id');
-        $this->db->join("privilege_groups c", "b.group_id = c.group_id and c.username = '$username' and c.status = '1'");
+        $this->db->join('sources c', 'b.source_id = c.id', 'left');
+        $this->db->join("privilege_groups d", "b.group_id = d.group_id and d.username = '$username' and d.status = '1'");
         if ($filter_year != "") {
             $this->db->where('a.period =', $filter_year);
+        }
+        if ($filter_service == "0") {
+            $this->db->where("datediff(current_date(), a.date_sign) <", 365);
+        } elseif ($filter_service == "1") {
+            $this->db->where("datediff(current_date(), a.date_sign) <", 730);
         }
         $this->db->like('b.division_id', $filter_division);
         $this->db->like('b.departement_id', $filter_departement);
         $this->db->like('b.departement_sub_id', $filter_departement_sub);
         $this->db->like('b.contract_id', $filter_employee_type);
         $this->db->like('b.group_id', $filter_group);
+        if($filter_source != ""){
+            $this->db->like('b.source_id', $filter_source);
+        }
         $this->db->like('b.id', $filter_employee);
         $this->db->order_by('a.departement_name', 'ASC');
         $this->db->order_by('a.departement_sub_name', 'ASC');
@@ -437,7 +523,9 @@ class Thr extends CI_Controller
                 <th>Employee Name</th>
                 <th>Departement</th>
                 <th>Departement Sub</th>
+                <th>Source</th>
                 <th>Join Date</th>
+                <th>Cutoff</th>
                 <th>Fit of Services</th>
                 <th>Position</th>
                 <th>Marital</th>
@@ -446,28 +534,34 @@ class Thr extends CI_Controller
                 <th>Allowence</th>
                 <th>Total</th>
                 <th>THR</th>
-                <th>PPH 21</th>
+                <th>Payroll</th>
+                <th>Total Income</th>
+                <th>TER</th>
                 <th>Total THR</th>
             </tr>';
         $no = 1;
         foreach ($records as $data) {
             $html .= '  <tr>
                             <td>' . $no . '</td>
-                            <td>' . $data['employee_id'] . '</td>
+                            <td style="mso-number-format:\@;">' . $data['employee_number'] . '</td>
                             <td>' . $data['employee_name'] . '</td>
                             <td>' . $data['departement_name'] . '</td>
                             <td>' . $data['departement_sub_name'] . '</td>
+                            <td>' . $data['source_name'] . '</td>
                             <td>' . date("d F Y", strtotime($data['date_sign'])) . '</td>
+                            <td>' . date("d F Y", strtotime($data['cutoff'])) . '</td>
                             <td>' . $data['services'] . '</td>
                             <td>' . $data['position_name'] . '</td>
                             <td>' . $data['marital'] . '</td>
-                            <td>' . $data['tax_id'] . '</td>
-                            <td>' . number_format($data['salary']) . '</td>
-                            <td>' . number_format($data['allowence']) . '</td>
-                            <td>' . number_format($data['total']) . '</td>
-                            <td>' . number_format($data['thr']) . '</td>
-                            <td>' . number_format($data['pph']) . '</td>
-                            <td>' . number_format($data['total_thr']) . '</td>
+                            <td style="mso-number-format:\@;">' . $data['tax_id'] . '</td>
+                            <td>' . $data['salary'] . '</td>
+                            <td>' . $data['allowence'] . '</td>
+                            <td>' . $data['total'] . '</td>
+                            <td>' . $data['thr'] . '</td>
+                            <td>' . $data['income'] . '</td>
+                            <td>' . $data['income_thr'] . '</td>
+                            <td>' . $data['pph'] . '</td>
+                            <td>' . $data['total_thr'] . '</td>
                         </tr>';
             $no++;
         }

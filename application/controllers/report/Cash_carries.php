@@ -92,8 +92,6 @@ class Cash_carries extends CI_Controller
                 b.departement_sub_id,
                 b.group_id,
                 b.position_id,
-                g.time_in,
-                g.time_out,
                 c.name as departement_name, 
                 d.name as departement_sub_name,
                 h.name as division_name, 
@@ -110,7 +108,7 @@ class Cash_carries extends CI_Controller
             $this->db->join('divisions h', "b.division_id = h.id");
             $this->db->join('groups e', "b.group_id = e.id");
             //$this->db->join('privilege_groups f', "b.group_id = f.id and f.username = '$username' and f.status = '1'", "left");
-            $this->db->join('attandances g', "b.number = g.number and a.trans_date = g.date_in");
+            // $this->db->join('attandances g', "b.number = g.number and a.trans_date = g.date_in");
             $this->db->join('setup_cash_carries j', 'a.employee_id = j.employee_id', 'left');
             $this->db->join('allowance_cash_carries i', 'j.allowance_id = i.id', 'left');
             $this->db->where('a.deleted', 0);
@@ -139,27 +137,7 @@ class Cash_carries extends CI_Controller
                 $calendars = $this->db->get()->result_array();
 
                 $start = strtotime($record['trans_date']);
-                $att_time_begin = strtotime(@$record['date_in'] . " " . @$record['time_in']);
-                $att_time_end = strtotime(@$record['date_out'] . " " . @$record['time_out']);
-                
-                $tomorrow = strtotime(date('Y-m-d', strtotime(@$record['date_out'] . "+1 days")) . " " . @$record['time_out']);
-
-                $att_diff = $att_time_end - $att_time_begin;
-                $att_hour = floor($att_diff / (60 * 60));
-
-                if ($att_hour < 0) {
-                    $att_diff = $tomorrow - $att_time_begin;
-                    $att_hour = floor($att_diff / (60 * 60));
-                }
-
-                $cc_hour = $record['duration_hour'];
-
-                //Validasi Jam
-                if ($att_hour > $cc_hour) {
-                    $hour = $cc_hour;
-                } else {
-                    $hour = $att_hour;
-                }
+                $hour = $record['duration_hour'];
 
                 //Validasi Uang makan
                 if ($record['meal'] == 0) {
@@ -234,8 +212,6 @@ class Cash_carries extends CI_Controller
                 b.departement_sub_id,
                 b.group_id,
                 b.position_id,
-                g.time_in,
-                g.time_out,
                 c.name as departement_name, 
                 d.name as departement_sub_name,
                 h.name as division_name, 
@@ -252,7 +228,7 @@ class Cash_carries extends CI_Controller
             $this->db->join('divisions h', "b.division_id = h.id");
             $this->db->join('groups e', "b.group_id = e.id");
             //$this->db->join('privilege_groups f', "b.group_id = f.id and f.username = '$username' and f.status = '1'", "left");
-            $this->db->join('attandances g', "b.number = g.number and a.trans_date = g.date_in");
+            // $this->db->join('attandances g', "b.number = g.number and a.trans_date = g.date_in");
             $this->db->join('setup_cash_carries j', 'a.employee_id = j.employee_id', 'left');
             $this->db->join('allowance_cash_carries i', 'j.allowance_id = i.id', 'left');
             $this->db->where('a.deleted', 0);
@@ -365,27 +341,27 @@ class Cash_carries extends CI_Controller
                     $calendars = $this->db->get()->result_array();
 
                     $start = strtotime($record['trans_date']);
-                    $att_time_begin = strtotime(@$record['date_in'] . " " . @$record['time_in']);
-                    $att_time_end = strtotime(@$record['date_out'] . " " . @$record['time_out']);
+                    // $att_time_begin = strtotime(@$record['date_in'] . " " . @$record['time_in']);
+                    // $att_time_end = strtotime(@$record['date_out'] . " " . @$record['time_out']);
                     
-                    $tomorrow = strtotime(date('Y-m-d', strtotime(@$record['date_out'] . "+1 days")) . " " . @$record['time_out']);
+                    // $tomorrow = strtotime(date('Y-m-d', strtotime(@$record['date_out'] . "+1 days")) . " " . @$record['time_out']);
 
-                    $att_diff = $att_time_end - $att_time_begin;
-                    $att_hour = floor($att_diff / (60 * 60));
+                    // $att_diff = $att_time_end - $att_time_begin;
+                    // $att_hour = floor($att_diff / (60 * 60));
 
-                    if ($att_hour < 0) {
-                        $att_diff = $tomorrow - $att_time_begin;
-                        $att_hour = floor($att_diff / (60 * 60));
-                    }
+                    // if ($att_hour < 0) {
+                    //     $att_diff = $tomorrow - $att_time_begin;
+                    //     $att_hour = floor($att_diff / (60 * 60));
+                    // }
 
-                    $cc_hour = $record['duration_hour'];
+                    $hour = $record['duration_hour'];
 
                     //Validasi Jam
-                    if ($att_hour > $cc_hour) {
-                        $hour = $cc_hour;
-                    } else {
-                        $hour = $att_hour;
-                    }
+                    // if ($att_hour > $cc_hour) {
+                    //     $hour = $cc_hour;
+                    // } else {
+                    //     $hour = $att_hour;
+                    // }
 
                     //Validasi Uang makan
                     if ($record['meal'] == 0) {
@@ -627,16 +603,17 @@ class Cash_carries extends CI_Controller
                 foreach ($cash_carries as $cash_carry) {
                     //Select Query
                     $this->db->select('a.*,
+                        b.bank_no,
+                        b.bank_name,
                         b.number as employee_number,
                         b.name as employee_name,
                         b.departement_id,
                         b.departement_sub_id,
                         b.group_id,
                         b.position_id,
-                        g.time_in,
-                        g.time_out,
                         c.name as departement_name, 
-                        d.name as departement_sub_name, 
+                        d.name as departement_sub_name,
+                        h.name as division_name, 
                         e.name as group_name,
                         COALESCE(i.weekday, 0) as total_weekday,
                         COALESCE(i.sunday, 0) as total_sunday,
@@ -647,15 +624,20 @@ class Cash_carries extends CI_Controller
                     $this->db->join('employees b', "a.employee_id = b.id");
                     $this->db->join('departements c', "b.departement_id = c.id");
                     $this->db->join('departement_subs d', "b.departement_sub_id = d.id");
+                    $this->db->join('divisions h', "b.division_id = h.id");
                     $this->db->join('groups e', "b.group_id = e.id");
-                    $this->db->join('attandances g', "b.number = g.number and a.trans_date = g.date_in", 'left');
-                    $this->db->join('setup_cash_carries h', 'a.employee_id = h.employee_id', 'left');
-                    $this->db->join('allowance_cash_carries i', 'h.allowance_id = i.id', 'left');
+                    //$this->db->join('privilege_groups f', "b.group_id = f.id and f.username = '$username' and f.status = '1'", "left");
+                    // $this->db->join('attandances g', "b.number = g.number and a.trans_date = g.date_in");
+                    $this->db->join('setup_cash_carries j', 'a.employee_id = j.employee_id', 'left');
+                    $this->db->join('allowance_cash_carries i', 'j.allowance_id = i.id', 'left');
                     $this->db->where('a.deleted', 0);
                     $this->db->where('a.status', 0);
                     $this->db->where("(a.approved_to = '' or a.approved_to is null)");
-                    $this->db->where('a.employee_id =', $cash_carry['employee_id']);
-                    $this->db->group_by("a.employee_id");
+                    if ($filter_from != "" && $filter_to != "") {
+                        $this->db->where('a.trans_date >=', $filter_from);
+                        $this->db->where('a.trans_date <=', $filter_to);
+                    }
+                    $this->db->where('b.id', $cash_carry['employee_id']);
                     $this->db->order_by('b.name', 'ASC');
                     $records = $this->db->get()->result_array();
 
@@ -674,27 +656,7 @@ class Cash_carries extends CI_Controller
                         $calendars = $this->db->get()->result_array();
 
                         $start = strtotime($record['trans_date']);
-                        $att_time_begin = strtotime(@$record['date_in'] . " " . @$record['time_in']);
-                        $att_time_end = strtotime(@$record['date_out'] . " " . @$record['time_out']);
-                        
-                        $tomorrow = strtotime(date('Y-m-d', strtotime(@$record['date_out'] . "+1 days")) . " " . @$record['time_out']);
-
-                        $att_diff = $att_time_end - $att_time_begin;
-                        $att_hour = floor($att_diff / (60 * 60));
-
-                        if ($att_hour < 0) {
-                            $att_diff = $tomorrow - $att_time_begin;
-                            $att_hour = floor($att_diff / (60 * 60));
-                        }
-
-                        $cc_hour = $record['duration_hour'];
-
-                        //Validasi Jam
-                        if ($att_hour > $cc_hour) {
-                            $hour = $cc_hour;
-                        } else {
-                            $hour = $att_hour;
-                        }
+                        $hour = $record['duration_hour'];
 
                         //Validasi Uang makan
                         if ($record['meal'] == 0) {
@@ -708,15 +670,15 @@ class Cash_carries extends CI_Controller
 
                                 //Kalo ada tanggal Merah
                                 if (count($calendars) > 0) {
-                                    $total = ((@$record['total_holiday'] * $hour) + $meal);
+                                    $total += ((@$record['total_holiday'] * $hour) + $meal);
                                 } else {
-                                    $total = ((@$record['total_weekday'] * $hour) + $meal);
+                                    $total += ((@$record['total_weekday'] * $hour) + $meal);
                                 }
                             } else {
                                 if (date('w', $start) === '0'){
-                                    $total = ((@$record['total_sunday'] * $hour) + $meal);
+                                    $total += ((@$record['total_sunday'] * $hour) + $meal);
                                 }else{
-                                    $total = ((@$record['total_saturday'] * $hour) + $meal);
+                                    $total += ((@$record['total_saturday'] * $hour) + $meal);
                                 }
                             }
                         } else {
@@ -724,22 +686,19 @@ class Cash_carries extends CI_Controller
 
                                 //Kalo ada tanggal Merah
                                 if (count($calendars) > 0) {
-                                    $total = ((@$record['total_holiday'] * $hour) + $meal);
+                                    $total += ((@$record['total_holiday'] * $hour) + $meal);
                                 } else {
-                                    $total = ((@$record['total_weekday'] * $hour) + $meal);
+                                    $total += ((@$record['total_weekday'] * $hour) + $meal);
                                 }
                             } else {
                                 if (date('w', $start) === '0'){
-                                    $total = ((@$record['total_sunday'] * $hour) + $meal);
+                                    $total += ((@$record['total_sunday'] * $hour) + $meal);
                                 }else{
-                                    $total = ((@$record['total_saturday'] * $hour) + $meal);
+                                    $total += ((@$record['total_saturday'] * $hour) + $meal);
                                 }
                             }
                         }
                     }
-
-                    $amount = ["amount" => $total];
-                    $datas[] = array_merge($cash_carry, $amount);
 
                     $html .= '  <tr>
                                     <td style="text-align:center;">' . $no . '</td>
@@ -748,7 +707,7 @@ class Cash_carries extends CI_Controller
                                     <td>' . $cash_carry['departement_sub_name'] . '</td>
                                     <td>' . $cash_carry['group_name'] . '</td>
                                     <td>' . $cash_carry['bank_no'] . '</td>
-                                    <td style="text-align:right;">' . number_format($total) . '</td>
+                                    <td style="text-align:right;">' . $total . '</td>
                                 </tr>';
                     $totalAmount += $total;
                     $no++;
@@ -756,7 +715,7 @@ class Cash_carries extends CI_Controller
 
                 $html .= '  <tr>
                             <th style="text-align:right;" colspan="6">GRAND TOTAL</th>
-                            <th style="text-align:right;">' . number_format($totalAmount) . '</th>
+                            <th style="text-align:right;">' . $totalAmount . '</th>
                         </tr>
                         </table>
                         <br>

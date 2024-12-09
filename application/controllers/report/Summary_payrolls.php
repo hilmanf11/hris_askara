@@ -38,9 +38,9 @@ class Summary_payrolls extends CI_Controller
         $filter_departement = $this->input->get('filter_departement');
         $filter_departement_sub = $this->input->get('filter_departement_sub');
         $filter_employee = $this->input->get('filter_employee');
-        $filter_group = $this->input->get('filter_group');
+        $filter_group = base64_decode($this->input->get('filter_group'));
         $username = $this->session->username;
-        // $filter_group_ex = explode(",", trim($filter_group));
+        $filter_group_ex = explode(",", trim($filter_group));
 
         $period_start = date("Y-m", strtotime($filter_from));
         $period_end = date("Y-m", strtotime($filter_to));
@@ -70,7 +70,7 @@ class Summary_payrolls extends CI_Controller
         $this->db->where('a.period_start =', $period_start);
         $this->db->where('a.period_end =', $period_end);
         if($filter_group != ""){
-            $this->db->where('b.group_id', $filter_group);
+            $this->db->where_in('e.name', $filter_group_ex);
         }
         $this->db->like('b.id', $filter_employee);
         $this->db->like('b.division_id', $filter_division);
@@ -100,7 +100,7 @@ class Summary_payrolls extends CI_Controller
             $filter_departement = $this->input->get('filter_departement');
             $filter_departement_sub = $this->input->get('filter_departement_sub');
             $filter_employee = $this->input->get('filter_employee');
-            $filter_group = $this->input->get('filter_group');
+            $filter_group = base64_decode($this->input->get('filter_group'));
             $username = $this->session->username;
 
             $period_start = date("Y-m", strtotime($filter_from));
@@ -230,7 +230,6 @@ class Summary_payrolls extends CI_Controller
                                     <th rowspan="2" style="text-align:center;">WD</th>
                                     <th rowspan="2" style="text-align:center;">Salary</th>
                                     <th colspan="7" style="text-align:center;">Allowance</th>
-                                    <th colspan="2" style="text-align:center;">Overtime</th>
                                     <th rowspan="2" style="text-align:center;">Correction <br> Plus</th>
                                     <th rowspan="2" style="text-align:center;">Total <br> Income</th>
                                     <th colspan="8" style="text-align:center;">Deduction</th>
@@ -241,11 +240,9 @@ class Summary_payrolls extends CI_Controller
                                     <th rowspan="2" style="text-align:center;">Nett Income</th>
                                 </tr>
                                 <tr>
-                                    <th style="text-align:center;">Tnj. Tetap</th>
-                                    <th style="text-align:center;">Tnj. Tidak Tetap</th>';
+                                    <th style="text-align:center;">FIX</th>
+                                    <th style="text-align:center;">TMP</th>';
                                     $html .= $htmlBpjsHeader;
-                        $html .= '  <th style="text-align:center;">Hour</th>
-                                    <th style="text-align:center;">Amount</th>';
                                     $html .= $htmlBpjsHeader;
                         $html .= '  <th style="text-align:center;">Deduction</th>
                                     <th style="text-align:center;">ABS (DAY)</th>
@@ -265,6 +262,9 @@ class Summary_payrolls extends CI_Controller
                     ORDER BY a.`name` ASC LIMIT 25 OFFSET $offset");
                 $records = $query->result_array();
 
+                $no = 1;
+                $total = 0;
+                $no = 1;
                 $total = 0;
                 foreach ($records as $record) {
 
@@ -331,10 +331,8 @@ class Summary_payrolls extends CI_Controller
                                 <td style="text-align:right;">' . number_format($total_allowence_fix) . '</td>
                                 <td style="text-align:right;">' . number_format($total_allowence_temp) . '</td>
                                 ' . $html_bpjs_company . '
-                                <td style="text-align:right;">' . number_format($record['total_overtime_convert'], 2) . '</td>
-                                <td style="text-align:right;">' . number_format($record['total_overtime_amount']) . '</td>
                                 <td style="text-align:right;">' . number_format($record['correction_plus']) . '</td>
-                                <td style="text-align:right;">' . number_format(($record['salary'] + $total_allowence + $record['correction_plus'] + $record['bpjs_company_total'] + $record['total_overtime_amount'])) . '</td>
+                                <td style="text-align:right;">' . number_format(($record['salary'] + $total_allowence + $record['correction_plus'] + $record['bpjs_company_total'])) . '</td>
                                 ' . $html_bpjs_employee . '
                                 <td style="text-align:right;">' . number_format($total_deduction) . '</td>
                                 <td style="text-align:right;">' . number_format($record['deduction_absence'] + $total_ip) . '</td>
@@ -350,7 +348,7 @@ class Summary_payrolls extends CI_Controller
                 }
 
                 $html .= '  <tr>
-                                <th style="text-align:right;" colspan="29">GRAND TOTAL</th>
+                                <th style="text-align:right;" colspan="27">GRAND TOTAL</th>
                                 <th style="text-align:right;">' . number_format($total) . '</th>
                             </tr>';
                 $html .= '</table><br>';
@@ -381,7 +379,7 @@ class Summary_payrolls extends CI_Controller
                                 </tr>
                                 <tr>
                                     <th style="text-align:center;">BOD</th>
-                                    <th style="text-align:center;">ASSISTANT MANAGER</th>
+                                    <th style="text-align:center;">LEADER</th>
                                     <th style="text-align:center;">ASSISTANT MANAGER</th>
                                     <th style="text-align:center;">PAYROLL STAFF</th>
                                 </tr>
@@ -408,8 +406,8 @@ class Summary_payrolls extends CI_Controller
             $filter_departement = $this->input->get('filter_departement');
             $filter_departement_sub = $this->input->get('filter_departement_sub');
             $filter_employee = $this->input->get('filter_employee');
-            $filter_group = $this->input->get('filter_group');
-            // $filter_group_ex = explode(",", $filter_group);
+            $filter_group = base64_decode($this->input->get('filter_group'));
+            $filter_group_ex = explode(",", $filter_group);
             $username = $this->session->username;
 
             $period_start = date("Y-m", strtotime($filter_from));
@@ -436,7 +434,7 @@ class Summary_payrolls extends CI_Controller
             $this->db->where('a.period_start =', $period_start);
             $this->db->where('a.period_end =', $period_end);
             if($filter_group != ""){
-                $this->db->where('b.group_id', $filter_group);
+                $this->db->where_in('e.name', $filter_group_ex);
             }
             $this->db->like('b.id', $filter_employee);
             $this->db->like('b.division_id', $filter_division);
@@ -481,7 +479,7 @@ class Summary_payrolls extends CI_Controller
                 $this->db->where('a.period_start =', $period_start);
                 $this->db->where('a.period_end =', $period_end);
                 if($filter_group != ""){
-                    $this->db->where('b.group_id', $filter_group);
+                    $this->db->where_in('e.name', $filter_group_ex);
                 }
                 $this->db->like('b.id', $filter_employee);
                 $this->db->like('b.division_id', $filter_division);
@@ -578,8 +576,8 @@ class Summary_payrolls extends CI_Controller
             $filter_departement = $this->input->get('filter_departement');
             $filter_departement_sub = $this->input->get('filter_departement_sub');
             $filter_employee = $this->input->get('filter_employee');
-            $filter_group = $this->input->get('filter_group');
-            // $filter_group_ex = explode(",", $filter_group);
+            $filter_group = base64_decode($this->input->get('filter_group'));
+            $filter_group_ex = explode(",", $filter_group);
             $username = $this->session->username;
 
             $period_start = date("Y-m", strtotime($filter_from));
@@ -588,13 +586,6 @@ class Summary_payrolls extends CI_Controller
             $division = $this->crud->read("divisions", [], ["id" => $filter_division]);
             $departement = $this->crud->read("departements", [], ["id" => $filter_departement]);
             $departement_sub = $this->crud->read("departement_subs", [], ["id" => $filter_departement_sub]);
-            
-            $bpjsComs = $this->crud->reads('bpjs', ['status' => 0]);
-
-            $htmlBpjsHeader = "";
-            foreach ($bpjsComs as $bpjsCom) {
-                $htmlBpjsHeader .= '<th style="text-align:center;">'.$bpjsCom->number.'</th>';
-            }
 
             if (empty($division->id)) {
                 $division_name = "ALL";
@@ -618,6 +609,12 @@ class Summary_payrolls extends CI_Controller
             $this->db->select('*');
             $this->db->from('config');
             $config = $this->db->get()->row();
+
+            $bpjsComs = $this->crud->reads('bpjs', ['status' => 0]);
+            $htmlBpjsHeader = "";
+            foreach ($bpjsComs as $bpjsCom) {
+                $htmlBpjsHeader .= '<th style="text-align:center;">'.$bpjsCom->number.'</th>';
+            }
 
             $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 10px;}#customers td, #customers th {border: 1px solid black;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style>
                     <body>';
@@ -678,8 +675,7 @@ class Summary_payrolls extends CI_Controller
                                     <th rowspan="2" style="text-align:center;">Marital</th>
                                     <th rowspan="2" style="text-align:center;">WD</th>
                                     <th rowspan="2" style="text-align:center;">Salary</th>
-                                    <th colspan="7" style="text-align:center;">Allowance</th>
-                                    <th colspan="2" style="text-align:center;">Overtime</th>
+                                    <th colspan="6" style="text-align:center;">Allowance</th>
                                     <th rowspan="2" style="text-align:center;">Correction <br> Plus</th>
                                     <th rowspan="2" style="text-align:center;">Total <br> Income</th>
                                     <th colspan="8" style="text-align:center;">Deduction</th>
@@ -694,12 +690,9 @@ class Summary_payrolls extends CI_Controller
                                     <th rowspan="2" style="text-align:center;">Bruto<br>Income</th>
                                 </tr>
                                 <tr>
-                                    <th style="text-align:center;">Tnj. Tetap</th>
-                                    <th style="text-align:center;">Tnj. Tidak Tetap</th>';
-                        $html .= $htmlBpjsHeader;
-                        $html .= '  <th style="text-align:center;">Hour</th>
-                                    <th style="text-align:center;">Amount</th>';
-                        $html .= $htmlBpjsHeader;
+                                    <th style="text-align:center;">Allowence</th>';
+                                    $html .= $htmlBpjsHeader;
+                                    $html .= $htmlBpjsHeader;
                         $html .= '  <th style="text-align:center;">Deduction</th>
                                     <th style="text-align:center;">ABS (DAY)</th>
                                     <th style="text-align:center;">ABS (AMT)</th>
@@ -714,7 +707,7 @@ class Summary_payrolls extends CI_Controller
             $this->db->where('a.period_start =', $period_start);
             $this->db->where('a.period_end =', $period_end);
             if($filter_group != ""){
-                $this->db->where('b.group_id', $filter_group);
+                $this->db->where_in('d.name', $filter_group_ex);
             }
             $this->db->like('a.employee_id', $filter_employee);
             $this->db->like('b.division_id', $filter_division);
@@ -748,20 +741,7 @@ class Summary_payrolls extends CI_Controller
                 }
 
                 $total_allowence = 0;
-                $total_allowence_temp = 0;
-                $total_allowence_fix = 0;
                 foreach (json_decode($record['allowence'], true) as $allowence => $val_allowence) {
-                    $allTemp = $this->crud->read("allowances", ["number" => $allowence], ["type" => "TEMPORARY"]);
-                    $allFix = $this->crud->read("allowances", ["number" => $allowence], ["type" => "FIX"]);
-                    
-                    if(!empty($allTemp)){
-                        $total_allowence_temp += (int) $val_allowence;
-                    }
-
-                    if(!empty($allFix)){
-                        $total_allowence_fix += (int) $val_allowence;
-                    }
-
                     $total_allowence += (int)$val_allowence;
                 }
 
@@ -785,16 +765,13 @@ class Summary_payrolls extends CI_Controller
                             <td style="mso-number-format:\@;">' . $record['number'] . '</td>
                             <td style="mso-number-format:\@;">' . $record['national_id'] . '</td>
                             <td>' . $record['name'] . '</td>
-                            <td>' . $record['npwp'] . '</td>
+                            <td style="mso-number-format:\@;">' . $record['npwp'] . '</td>
                             <td>' . $record['position_name'] . '</td>
                             <td>' . $record['marital'] . '</td>
                             <td>' . $record['attandance_wd'] . '</td>
                             <td style="text-align:right;">' . number_format($record['salary']) . '</td>
-                            <td style="text-align:right;">' . number_format($total_allowence_fix) . '</td>
-                            <td style="text-align:right;">' . number_format($total_allowence_temp) . '</td>
+                            <td style="text-align:right;">' . number_format($total_allowence) . '</td>
                             ' . $html_bpjs_company . '
-                            <td style="text-align:right;">' . number_format($record['total_overtime_convert'], 2) . '</td>
-                            <td style="text-align:right;">' . number_format($record['total_overtime_amount']) . '</td>
                             <td style="text-align:right;">' . number_format($record['correction_plus']) . '</td>
                             <td style="text-align:right;">' . number_format(($record['salary'] + $total_allowence + $record['correction_plus'] + $record['bpjs_company_total'])) . '</td>
                             ' . $html_bpjs_employee . '
@@ -816,7 +793,7 @@ class Summary_payrolls extends CI_Controller
             }
 
             $html .= '  <tr>
-                            <th style="text-align:right;" colspan="33">GRAND TOTAL</th>
+                            <th style="text-align:right;" colspan="29">GRAND TOTAL</th>
                             <th style="text-align:right;">' . number_format($total) . '</th>
                         </tr>';
             $html .= '</body></html>';

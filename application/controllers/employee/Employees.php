@@ -50,6 +50,7 @@ class Employees extends CI_Controller
             $data['religion'] = $this->crud->read('religions', [], ["id" => $data['employee']->religion_id]);
             $data['resignation'] = $this->crud->read('resignations', [], ["employee_id" => $number]);
             $data['service'] = $this->readService($data['employee']->date_sign);
+            $data['source'] = $this->crud->read('sources', [], ["id" => $data['employee']->source_id]);
             $data['id_menu'] = $id_menu;
 
             $this->load->view('template/header', $data);
@@ -58,7 +59,7 @@ class Employees extends CI_Controller
     }
 
     //GET DATA
-    public function reads()
+    public function reads($status = 0)
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
         $get = $this->input->get();
@@ -76,7 +77,7 @@ class Employees extends CI_Controller
 
         $this->db->select('*');
         $this->db->from('employees');
-        $this->db->where('status', 0);
+        $this->db->where('status', $status);
         if ($get) {
             $this->db->like($get);
         }
@@ -98,7 +99,6 @@ class Employees extends CI_Controller
 
         $this->db->select('a.*, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.name as position_name');
         $this->db->from('employees a');
-        $this->db->join('notifications b', 'a.id = b.table_id', 'left');
         $this->db->join('divisions c', 'a.division_id = c.id');
         $this->db->join('departements d', 'a.departement_id = d.id');
         $this->db->join('departement_subs e', 'a.departement_sub_id = e.id');
@@ -233,7 +233,7 @@ class Employees extends CI_Controller
             $autoID = $numberFormat . sprintf("%04s", $requestcode);
         }
 
-        echo $autoID;
+        die(json_encode(array("id" => $autoID)));
     }
 
     //GET DATATABLES
@@ -250,7 +250,12 @@ class Employees extends CI_Controller
         $filter_maritals = $this->input->get('filter_maritals');
         $filter_services = $this->input->get('filter_services');
         $filter_expired = $this->input->get('filter_expired');
+        $filter_shift = $this->input->get('filter_shift');
         $filter_status = $this->input->get('filter_status');
+        $filter_resign = $this->input->get('filter_resign');
+        $filter_from_join = base64_decode($this->input->get('filter_from_join'));
+        $filter_to_join = base64_decode($this->input->get('filter_to_join'));
+
         $aprvDepartement = $this->checkApprovalAccess('employees');
         $today = date("Y-m-d");
 
@@ -302,27 +307,34 @@ class Employees extends CI_Controller
         $offset = ($page - 1) * $rows;
         $result = array();
         //Select Query
-        $this->db->select('a.*, 
-                b.users_id_from as status_check,
-                b.users_id_to as status_notification, 
+        $this->db->select('a.*,
                 c.name as division_name, 
                 d.name as departement_name, 
                 e.name as departement_sub_name,
                 e.type, 
                 g.name as position_name,
-                h.name as contract_name');
+                h.name as contract_name,
+                i.resign_date,
+                j.name as shift_name');
         $this->db->from('employees a');
-        $this->db->join('notifications b', "a.id = b.table_id and b.table_name = 'employees'", 'left');
         $this->db->join('divisions c', 'c.id = a.division_id');
         $this->db->join('departements d', 'd.id = a.departement_id');
         $this->db->join('departement_subs e', 'e.id = a.departement_sub_id');
-        $this->db->join('agreements f', 'a.number = f.number and f.status = 0');
         $this->db->join('positions g', 'g.id = a.position_id', 'left');
         $this->db->join('contracts h', 'h.id = a.contract_id', 'left');
+        $this->db->join('resignations i', 'a.id = i.employee_id', 'left');
+        $this->db->join('shift_employees f', 'a.id = f.employee_id', 'left');
+        $this->db->join('shifts j', 'f.shift_id = j.id', 'left');
         $this->db->where('a.deleted', 0);
-        if($filter_status == ""){
+        if($filter_from_join != ""  && $filter_to_join != ""){
+            $this->db->where("a.date_sign between '$filter_from_join' and '$filter_to_join'");
+        }
+        if($filter_resign == "1"){
+            $this->db->where("i.resign_date is not null");
+        }
+        if ($filter_status == "") {
             $this->db->where('a.status', 0);
-        }else{
+        } else {
             $this->db->like('a.status', $filter_status);
         }
         $this->db->like('a.departement_id', $aprvDepartement);
@@ -338,6 +350,9 @@ class Employees extends CI_Controller
         $this->db->like("a.group_id", $filter_groups);
         $this->db->like("a.religion_id", $filter_religions);
         $this->db->like("a.marital_id", $filter_maritals);
+        if($filter_shift != ""){
+            $this->db->like("j.id", $filter_shift);
+        }
         $this->db->order_by('a.name', 'ASC');
         //Total Data
         $totalRows = $this->db->count_all_results('', false);
@@ -413,8 +428,13 @@ class Employees extends CI_Controller
     {
         if ($this->input->post()) {
             $post = $this->input->post();
-            $send = $this->crud->create('employee_familys', $post);
-            echo $send;
+            if($post['id'] == ''){
+                $send = $this->crud->create('employee_familys', $post);
+                echo $send;
+            }else{
+                $send = $this->crud->update('employee_familys', ["id" => $post['id']], $post);
+                echo $send;
+            }
         } else {
             show_error("Cannot Process your request");
         }
@@ -424,8 +444,13 @@ class Employees extends CI_Controller
     {
         if ($this->input->post()) {
             $post = $this->input->post();
-            $send = $this->crud->create('employee_educations', $post);
-            echo $send;
+            if($post['id'] == ''){
+                $send = $this->crud->create('employee_educations', $post);
+                echo $send;
+            }else{
+                $send = $this->crud->update('employee_educations', ["id" => $post['id']], $post);
+                echo $send;
+            }
         } else {
             show_error("Cannot Process your request");
         }
@@ -435,8 +460,13 @@ class Employees extends CI_Controller
     {
         if ($this->input->post()) {
             $post = $this->input->post();
-            $send = $this->crud->create('employee_experiences', $post);
-            echo $send;
+            if($post['id'] == ''){
+                $send = $this->crud->create('employee_experiences', $post);
+                echo $send;
+            }else{
+                $send = $this->crud->update('employee_experiences', ["id" => $post['id']], $post);
+                echo $send;
+            }
         } else {
             show_error("Cannot Process your request");
         }
@@ -446,8 +476,13 @@ class Employees extends CI_Controller
     {
         if ($this->input->post()) {
             $post = $this->input->post();
-            $send = $this->crud->create('employee_trainings', $post);
-            echo $send;
+            if($post['id'] == ''){
+                $send = $this->crud->create('employee_trainings', $post);
+                echo $send;
+            }else{
+                $send = $this->crud->update('employee_trainings', ["id" => $post['id']], $post);
+                echo $send;
+            }
         } else {
             show_error("Cannot Process your request");
         }
@@ -457,8 +492,13 @@ class Employees extends CI_Controller
     {
         if ($this->input->post()) {
             $post = $this->input->post();
-            $send = $this->crud->create('employee_carrers', $post);
-            echo $send;
+            if($post['id'] == ''){
+                $send = $this->crud->create('employee_carrers', $post);
+                echo $send;
+            }else{
+                $send = $this->crud->update('employee_carrers', ["id" => $post['id']], $post);
+                echo $send;
+            }
         } else {
             show_error("Cannot Process your request");
         }
@@ -470,11 +510,11 @@ class Employees extends CI_Controller
         if ($this->input->post()) {
             $id   = base64_decode($this->input->get('id'));
             $post = $this->input->post();
-            
-            $image_id = $this->crud->upload('image_id', ['png', 'jpg', 'jpeg'], 'assets/image/employee/id/');
-            $image_profile = $this->crud->upload('image_profile', ['png', 'jpg', 'jpeg'], 'assets/image/employee/profile/');
+
+            $image_id = $this->crud->upload('image_id', ['png', 'jpg', 'jpeg'], 'assets/image/employee/id/', ["id" => $id], "employees", "image_id");
+            $image_profile = $this->crud->upload('image_profile', ['png', 'jpg', 'jpeg'], 'assets/image/employee/profile/', ["id" => $id], "employees", "image_profile");
             $post_final = array_merge($post, ["image_id" => $image_id, "image_profile" => $image_profile]);
-                    
+
             $send = $this->crud->update('employees', ["id" => $id], $post_final);
             echo $send;
         } else {
@@ -578,7 +618,6 @@ class Employees extends CI_Controller
                 'bank_no' => $data->val($i, 33),
                 'bank_name' => $data->val($i, 34),
                 'bank_branch' => $data->val($i, 35),
-                'barcode' => $data->val($i, 36),
             );
         }
 
@@ -779,8 +818,7 @@ class Employees extends CI_Controller
                 'maps' => $data['maps'],
                 'bank_no' => $data['bank_no'],
                 'bank_name' => $data['bank_name'],
-                'bank_branch' => $data['bank_branch'],
-                'barcode' => $data['barcode']
+                'bank_branch' => $data['bank_branch']
             );
 
             if (empty($divisions)) {
@@ -914,7 +952,12 @@ class Employees extends CI_Controller
         $filter_maritals = $this->input->get('filter_maritals');
         $filter_services = $this->input->get('filter_services');
         $filter_expired = $this->input->get('filter_expired');
+        $filter_shift = $this->input->get('filter_shift');
         $filter_status = $this->input->get('filter_status');
+        $filter_resign = $this->input->get('filter_resign');
+        $filter_from_join = base64_decode($this->input->get('filter_from_join'));
+        $filter_to_join = base64_decode($this->input->get('filter_to_join'));
+
         $aprvDepartement = $this->checkApprovalAccess('employees');
 
         $today = date("Y-m-d");
@@ -959,7 +1002,6 @@ class Employees extends CI_Controller
         }
 
         $this->db->select('a.*, 
-                b.users_id_to as status_notification, 
                 c.number as division_number, 
                 c.name as division_name, 
                 d.number as departement_number, 
@@ -979,20 +1021,28 @@ class Employees extends CI_Controller
                 k.number as marital_number,
                 k.name as marital_name,
                 l.number as source_number,
-                l.name as source_name');
+                l.name as source_name,
+                n.name as shift_name');
         $this->db->from('employees a');
-        $this->db->join('notifications b', 'a.id = b.table_id', 'left');
         $this->db->join('divisions c', 'c.id = a.division_id');
         $this->db->join('departements d', 'd.id = a.departement_id');
         $this->db->join('departement_subs e', 'e.id = a.departement_sub_id');
-        $this->db->join('agreements f', 'a.number = f.number and f.status = 0');
         $this->db->join('positions g', 'g.id = a.position_id', 'left');
         $this->db->join('contracts h', 'h.id = a.contract_id', 'left');
         $this->db->join('groups i', 'i.id = a.group_id', 'left');
         $this->db->join('religions j', 'j.id = a.religion_id', 'left');
         $this->db->join('maritals k', 'k.id = a.marital_id', 'left');
         $this->db->join('sources l', 'l.id = a.source_id', 'left');
+        $this->db->join('resignations m', 'a.id = m.employee_id', 'left');
+        $this->db->join('shift_employees f', 'a.id = f.employee_id', 'left');
+        $this->db->join('shifts n', 'f.shift_id = n.id', 'left');
         $this->db->where('a.deleted', 0);
+        if($filter_from_join != ""  && $filter_to_join != ""){
+            $this->db->where("a.date_sign between '$filter_from_join' and '$filter_to_join'");
+        }
+        if($filter_resign == "1"){
+            $this->db->where("m.resign_date is not null");
+        }
         $this->db->like('a.status', $filter_status);
         $this->db->like('a.departement_id', $aprvDepartement);
         $whereService1;
@@ -1007,6 +1057,9 @@ class Employees extends CI_Controller
         $this->db->like("a.group_id", $filter_groups);
         $this->db->like("a.religion_id", $filter_religions);
         $this->db->like("a.marital_id", $filter_maritals);
+        if($filter_shift != ""){
+            $this->db->like("n.id", $filter_shift);
+        }
         $this->db->order_by('a.name', 'ASC');
         $this->db->group_by('a.number', 'ASC');
         $records = $this->db->get()->result_array();
@@ -1029,7 +1082,6 @@ class Employees extends CI_Controller
         <table id="customers" border="1">
             <tr>
                 <th width="20">No</th>
-                <th>Barcode</th>
                 <th>Employee ID</th>
                 <th>Fullname</th>
                 <th>Prefered Name</th>
@@ -1048,6 +1100,7 @@ class Employees extends CI_Controller
                 <th>Group</th>
                 <th>ID Source</th>
                 <th>Source</th>
+                <th>Shift Type</th>
                 <th>Join Date</th>
                 <th>Contract Expired</th>
                 <th>Fit Of Service</th>
@@ -1081,9 +1134,14 @@ class Employees extends CI_Controller
             </tr>';
         $no = 1;
         foreach ($records as $data) {
-            $html .= '<tr>
+            if($data['status'] == "1"){
+                $style = "style='background:#FFDCDC;'";
+            }else{
+                $style = "";
+            }
+
+            $html .= '<tr '.$style.'>
                     <td>' . $no . '</td>
-                    <td class="str">' . $data['barcode'] . '</td>
                     <td class="str">' . $data['number'] . '</td>
                     <td>' . $data['name'] . '</td>
                     <td>' . $data['nickname'] . '</td>
@@ -1102,6 +1160,7 @@ class Employees extends CI_Controller
                     <td>' . $data['group_name'] . '</td>
                     <td><b style="color:red;">' . $data['source_number'] . '</b></td>
                     <td>' . $data['source_name'] . '</td>
+                    <td>' . $data['shift_name'] . '</td>
                     <td>' . $data['date_sign'] . '</td>
                     <td>' . $data['date_expired'] . '</td>
                     <td>' . $this->readService($data['date_sign']) . '</td>

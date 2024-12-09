@@ -61,25 +61,29 @@ class Teams extends CI_Controller
             $user = $this->crud->read("users", [], ["api_key" => $api_key]);
 
             if ($user) {
-                $employee = $this->crud->read("employees", [], ["number" => $user->number]);
-                $positions = $this->crud->query("SELECT b.id, b.name FROM employees a JOIN positions b ON a.position_id = b.id WHERE a.departement_id = '$employee->departement_id' GROUP BY b.id ORDER BY b.level ASC");
+                $employee = $this->crud->read("employees", [], ["number" => $user->number, "status" => 0]);
+                $positions = $this->crud->query("SELECT b.id, b.name FROM employees a JOIN positions b ON a.position_id = b.id WHERE a.status = '0' and a.departement_id = '$employee->departement_id' GROUP BY b.id ORDER BY b.level ASC");
 
                 $datas = array();
                 foreach ($positions as $position) {
-                    $employees = $this->crud->reads("employees", [], ["position_id" => $position->id, "departement_id" => $employee->departement_id], "20", "name", "asc");
+                    $employees = $this->crud->reads("employees", [], ["position_id" => $position->id, "departement_id" => $employee->departement_id, "status" => 0], "20", "name", "asc");
 
                     $datas2 = array();
                     foreach ($employees as $employee) {
-                        if($employee->image_profile == null || $employee->image_profile == ""){
-                            $avatar = "assets/image/users/default.png";
+                        if(!empty($employee->image_profile)){
+                            if(substr($employee->image_profile, -4) == "jpeg"){
+                                $avatar = "assets/image/employee/profile/" . substr($employee->image_profile, -15);
+                            }else{
+                                $avatar = "assets/image/employee/profile/" . substr($employee->image_profile, -14);
+                            }
                         }else{
-                            $avatar = "assets/image/users/".$employee->image_profile;
+                            $avatar = "assets/image/users/default.png";
                         }
 
                         $datas2[] = array(
                             "avatar" => $avatar,
                             "name" => $employee->name,
-                            "birthday" => date("d F Y", strtotime($employee->birthday)),
+                            "telp" => $employee->mobile_phone,
                             "services" => $this->readService($employee->date_sign),
                         );
                     }

@@ -1,5 +1,5 @@
 <!-- TABLE DATAGRID -->
-<table id="dg" class="easyui-datagrid" style="width:99.5%;" toolbar="#toolbar">
+<table id="dg" class="easyui-datagrid" style="width:100;" toolbar="#toolbar">
     <thead>
         <tr>
             <th rowspan="2" field="ck" checkbox="true"></th>
@@ -7,8 +7,6 @@
             <th rowspan="2" data-options="field:'name',width:200,halign:'center'">Name</th>
             <th rowspan="2" data-options="field:'description',width:150,halign:'center'">Description</th>
             <th rowspan="2" data-options="field:'ppt',width:100,align:'center', styler:cellStyler, formatter:cellFormatter">PPT</th>
-            <th rowspan="2" data-options="field:'calculate',width:100,align:'center', styler:cellStyler, formatter:cellFormatter">Weekend<br>Calculate</th>
-            <th rowspan="2" data-options="field:'overtime_duration',width:100,halign:'center',align:'right'">Overtime<br><i>(Hour)</i></th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
         </tr>
@@ -49,17 +47,6 @@
                     <option value="1">YES</option>
                     <option value="0">NO</option>
                 </select>
-            </div>
-            <div class="fitem">
-                <span style="width:35%; display:inline-block;">Calculate</span>
-                <select style="width:60%;" name="calculate" id="calculate" required="" class="easyui-combobox" panelHeight="auto">
-                    <option value="1">YES</option>
-                    <option value="0">NO</option>
-                </select>
-            </div>
-            <div class="fitem">
-                <span style="width:35%; display:inline-block;">Overtime <i>(hour)</i></span>
-                <input style="width:60%;" name="overtime_duration" class="easyui-numberbox" data-options="precision:2">
             </div>
         </fieldset>
     </form>

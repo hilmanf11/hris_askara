@@ -344,11 +344,11 @@ class Salary_slips extends CI_Controller
                                     <td style="text-align:right;" width="150"><b>' . number_format($record['salary']) . '</b></td>
                                 </tr>
                                 <tr>
-                                    <td style="text-align:left;">Tunjangan Tetap</td>
+                                    <td style="text-align:left;">Allowance (Fix)</td>
                                     <td style="text-align:right;"><b>'.number_format($total_allowence_fix).'</b></td>
                                 </tr>
                                 <tr>
-                                    <td style="text-align:left;">Tunjangan Tidak Tetap</td>
+                                    <td style="text-align:left;">Allowance (Tmp)</td>
                                     <td style="text-align:right;"><b>'.number_format($total_allowence_temp).'</b></td>
                                 </tr>
                                 <tr>
@@ -401,7 +401,7 @@ class Salary_slips extends CI_Controller
                                     <td style="text-align:right;"><b>' . number_format($record['correction_minus']) . '</b></td>
                                 </tr>
                                 <tr>
-                                    <td style="text-align:left;">Allowence BPJS Company</td>
+                                    <td style="text-align:left;">BPJS Company</td>
                                     <td style="text-align:right;"><b>' . number_format($arr_bpjs_com_amount_total) . '</b></td>
                                 </tr>
                                 <tr>
@@ -721,11 +721,11 @@ class Salary_slips extends CI_Controller
                                                         <td style="text-align:right;" width="150"><b>' . number_format($record['salary']) . '</b></td>
                                                     </tr>
                                                     <tr>
-                                                        <td style="text-align:left;">Tunj. Tetap</td>
+                                                        <td style="text-align:left;">Allowance (Fix)</td>
                                                         <td style="text-align:right;"><b>'.number_format($total_allowence_fix).'</b></td>
                                                     </tr>
                                                     <tr>
-                                                        <td style="text-align:left;">Tunj. Tidak Tetap</td>
+                                                        <td style="text-align:left;">Allowance (Tmp)</td>
                                                         <td style="text-align:right;"><b>'.number_format($total_allowence_temp).'</b></td>
                                                     </tr>
                                                     <tr>
@@ -778,7 +778,7 @@ class Salary_slips extends CI_Controller
                                                         <td style="text-align:right;"><b>' . number_format($record['correction_minus']) . '</b></td>
                                                     </tr>
                                                     <tr>
-                                                        <td style="text-align:left;">Allowence BPJS Company</td>
+                                                        <td style="text-align:left;">BPJS Company</td>
                                                         <td style="text-align:right;"><b>' . number_format($arr_bpjs_com_amount_total) . '</b></td>
                                                     </tr>
                                                     <tr>

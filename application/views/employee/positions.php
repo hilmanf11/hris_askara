@@ -1,5 +1,5 @@
 <!-- TABLE DATAGRID -->
-<table id="dg" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar">
+<table id="dg" class="easyui-datagrid" style="width:99.5%;" toolbar="#toolbar">
     <thead>
         <tr>
             <th rowspan="2" field="ck" checkbox="true"></th>
@@ -7,6 +7,7 @@
             <th rowspan="2" data-options="field:'name',width:200,halign:'center'">Name</th>
             <th rowspan="2" data-options="field:'description',width:150,halign:'center'">Description</th>
             <th rowspan="2" data-options="field:'level',width:150,halign:'center'">Level</th>
+            <th rowspan="2" data-options="field:'access',width:80,halign:'center'">Mobile<br>Access</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
         </tr>
@@ -44,6 +45,13 @@
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Level</span>
                 <input style="width:60%;" name="level" class="easyui-textbox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Mobile Access</span>
+                <select style="width:60%;" name="access" panelHeight="auto" class="easyui-combobox">
+                    <option value="FULL">FULL</option>
+                    <option value="LIMITED">LIMITED</option>
+                </select>
             </div>
         </fieldset>
     </form>
@@ -124,10 +132,7 @@
             pagination: true,
             clientPaging: false,
             remoteFilter: true,
-            rownumbers: true,
-            fit: true,
-            pageList: [20, 50, 100, 500, 1000],
-            pageSize: 20,
+            rownumbers: true
         }).datagrid('enableFilter');
 
         //SAVE DATA

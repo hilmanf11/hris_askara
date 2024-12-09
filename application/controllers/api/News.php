@@ -37,17 +37,22 @@ class News extends CI_Controller
 
                 foreach ($announcements as $announcement) {
                     $userFrom = $this->crud->read("users", [], ["username" => $announcement->created_by]);
-
-                    if($userFrom->avatar == null || $userFrom->avatar == ""){
-                        $avatar = "assets/image/users/default.png";
+                    $employee = $this->crud->read("employees", [], ["number" => $userFrom->number]);
+                    
+                    if(!empty($employee->image_profile)){
+                        if(substr($employee->image_profile, -4) == "jpeg"){
+                            $avatar = "assets/image/employee/profile/" . substr($employee->image_profile, -15);
+                        }else{
+                            $avatar = "assets/image/employee/profile/" . substr($employee->image_profile, -14);
+                        }
                     }else{
-                        $avatar = "assets/image/users/".$userFrom->avatar;
+                        $avatar = "assets/image/users/default.png";
                     }
 
                     if($announcement->attachment == null || $announcement->attachment == ""){
                         $attachment = "";
                     }else{
-                        $attachment = "assets/document/news/".$announcement->attachment;
+                        $attachment = "assets/document/news/". substr($announcement->attachment, -14);
                     }
 
                     $datas[] = array(
@@ -86,7 +91,7 @@ class News extends CI_Controller
                 if($news->attachment == null || $news->attachment == ""){
                     $attachment = "";
                 }else{
-                    $attachment = "assets/document/news/".$news->attachment;
+                    $attachment = "assets/document/news/". substr($news->attachment, -14);
                 }
 
                 $datas = array(

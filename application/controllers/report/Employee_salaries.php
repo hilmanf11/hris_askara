@@ -130,9 +130,7 @@ class Employee_salaries extends CI_Controller
                                     <th style="text-align:center;">SOURCE</th>
                                 </tr>';
                 $no = 1;
-                $grand_total = 0;
                 foreach ($records as $record) {
-                    $grand_total +=  $record['net_income'];
                     $html .= '<tr>
                                 <td>' . $no . '</td>
                                 <td style="mso-number-format:\@;">' . $record['number'] . '</td>
@@ -143,14 +141,7 @@ class Employee_salaries extends CI_Controller
                             </tr>';
                     $no++;
                 }
-
-
-                $html .= '  <tr>
-                                <th colspan="4" style="text-align:right;">GRAND TOTAL</th>
-                                <th style="text-align:right;">'.$grand_total.'</th>
-                                <th></th>
-                            </tr>
-                            </table>';
+                $html .= '</table>';
             }
         }
 

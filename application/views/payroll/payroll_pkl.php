@@ -2,7 +2,8 @@
 <table id="dg" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar">
     <thead frozen="true">
         <tr>
-            <th data-options="field:'employee_number',width:150,halign:'center'">Employee ID</th>
+            <th data-options="field:'employee_number',width:100,halign:'center'">Employee ID</th>
+            <th data-options="field:'national_id',width:140,halign:'center'">NIK</th>
             <th data-options="field:'employee_name',width:250,halign:'center'">Employee Name</th>
         </tr>
     </thead>

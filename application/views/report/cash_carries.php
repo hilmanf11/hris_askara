@@ -16,7 +16,7 @@
 
 <div id="toolbar">
     <div class="easyui-accordion" style="width:100%; margin-bottom:5px;">
-        <div title="Click this to hide the filter" data-options="selected:true" style="padding:10px; background:#F4F4F4;">
+        <div title="Click this to hide the filter" data-options="onCollapse: function(){ $('#dg').datagrid('reload'); }" style="padding:10px; background:#F4F4F4;">
             <!-- <div style="width: 100%; display: grid; grid-template-columns: auto auto auto; grid-gap: 5px; display: flex;"> -->
             <fieldset style="width: 99%; border:2px solid #d0d0d0; margin-bottom: 5px;border-radius:4px;">
                 <legend><b>Form Filter Data</b></legend>

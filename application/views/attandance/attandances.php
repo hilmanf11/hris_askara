@@ -85,6 +85,10 @@
                 <input style="width:30%;" name="date_out" id="date_out" class="easyui-datebox" required data-options="formatter:myformatter,parser:myparser, editable:false">
                 <input style="width:30%;" name="time_out" id="time_out" class="easyui-maskedbox" mask="99:99:99" required>
             </div>
+            <div hidden>
+                <span style="width:35%; display:inline-block;">Status</span>
+                <input style="width:60%;" id="status" name="status" class="easyui-textbox">
+            </div>
         </fieldset>
     </form>
 </div>
@@ -129,6 +133,7 @@
         $('#date_out').datebox('setValue', '<?= date("Y-m-d") ?>');
         $('#time_in').maskedbox('setValue', '08:00:00');
         $('#time_out').maskedbox('setValue', '17:00:00');
+        $('#status').textbox('setValue', 'MANUAL');
     }
 
     //EDIT DATA
@@ -212,7 +217,7 @@
         var Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
 
         if (Difference_In_Days <= 31) {
-            if (filter_division != "" || filter_employee != "") {
+            if ((filter_division != "" && filter_departement != "" && filter_departement_sub != "") || filter_employee != "") {
                 $('#dg').datagrid({
                     url: '<?= base_url('attandance/attandances/datatables') ?>' + url,
                     rowStyler: function(index, row) {
@@ -264,7 +269,7 @@
         var Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
 
         if (Difference_In_Days <= 31) {
-            if (filter_division != "" || filter_employee != "") {
+            if ((filter_division != "" && filter_departement != "" && filter_departement_sub != "") || filter_employee != "") {
                 window.location.assign('<?= base_url('attandance/attandances/print/excel') ?>' + url);
             } else {
                 toastr.info("Please Select Division, Departement, Departement Sub or Employee");

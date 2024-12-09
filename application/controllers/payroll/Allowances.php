@@ -98,6 +98,9 @@ class Allowances extends CI_Controller
             $id   = base64_decode($this->input->get('id'));
             $post = $this->input->post();
             $send = $this->crud->update('allowances', ["id" => $id], $post);
+            if($send){
+                $this->crud->update('setup_allowances', ["allowance_id" => $id], ["amount" => $post['amount']]);
+            }
             echo $send;
         } else {
             show_error("Cannot Process your request");
@@ -158,6 +161,8 @@ class Allowances extends CI_Controller
                 <th width="20">No</th>
                 <th>Code</th>
                 <th>Name</th>
+                <th>Amount</th>
+                <th>Type</th>
                 <th>Description</th>
             </tr>';
         $no = 1;
@@ -166,6 +171,8 @@ class Allowances extends CI_Controller
                     <td>' . $no . '</td>
                     <td>' . $data['number'] . '</td>
                     <td>' . $data['name'] . '</td>
+                    <td>' . $data['amount'] . '</td>
+                    <td>' . $data['type'] . '</td>
                     <td>' . $data['description'] . '</td>';
             $no++;
         }

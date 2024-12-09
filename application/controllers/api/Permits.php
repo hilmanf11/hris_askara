@@ -58,7 +58,17 @@ class Permits extends CI_Controller
 
                 $data = array();
                 foreach ($records as $record) {
-                    $data[] = array_merge($record, array("file_attachment" => "assets/image/attandance/" . $record['attachment']));
+                    if(!empty($record['attachment'])){
+                        if(substr($record['attachment'], -4) == "jpeg"){
+                            $attachment = "assets/image/attandance/" . substr($record['attachment'], -15);
+                        }else{
+                            $attachment = "assets/image/attandance/" . substr($record['attachment'], -14);
+                        }
+                    }else{
+                        $attachment = null;
+                    }
+
+                    $data[] = array_merge($record, array("file_attachment" => $attachment));
                 }
 
                 die(json_encode(array(
@@ -129,33 +139,50 @@ class Permits extends CI_Controller
                     $employee = $this->mobile->read("employees", [], ["number" => $user->number]);
                     $attachment = $this->mobile->upload('attachment', ['png', 'jpg', 'jpeg'], 'assets/image/attandance/');
 
-                    $post_final = array(
-                        "employee_id" => $employee->id,
-                        "permit_type_id" => $post['permit_type_id'],
-                        "reason_id" => $post['reason_id'],
-                        "trans_date" => date("Y-m-d"),
-                        "permit_date" => $post['permit_date'],
-                        "duration" => "1",
-                        "leave" => $post['leave'],
-                        "note" => $post['remarks'],
-                        "attachment" => $attachment
-                    );
+                    $date_from = strtotime($post['date_from']);
+                    $date_to = strtotime($post['date_to']);
 
-                    $permits = $this->mobile->reads('permits', [], ["employee_id" => $employee->id, "permit_date" => $post['permit_date']]);
+                    $send = "";
+                    $leave = $post['leave'];
+                    for ($i = $date_from; $i <= $date_to; $i += (60 * 60 * 24)) {
+                        $permit_date = date('Y-m-d', $i);
 
-                    if (count($permits) > 0) {
-                        show_error("Your Permit application has been sent, please change to another date");
-                    }else{
-                        if($this->mobile->create('permits', $post_final, $user->username)){
-                            die(json_encode(array(
-                                "title" => "Success",
-                                "message" => "Permit Success Send",
-                                "theme" => "success"
-                            )));
+                        if(($leave - 1) >= 0){
+                            $post_final = array(
+                                "employee_id" => $employee->id,
+                                "permit_type_id" => $post['permit_type_id'],
+                                "reason_id" => $post['reason_id'],
+                                "trans_date" => date("Y-m-d"),
+                                "permit_date" => $permit_date,
+                                "duration" => "1",
+                                "leave" => ($leave - 1),
+                                "note" => $post['remarks'],
+                                "attachment" => $attachment
+                            );
+        
+                            $permits = $this->mobile->reads('permits', [], ["employee_id" => $employee->id, "permit_date" => $permit_date]);
+                            
+                            if (count($permits) > 0) {
+                                show_error("Your Permit application has been sent, please change to another date");
+                            }else{
+                                if($this->mobile->create('permits', $post_final, $user->username)){
+                                    $send = json_encode(array(
+                                        "title" => "Success",
+                                        "message" => "Permit Success Send",
+                                        "theme" => "success"
+                                    ));
+                                }else{
+                                    show_error("Permit Failed To Send");
+                                }
+                            }
                         }else{
-                            show_error("Permit Failed To Send");
+                            show_error("Your permit has exceeded the limit");
                         }
+                        
+                        $leave = ($leave - 1);
                     }
+
+                    echo $send;
                 }else{
                     show_error("Cannot Process your request");
                 }

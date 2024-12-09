@@ -22,6 +22,65 @@ class Overtimes extends CI_Controller
         show_error("Cannot Process your request");
     }
 
+    public function readShifts($api_key = ""){
+        if ($api_key != "") {
+            $user = $this->mobile->read("users", [], ["api_key" => $api_key]);
+
+            if ($user) {
+                $trans_date = $this->input->post("trans_date");
+                $employee = $this->mobile->read("employees", [], ["number" => $user->number]);
+
+                //Attandance and Overtime
+                $this->db->select("date_in, time_in, date_out, time_out");
+                $this->db->from('attandances');
+                $this->db->where("date_in", $trans_date);
+                $this->db->where('number', $user->number);
+                $this->db->order_by('date_in', 'asc');
+                $attandance = $this->db->get()->row();
+
+                //Shift and Setting Group
+                $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$attandance->time_in)));
+                $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$attandance->time_in)));
+                $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
+                $this->db->from('shift_employees b');
+                $this->db->join('shifts c', 'c.id = b.shift_id');
+                $this->db->join('shift_details d', 'd.shift_id = c.id');
+                $this->db->where('b.employee_id', $employee->id);
+                $this->db->where("d.start >=  '$tolerance_hour_min' and d.start <= '$tolerance_hour_plus'");
+                $shift = $this->db->get()->row();
+
+                $today = date("Y-m-d");
+
+                if (@$shift->start == null || empty($attandance->time_in)){
+                    $start = "";
+                    $end = "";
+                }elseif(@$shift->start >= @$attandance->time_in){
+                    $time_in = date("Y-m-d H:i:s", strtotime(@$attandance->date_in. " " .@$shift->start));
+                    $time_out = date("Y-m-d H:i:s", strtotime("-30 minutes", strtotime(@$attandance->date_out. " " .@$attandance->time_out)));
+
+                    if($time_in < $time_out){
+                        $start = @$shift->end;
+                        $end = @$attandance->time_out;
+                    }elseif($today == @$attandance->date_in){
+                        $start = @$shift->end;
+                        $end = "";
+                    }else{
+                        $start = "";
+                        $end = "";
+                    }
+                }else{
+                    $start = @$shift->start;
+                    $end = "";
+                }
+
+                die(json_encode(array(
+                    "start" => $start,
+                    "end" => @$end,
+                )));
+            }
+        }
+    }
+
     public function reads($api_key = "", $limit = 30)
     {
 
@@ -151,12 +210,16 @@ class Overtimes extends CI_Controller
                     }
 
                     if(!empty($record['attachment'])){
-                        $attachment_link = 'assets/image/cash_carry/'.$record['attachment'];
+                        if(substr($record['attachment'], -4) == "jpeg"){
+                            $attachment = "assets/image/cash_carry/" . substr($record['attachment'], -15);
+                        }else{
+                            $attachment = "assets/image/cash_carry/" . substr($record['attachment'], -14);
+                        }
                     }else{
-                        $attachment_link = null;
+                        $attachment = null;
                     }
 
-                    $amount = ["amount_actual" => $total, "duration_att" => number_format($att_hour, 2), "time_in" => @$attandance->time_in, "time_out" => @$attandance->time_out, "attachment_link" => $attachment_link];
+                    $amount = ["amount_actual" => $total, "duration_att" => number_format($att_hour, 2), "time_in" => @$attandance->time_in, "time_out" => @$attandance->time_out, "attachment_link" => $attachment];
                     $datas[] = array_merge($record, $amount);
                 }
 
@@ -407,7 +470,7 @@ class Overtimes extends CI_Controller
                     $data = $this->input->post();
 
                     $delete = $this->mobile->delete("cash_carries", ['id' => $data['id']], $user->username);
-                    @unlink(base_url("assets/image/cash_carry/" . $data['attachment']));
+                    @unlink("'".$data['attachment']."'");
                     echo $delete;
                 }else{
                     show_error("Cannot Process your request");

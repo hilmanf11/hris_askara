@@ -93,7 +93,7 @@ class Allowance_students extends CI_Controller
         if ($this->input->post()) {
             if ($this->form_validation->run() == TRUE) {
                 $post = $this->input->post();
-                $reads = $this->crud->reads("allowance_students", [], ["group_id" => $post['group_id'], "months" => $post['months']]);
+                $reads = $this->crud->reads("allowance_students", [], ["group_id" => $post['group_id'], "months" => $post['months'], "type" => $post['type']]);
                 if (count($reads) > 0) {
                     show_error("Duplicate Data Group and Month");
                 } else {
@@ -178,6 +178,7 @@ class Allowance_students extends CI_Controller
                 <th width="20">No</th>
                 <th>Code</th>
                 <th>Group</th>
+                <th>Type</th>
                 <th>Month</th>
                 <th>Name</th>
                 <th>Amount</th>
@@ -188,6 +189,7 @@ class Allowance_students extends CI_Controller
                     <td>' . $no . '</td>
                     <td>' . $data['number'] . '</td>
                     <td>' . $data['group_name'] . '</td>
+                    <td>' . $data['type'] . '</td>
                     <td>' . $data['months'] . '</td>
                     <td>' . $data['name'] . '</td>
                     <td>' . number_format($data['amount']) . '</td>';

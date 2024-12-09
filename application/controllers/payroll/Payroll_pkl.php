@@ -105,17 +105,18 @@ class Payroll_pkl extends CI_Controller
             $result = array();
             //Select Query
 
-            $this->db->select('*');
-            $this->db->from('payroll_pkl');
+            $this->db->select('a.*, b.national_id');
+            $this->db->from('payroll_pkl a');
+            $this->db->join('employees b', 'a.employee_id = b.id');
             if ($filter_from != "" && $filter_to != "") {
                 $this->db->where('period_start =', $filter_from);
-                $this->db->where('period_end =', $filter_to);
+                // $this->db->where('period_end =', $filter_to);
             }
-            $this->db->like('employee_id', $filter_employee);
-            $this->db->like('source_id', $filter_source);
-            $this->db->order_by('departement_name', 'ASC');
-            $this->db->order_by('departement_sub_name', 'ASC');
-            $this->db->order_by('employee_name', 'ASC');
+            $this->db->like('a.employee_id', $filter_employee);
+            $this->db->like('a.source_id', $filter_source);
+            $this->db->order_by('a.departement_name', 'ASC');
+            $this->db->order_by('a.departement_sub_name', 'ASC');
+            $this->db->order_by('a.employee_name', 'ASC');
 
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
@@ -206,6 +207,14 @@ class Payroll_pkl extends CI_Controller
                 $this->db->group_by('a.employee_id');
                 $permit = $this->db->get()->row();
 
+                //Change Days
+                $this->db->select("COUNT(*) as days");
+                $this->db->from('change_days');
+                $this->db->where('employee_id', $record['id']);
+                $this->db->where("(start = '$working_date' or end = '$working_date')");
+                $changeDays = $this->db->get()->row();
+                $changeDays_amount = empty($changeDays->days) ? 0 : $changeDays->days;
+
                 //Working Calendar
                 $this->db->select('description');
                 $this->db->from('calendars');
@@ -243,7 +252,11 @@ class Payroll_pkl extends CI_Controller
                             if ($attandance) {
                                 $day = 1;
                             } else {
-                                $day = $tidakabsen;
+                                if($changeDays_amount > 0){
+                                    $day = 1;
+                                }else{
+                                    $day = $tidakabsen;
+                                }
                             }
                         } else {
                             $day = 0;
@@ -254,7 +267,11 @@ class Payroll_pkl extends CI_Controller
                             if ($attandance) {
                                 $day = 1;
                             } else {
-                                $day = $tidakabsen;
+                                if($changeDays_amount > 0){
+                                    $day = 1;
+                                }else{
+                                    $day = $tidakabsen;
+                                }
                             }
                         } else {
                             $day = 0;
@@ -407,17 +424,18 @@ class Payroll_pkl extends CI_Controller
         $config = $this->db->get()->row();
 
         //Select Query
-        $this->db->select('*');
-        $this->db->from('payroll_pkl');
+        $this->db->select('a.*, b.national_id');
+        $this->db->from('payroll_pkl a');
+        $this->db->join('employees b', 'a.employee_id = b.id');
         if ($filter_from != "" && $filter_to != "") {
-            $this->db->where('period_start =', $filter_from);
-            $this->db->where('period_end =', $filter_to);
+            $this->db->where('a.period_start =', $filter_from);
+            // $this->db->where('period_end =', $filter_to);
         }
-        $this->db->like('employee_id', $filter_employee);
-        $this->db->like('source_id', $filter_source);
-        $this->db->order_by('departement_name', 'ASC');
-        $this->db->order_by('departement_sub_name', 'ASC');
-        $this->db->order_by('employee_name', 'ASC');
+        $this->db->like('a.employee_id', $filter_employee);
+        $this->db->like('a.source_id', $filter_source);
+        $this->db->order_by('a.departement_name', 'ASC');
+        $this->db->order_by('a.departement_sub_name', 'ASC');
+        $this->db->order_by('a.employee_name', 'ASC');
         $records = $this->db->get()->result_array();
 
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
@@ -446,6 +464,7 @@ class Payroll_pkl extends CI_Controller
             <tr>
                 <th width="20">No</th>
                 <th>Employee ID</th>
+                <th>NIK</th>
                 <th>Employee Name</th>
                 <th>Join Date</th>
                 <th>Fit of Services</th>
@@ -463,6 +482,7 @@ class Payroll_pkl extends CI_Controller
             $html .= '  <tr>
                             <td>' . $no . '</td>
                             <td style="mso-number-format:\@;">' . $data['employee_number'] . '</td>
+                            <td style="mso-number-format:\@;">' . $data['national_id'] . '</td>
                             <td>' . $data['employee_name'] . '</td>
                             <td>' . date("d F Y", strtotime($data['date_sign'])) . '</td>
                             <td>' . $data['services'] . '</td>

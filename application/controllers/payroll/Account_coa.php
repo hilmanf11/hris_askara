@@ -53,9 +53,10 @@ class Account_coa extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
             //Select Query
-            $this->db->select('a.*, b.name as departement_name, c.name as position_name, d.name as contract_name, e.name as account_name');
+            $this->db->select('a.*, f.name as division_name, b.name as departement_name, c.name as position_name, d.name as contract_name, e.name as account_name, e.category');
             $this->db->from('account_coa a');
-            $this->db->join('departements b', 'a.departement_id = b.id');
+            $this->db->join('divisions f', 'a.division_id = f.id', 'left');
+            $this->db->join('departements b', 'a.division_id = b.division_id and a.departement_id = b.id');
             $this->db->join('positions c', 'a.position_id = c.id');
             $this->db->join('contracts d', 'a.contract_id = d.id');
             $this->db->join('accounts e', 'a.account_id = e.id');
@@ -70,6 +71,10 @@ class Account_coa extends CI_Controller
                         $this->db->like("d.name", $filter->value);
                     }else if($filter->field == "account_name"){
                         $this->db->like("e.name", $filter->value);
+                    }else if($filter->field == "category"){
+                        $this->db->like("e.category", $filter->value);
+                    }else if($filter->field == "division_name"){
+                        $this->db->like("f.name", $filter->value);
                     }else{
                         $this->db->like("a." . $filter->field, $filter->value);
                     }
@@ -99,9 +104,11 @@ class Account_coa extends CI_Controller
                 $post   = $this->input->post();
 
                 $account_coa = $this->crud->reads("account_coa", [], [
+                    "division_id" => $post['division_id'],
                     "departement_id" => $post['departement_id'],
                     "position_id" => $post['position_id'],
                     "contract_id" => $post['contract_id'],
+                    "account_id" => $post['account_id'],
                 ]);
     
                 if(count($account_coa) > 0){
@@ -154,11 +161,12 @@ class Account_coa extends CI_Controller
 
         for ($i = 3; $i <= $total_row; $i++) {
             $datas[] = array(
-                'departement_number' => $data->val($i, 2),
-                'position_number' => $data->val($i, 3),
-                'contract_number' => $data->val($i, 4),
-                'account_number' => $data->val($i, 5),
-                'job_type' => $data->val($i, 6)
+                'division_number' => $data->val($i, 2),
+                'departement_number' => $data->val($i, 3),
+                'position_number' => $data->val($i, 4),
+                'contract_number' => $data->val($i, 5),
+                'account_number' => $data->val($i, 6),
+                'job_type' => $data->val($i, 7)
             );
         }
 
@@ -200,41 +208,47 @@ class Account_coa extends CI_Controller
     {
         if ($this->input->post()) {
             $data = $this->input->post('data');
+            $division = $this->crud->read('divisions', ["number" => $data['division_number']]);
             $departement = $this->crud->read('departements', ["number" => $data['departement_number']]);
             $position = $this->crud->read('positions', ["number" => $data['position_number']]);
             $contract = $this->crud->read('contracts', ["number" => $data['contract_number']]);
             $account = $this->crud->read('accounts', ["name" => $data['account_number']]);
-            $account_coa = $this->crud->reads('account_coa', [], ["departement_id" => @$departement->id, "position_id" => @$position->id, "contract_id" => @$contract->id, "job_type" => $data['job_type']]);
+            $account_coa = $this->crud->reads('account_coa', [], ["division_id" => @$division->id, "departement_id" => @$departement->id, "position_id" => @$position->id, "contract_id" => @$contract->id, "job_type" => $data['job_type']]);
 
-            if (!empty($departement)) {
-                if (!empty($position)) {
-                    if (!empty($contract)) {
-                        if (!empty($account)) {
-                            if (empty($account_coa)) {
-                                $post = array(
-                                    'departement_id' => $departement->id,
-                                    'position_id' => $position->id,
-                                    'contract_id' => $contract->id,
-                                    'account_id' => $account->id,
-                                    'job_type' => $data['job_type']
-                                );
+            if (!empty($division)) {
+                if (!empty($departement)) {
+                    if (!empty($position)) {
+                        if (!empty($contract)) {
+                            if (!empty($account)) {
+                                if (empty($account_coa)) {
+                                    $post = array(
+                                        'division_id' => $division->id,
+                                        'departement_id' => $departement->id,
+                                        'position_id' => $position->id,
+                                        'contract_id' => $contract->id,
+                                        'account_id' => $account->id,
+                                        'job_type' => $data['job_type']
+                                    );
 
-                                $send = $this->crud->create('account_coa', $post);
-                                echo $send;
-                            } else {
-                                echo json_encode(array("title" => "Available", "message" => "Setup COA Duplicated", "theme" => "error"));
+                                    $send = $this->crud->create('account_coa', $post);
+                                    echo $send;
+                                } else {
+                                    echo json_encode(array("title" => "Available", "message" => "Setup COA Duplicated", "theme" => "error"));
+                                }
+                            }else{
+                                echo json_encode(array("title" => "Not Found", "message" => $data['account_number'] . " COA Number Not Found", "theme" => "error"));
                             }
                         }else{
-                            echo json_encode(array("title" => "Not Found", "message" => $data['account_number'] . " COA Number Not Found", "theme" => "error"));
+                            echo json_encode(array("title" => "Not Found", "message" => $data['contract_number'] . " Employee Type No Not Found", "theme" => "error"));
                         }
                     }else{
-                        echo json_encode(array("title" => "Not Found", "message" => $data['contract_number'] . " Employee Type No Not Found", "theme" => "error"));
+                        echo json_encode(array("title" => "Not Found", "message" => $data['position_number'] . " Position No Not Found", "theme" => "error"));
                     }
-                }else{
-                    echo json_encode(array("title" => "Not Found", "message" => $data['position_number'] . " Position No Not Found", "theme" => "error"));
+                } else {
+                    echo json_encode(array("title" => "Not Found", "message" => $data['departement_number'] . " Departement No Not Found", "theme" => "error"));
                 }
             } else {
-                echo json_encode(array("title" => "Not Found", "message" => $data['departement_number'] . " Departement No Not Found", "theme" => "error"));
+                echo json_encode(array("title" => "Not Found", "message" => $data['division_number'] . " Division No Not Found", "theme" => "error"));
             }
         }
     }
@@ -253,8 +267,9 @@ class Account_coa extends CI_Controller
         $this->db->from('config');
         $config = $this->db->get()->row();
 
-        $this->db->select('a.*, b.name as departement_name, c.name as position_name, d.name as contract_name, e.name as account_name');
+        $this->db->select('a.*, f.name as division_name, b.name as departement_name, c.name as position_name, d.name as contract_name, e.name as account_name, e.category');
         $this->db->from('account_coa a');
+        $this->db->join('divisions f', 'a.division_id = f.id', 'left');
         $this->db->join('departements b', 'a.departement_id = b.id');
         $this->db->join('positions c', 'a.position_id = c.id');
         $this->db->join('contracts d', 'a.contract_id = d.id');
@@ -288,20 +303,24 @@ class Account_coa extends CI_Controller
         <table id="customers" border="1">
             <tr>
                 <th width="20">No</th>
+                <th>Division</th>
                 <th>Departement</th>
                 <th>Position</th>
                 <th>Employee Type</th>
                 <th>COA Number</th>
+                <th>Category</th>
                 <th>Job Type</th>
             </tr>';
         $no = 1;
         foreach ($records as $data) {
             $html .= '  <tr>
                             <td>' . $no . '</td>
+                            <td>' . $data['division_name'] . '</td>
                             <td>' . $data['departement_name'] . '</td>
                             <td>' . $data['position_name'] . '</td>
                             <td>' . $data['contract_name'] . '</td>
                             <td>' . $data['account_name'] . '</td>
+                            <td>' . $data['category'] . '</td>
                             <td>' . $data['job_type'] . '</td>
                         </tr>';
             $no++;

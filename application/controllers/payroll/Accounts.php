@@ -127,7 +127,8 @@ class Accounts extends CI_Controller
             $datas[] = array(
                 'number' => $data->val($i, 2),
                 'name' => $data->val($i, 3),
-                'description' => $data->val($i, 4)
+                'category' => $data->val($i, 4),
+                'description' => $data->val($i, 5)
             );
         }
 
@@ -227,6 +228,7 @@ class Accounts extends CI_Controller
                 <th width="20">No</th>
                 <th>COA Code</th>
                 <th>COA Number</th>
+                <th>Category</th>
                 <th>Description</th>
             </tr>';
         $no = 1;
@@ -235,6 +237,7 @@ class Accounts extends CI_Controller
                     <td>' . $no . '</td>
                     <td>' . $data['number'] . '</td>
                     <td>' . $data['name'] . '</td>
+                    <td>' . $data['category'] . '</td>
                     <td>' . $data['description'] . '</td>';
             $no++;
         }

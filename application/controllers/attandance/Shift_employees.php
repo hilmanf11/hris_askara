@@ -71,6 +71,7 @@ class Shift_employees extends CI_Controller
             $filter_departement = $this->input->get('filter_departement');
             $filter_departement_sub = $this->input->get('filter_departement_sub');
             $filter_employee = $this->input->get('filter_employee');
+            $filter_status = $this->input->get('filter_status');
 
             $page = $this->input->post('page');
             $rows = $this->input->post('rows');
@@ -80,7 +81,7 @@ class Shift_employees extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
             //Select Query
-            $this->db->select('a.*, b.name as employee_name, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.name as shift_name, g.name as group_name');
+            $this->db->select('a.*, b.name as employee_name, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.name as shift_name, g.name as group_name, b.status as status_employee');
             $this->db->from('shift_employees a');
             $this->db->join('employees b', 'a.employee_id = b.id');
             $this->db->join('divisions c', 'b.division_id = c.id');
@@ -89,6 +90,11 @@ class Shift_employees extends CI_Controller
             $this->db->join('shifts f', 'a.shift_id = f.id');
             $this->db->join('groups g', 'b.group_id = g.id');
             $this->db->where('a.deleted', 0);
+            if($filter_status == ""){
+                $this->db->where('b.status', 0);
+            }else{  
+                $this->db->where('b.status', $filter_status);
+            }
             $this->db->like('b.id', $filter_employee);
             $this->db->like('c.id', $filter_division);
             $this->db->like('d.id', $filter_departement);
@@ -248,7 +254,7 @@ class Shift_employees extends CI_Controller
         $this->db->from('config');
         $config = $this->db->get()->row();
 
-        $this->db->select('a.*, b.name as employee_name, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.name as shift_name, g.name as group_name');
+        $this->db->select('a.*, b.name as employee_name, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.name as shift_name, g.name as group_name, b.status as status_employee');
         $this->db->from('shift_employees a');
         $this->db->join('employees b', 'a.employee_id = b.id');
         $this->db->join('divisions c', 'b.division_id = c.id');
@@ -257,6 +263,11 @@ class Shift_employees extends CI_Controller
         $this->db->join('shifts f', 'a.shift_id = f.id');
         $this->db->join('groups g', 'b.group_id = g.id');
         $this->db->where('a.deleted', 0);
+        if($filter_status == ""){
+            $this->db->where('b.status', 0);
+        }else{  
+            $this->db->where('b.status', $filter_status);
+        }
         $this->db->like('b.id', $filter_employee);
         $this->db->like('c.id', $filter_division);
         $this->db->like('d.id', $filter_departement);
@@ -301,7 +312,13 @@ class Shift_employees extends CI_Controller
             </tr>';
         $no = 1;
         foreach ($records as $data) {
-            $html .= '  <tr>
+            if($data['status_employee'] == "1"){
+                $style = "style='background:#FFDCDC;'";
+            }else{
+                $style = "";
+            }
+
+            $html .= '  <tr '.$style.'>
                             <td>' . $no . '</td>
                             <td>' . $data['division_name'] . '</td>
                             <td>' . $data['departement_name'] . '</td>

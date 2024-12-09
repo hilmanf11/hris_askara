@@ -1,4 +1,4 @@
-<div class="easyui-accordion" id="accordion" style="width:100%;">
+<div class="easyui-accordion" style="width:100%;">
     <div title="Click this to hide the filter" data-options="selected:true" style="padding:10px; background:#F4F4F4;">
         <fieldset style="width: 99%; border:2px solid #d0d0d0; margin-bottom: 5px; border-radius:4px;">
             <legend><b>Form Filter Data</b></legend>
@@ -28,7 +28,11 @@
             <div style="width: 49%; float:left;">
                 <div class="fitem">
                     <span style="width:35%; display:inline-block;">Employee</span>
-                    <input style="width:60%;" id="filter_employee" class="easyui-combogrid">
+                    <select style="width:20%;" id="filter_status_employee" class="easyui-combobox" data-options="panelHeight:'auto'">
+                        <option value="0">Active</option>
+                        <option value="1">Not Active</option>
+                    </select>
+                    <input style="width:40%;" id="filter_employee" class="easyui-combogrid">
                 </div>
                 <div class="fitem">
                     <span style="width:35%; display:inline-block;">Permit Type</span>
@@ -38,7 +42,7 @@
                     <span style="width:35%; display:inline-block;">Groups</span>
                     <input style="width:60%;" id="filter_group" class="easyui-combobox">
                 </div>
-                <div class="fitem">
+                <div class="fitem" hidden>
                     <span style="width:35%; display:inline-block;">Status Attandance</span>
                     <select style="width:60%;" id="filter_status" panelHeight="auto" class="easyui-combobox">
                         <option value="">Choose All</option>
@@ -55,7 +59,7 @@
 </div>
 
 <div class="easyui-panel" title="Print Preview" style="width:100%;padding:10px;" data-options="fit:true">
-    <iframe id="printout" src="" style="width: 100%; height:50%; border: 0;"></iframe>
+    <iframe id="printout" src="" style="width: 100%; height:95%; border: 0;"></iframe>
 </div>
 <script>
     function reload() {
@@ -76,6 +80,7 @@
         var filter_permit_type = $("#filter_permit_type").combobox('getValue');
         var filter_group = $("#filter_group").combobox('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
+        var filter_status_employee = $("#filter_status_employee").combobox('getValue');
 
         var url = "?filter_division=" + filter_division +
             "&filter_departement=" + filter_departement +
@@ -85,6 +90,7 @@
             '&filter_employee=' + filter_employee +
             '&filter_permit_type=' + filter_permit_type +
             '&filter_status=' + filter_status +
+            '&filter_status_employee=' + filter_status_employee +
             '&filter_group=' + filter_group;
 
         var date1 = new Date(filter_from);
@@ -130,6 +136,8 @@
         var filter_permit_type = $("#filter_permit_type").combobox('getValue');
         var filter_group = $("#filter_group").combobox('getValue');
         var filter_status = $("#filter_status").combobox('getValue');
+        var filter_status_employee = $("#filter_status_employee").combobox('getValue');
+
         var url = "?filter_division=" + filter_division +
             "&filter_departement=" + filter_departement +
             "&filter_departement_sub=" + filter_departement_sub +
@@ -138,6 +146,7 @@
             '&filter_employee=' + filter_employee +
             '&filter_permit_type=' + filter_permit_type +
             '&filter_status=' + filter_status +
+            '&filter_status_employee=' + filter_status_employee +
             '&filter_group=' + filter_group;
 
         var date1 = new Date(filter_from);
@@ -172,16 +181,6 @@
 
     $(function() {
         $("#add").html("Generate");
-
-        $('#accordion').accordion({
-            onSelect:function(title,index){
-                $('#printout').css('height', '50%');
-            },
-            onUnselect:function(title,index){
-                $('#printout').css('height', '95%');
-            }
-        });
-
         //Get Departement
         $('#filter_division').combobox({
             url: '<?php echo base_url('employee/divisions/reads'); ?>',
@@ -248,6 +247,37 @@
                             }
                         });
                     }
+                });
+            }
+        });
+
+        $('#filter_status_employee').combobox({
+            onChange: function(status) {
+                $('#filter_employee').combogrid({
+                    url: '<?= base_url('employee/employees/reads/') ?>' + status,
+                    panelWidth: 450,
+                    idField: 'id',
+                    textField: 'name',
+                    mode: 'remote',
+                    fitColumns: true,
+                    prompt: 'Choose All',
+                    icons: [{
+                        iconCls: 'icon-clear',
+                        handler: function(e) {
+                            $(e.data.target).combogrid('clear').combogrid('textbox').focus();
+                        }
+                    }],
+                    columns: [
+                        [{
+                            field: 'number',
+                            title: 'Employee ID',
+                            width: 120
+                        }, {
+                            field: 'name',
+                            title: 'Employee Name',
+                            width: 200
+                        }]
+                    ],
                 });
             }
         });

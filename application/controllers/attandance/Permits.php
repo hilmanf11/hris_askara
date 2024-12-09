@@ -234,10 +234,8 @@ class Permits extends CI_Controller
                         );
                         $send = $this->crud->create('permits', $post_final);
                     } else {
-                        if($date_from == ($date_to + (60 * 60 * 24))){
-                            echo json_encode(array("title" => "Available", "message" => "The permit requestion for sunday cannot created", "theme" => "error"));
-                            exit;
-                        }
+                        echo json_encode(array("title" => "Available", "message" => "The permit requestion for sunday cannot created", "theme" => "error"));
+                        exit;
                     }
                 }
 
@@ -256,36 +254,9 @@ class Permits extends CI_Controller
         if ($this->input->post()) {
             $id   = base64_decode($this->input->get('id'));
             $post = $this->input->post();
-
-            $date_from = strtotime($post['date_from']);
-            $date_to = strtotime($post['date_to']);
-
-            $send = "";
-            $leave = $post['leave'];
-            for ($i = $date_from; $i <= $date_to; $i += (60 * 60 * 24)) {
-                $permit_date = date('Y-m-d', $i);
-
-                if (date('w', $i) !== '0') {
-                    $attachment = $this->crud->upload('attachment', ['pdf', 'png', 'jpg', 'jpeg'], 'assets/image/attandance/');
-                    $post_final = array(
-                        "permit_type_id" => $post['permit_type_id'],
-                        "reason_id" => $post['reason_id'],
-                        "trans_date" => $post['trans_date'],
-                        "permit_date" => $permit_date,
-                        "duration" => "1",
-                        "leave" => ($leave - 1),
-                        "note" => $post['note'],
-                        "attachment" => $attachment
-                    );
-                    $send = $this->crud->update('permits', ["id" => $id], $post_final);
-                } else {
-                    echo json_encode(array("title" => "Available", "message" => "The permit requestion for sunday cannot created", "theme" => "error"));
-                    exit;
-                }
-
-                $leave = ($leave - 1);
-            }
-
+            $attachment = $this->crud->upload('attachment', ['pdf', 'png', 'jpg', 'jpeg'], 'assets/image/attandance/');
+            $post_final = array_merge($post, ["attachment" => $attachment]);
+            $send = $this->crud->update('permits', ["id" => $id], $post_final);
             echo $send;
         } else {
             show_error("Cannot Process your request");

@@ -3,11 +3,13 @@
     <thead>
         <tr>
             <th rowspan="2" field="ck" checkbox="true"></th>
+            <th rowspan="2" data-options="field:'division_name',width:150,halign:'center'">Division</th>
             <th rowspan="2" data-options="field:'departement_name',width:150,halign:'center'">Departement</th>
             <th rowspan="2" data-options="field:'position_name',width:150,halign:'center'">Position</th>
             <th rowspan="2" data-options="field:'contract_name',width:150,halign:'center'">Employee Type</th>
-            <th rowspan="2" data-options="field:'account_name',width:150,halign:'center'">COA Number</th>
-            <th rowspan="2" data-options="field:'job_type',width:100,halign:'center'">Job Type</th>
+            <th rowspan="2" data-options="field:'account_name',width:100,halign:'center'">COA Number</th>
+            <th rowspan="2" data-options="field:'category',width:100,halign:'center'">Category</th>
+            <th rowspan="2" data-options="field:'job_type',width:120,halign:'center'">Job Type</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
         </tr>
@@ -31,6 +33,10 @@
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
             <legend><b>Form Data</b></legend>
             <div class="fitem">
+                <span style="width:35%; display:inline-block;">Division</span>
+                <input style="width:60%;" name="division_id" id="division_id" required="" class="easyui-combobox">
+            </div>
+            <div class="fitem">
                 <span style="width:35%; display:inline-block;">Departement</span>
                 <input style="width:60%;" name="departement_id" id="departement_id" required="" class="easyui-combobox">
             </div>
@@ -48,9 +54,11 @@
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Job Type</span>
-                <select style="width:30%;" name="job_type" id="job_type" required="" class="easyui-combobox" panelHeight="auto">
+                <select style="width:60%;" name="job_type" id="job_type" required="" class="easyui-combobox" panelHeight="auto">
                     <option value="DIRECT">DIRECT</option>
                     <option value="IN DIRECT">IN DIRECT</option>
+                    <option value="ADM & GENERAL">ADM & GENERAL</option>
+                    <option value="OTHER">OTHER</option>
                 </select>
             </div>
         </fieldset>
@@ -87,6 +95,7 @@
         $('#dlg_insert').dialog('open');
         url_save = '<?= base_url('payroll/account_coa/create') ?>';
         $('#frm_insert').form('clear');
+        $('#division_id').combobox('enable');
         $('#departement_id').combobox('enable');
         $('#position_id').combobox('enable');
         $('#group_id').combobox('enable');
@@ -98,6 +107,7 @@
         if (row) {
             $('#dlg_insert').dialog('open');
             $('#frm_insert').form('load', row);
+            $('#division_id').combobox('disable');
             $('#departement_id').combobox('disable');
             $('#position_id').combobox('disable');
             $('#group_id').combobox('disable');
@@ -306,12 +316,21 @@
             }]
         });
 
-        //Get Data Departement
-        $('#departement_id').combobox({
-            url: '<?= base_url('employee/departements/reads') ?>',
+        //Get Data Division
+        $('#division_id').combobox({
+            url: '<?= base_url('employee/divisions/reads') ?>',
             valueField: 'id',
             textField: 'name',
-            prompt: "Choose Departement"
+            prompt: "Choose Division",
+            onSelect: function(div){
+                //Get Data Departement
+                $('#departement_id').combobox({
+                    url: '<?= base_url('employee/departements/reads?division_id=') ?>' + div.id,
+                    valueField: 'id',
+                    textField: 'name',
+                    prompt: "Choose Departement"
+                });
+            }
         });
 
         //Get Data Position

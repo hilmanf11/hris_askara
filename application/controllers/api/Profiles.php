@@ -63,8 +63,6 @@ class Profiles extends CI_Controller
                 $employee = $this->mobile->read("employees", [], ["number" => $user->number]);
 
                 $this->db->select('a.*, 
-                    b.users_id_from as status_check,
-                    b.users_id_to as status_notification, 
                     c.name as division_name, 
                     d.name as departement_name, 
                     e.name as departement_sub_name,
@@ -73,7 +71,6 @@ class Profiles extends CI_Controller
                     h.name as contract_name,
                     g.access');
                 $this->db->from('employees a');
-                $this->db->join('notifications b', "a.id = b.table_id and b.table_name = 'employees'", 'left');
                 $this->db->join('divisions c', 'c.id = a.division_id');
                 $this->db->join('departements d', 'd.id = a.departement_id');
                 $this->db->join('departement_subs e', 'e.id = a.departement_sub_id');
@@ -88,7 +85,11 @@ class Profiles extends CI_Controller
                 $data  = array();
                 foreach ($records as $record) {
                     if(!empty($record['image_profile'])){
-                        $image_profile = "assets/image/employee/profile/" . $record['image_profile'];
+                        if(substr($record['image_profile'], -4) == "jpeg"){
+                            $image_profile = "assets/image/employee/profile/" . substr($record['image_profile'], -15);
+                        }else{
+                            $image_profile = "assets/image/employee/profile/" . substr($record['image_profile'], -14);
+                        }
                     }else{
                         $image_profile = "assets/image/users/default.png";
                     }

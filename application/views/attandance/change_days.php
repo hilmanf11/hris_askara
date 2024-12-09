@@ -4,7 +4,7 @@
         <tr>
             <th rowspan="2" field="ck" checkbox="true"></th>
             <th rowspan="2" data-options="field:'request_code',width:120,halign:'center'">Request No</th>
-            <th rowspan="2" data-options="field:'employee_id',width:120,halign:'center'">Employee ID</th>
+            <th rowspan="2" data-options="field:'employee_number',width:120,halign:'center'">Employee ID</th>
             <th rowspan="2" data-options="field:'employee_name',width:200,halign:'center'">Employee Name</th>
             <th rowspan="2" data-options="field:'start',width:100,halign:'center'">Start</th>
             <th rowspan="2" data-options="field:'end',width:100,halign:'center'">Replace</th>

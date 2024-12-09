@@ -3,8 +3,8 @@
     <thead frozen="true">
         <tr>
             <th field="ck" checkbox="true"></th>
-            <th data-options="field:'employee_number',width:100,halign:'center'">Employee ID</th>
-            <th data-options="field:'employee_name',width:250,halign:'center'">Employee Name</th>
+            <th data-options="field:'employee_number',width:120,halign:'center'">Employee ID</th>
+            <th data-options="field:'employee_name',width:200,halign:'center'">Employee Name</th>
         </tr>
     </thead>
     <thead>
@@ -17,7 +17,7 @@
             <th rowspan="2" data-options="field:'amount_actual',width:80,halign:'center',align:'right', formatter:numberformat">Actual<br>Amount</th>
             <th rowspan="2" data-options="field:'plan',width:80,halign:'center',align:'right'">Plan<br>Output</th>
             <th rowspan="2" data-options="field:'actual',width:80,halign:'center',align:'right'">Actual<br>Output</th>
-            <th rowspan="2" data-options="field:'remarks',width:250,halign:'center'">Remarks</th>
+            <th rowspan="2" data-options="field:'remarks',width:400,halign:'center'">Remarks</th>
             <th rowspan="2" data-options="field:'attachment',width:100,align:'center', formatter:fileFormatter">Attachment</th>
             <th rowspan="2" data-options="field:'attachment_idm',width:100,align:'center', formatter:fileFormatter2">Attachment<br>IDM</th>
             <th colspan="3" data-options="field:'',width:100,halign:'center'"> Approval</th>
@@ -27,15 +27,15 @@
         <tr>
             <th data-options="field:'trans_date',width:100,halign:'center'">Request Date</th>
             <th data-options="field:'request_code',width:150,halign:'center'">Request No</th>
-            <th data-options="field:'idm_no',width:120,halign:'center'">SPL NO</th>
-            <th data-options="field:'fullname',width:120,halign:'center'">Request Name</th>
+            <th data-options="field:'idm_no',width:200,halign:'center'">IDM No</th>
+            <th data-options="field:'fullname',width:200,halign:'center'">Request Name</th>
             <th data-options="field:'start',width:80,align:'center'">Start</th>
             <th data-options="field:'end',width:80,align:'center'">End</th>
             <th data-options="field:'break',width:80,align:'center'">Break<br>(Minute)</th>
             <th data-options="field:'duration_hour',width:80,align:'center'">Duration<br>(Hour)</th>
             <th data-options="field:'time_in',width:80,align:'center'">Time In</th>
             <th data-options="field:'time_out',width:80,align:'center'">Time Out</th>
-            <th data-options="field:'duration_att',width:120,align:'center'">Duration</th>
+            <th data-options="field:'duration_att',width:80,align:'center'">Duration</th>
             <th data-options="field:'approved',width:100,align:'center',styler:statusStyler, formatter:statusFormatter"> Status</th>
             <th data-options="field:'approved_by',width:120,align:'center'"> By</th>
             <th data-options="field:'approved_date',width:150,align:'center'"> Date</th>
@@ -51,7 +51,7 @@
 <div id="toolbar">
     <div class="easyui-accordion" style="width:100%; margin-bottom:5px;">
         <div title="Click this to hide the filter" data-options="onCollapse: function(){ $('#dg').datagrid('reload'); }" style="padding:10px; background:#F4F4F4;">
-            <fieldset style="width: 99%; border:2px solid #d0d0d0; margin-bottom: 5px; border-radius:4px;">
+            <fieldset style="width: 99%; border:2px solid #d0d0d0; margin-bottom: 5px; margin-top: 5px; border-radius:4px;">
                 <legend><b>Form Filter Data</b></legend>
                 <div style="width: 50%; float: left;">
                     <div class="fitem">
@@ -74,7 +74,6 @@
                     <div class="fitem">
                         <span style="width:30%; display:inline-block;"></span>
                         <a href="javascript:;" class="easyui-linkbutton" onclick="filter()"><i class="fa fa-search"></i> Filter Data</a>
-                        <a href="javascript:;" class="easyui-linkbutton c4" onclick="generate()"><i class="fa fa-database"></i> Generate Overtime</a>
                     </div>
                 </div>
                 <div style="width: 50%; float: left;">
@@ -87,7 +86,7 @@
                         <input style="width:60%;" id="filter_request_code" class="easyui-combobox">
                     </div>
                     <div class="fitem">
-                        <span style="width:30%; display:inline-block;">SPL NO</span>
+                        <span style="width:30%; display:inline-block;">IDM No</span>
                         <input style="width:60%;" id="filter_idm" class="easyui-combobox">
                     </div>
                     <div class="fitem">
@@ -110,14 +109,14 @@
 </div>
 
 <!-- DIALOG SAVE -->
-<div id="dlg_insert" class="easyui-dialog" title="Add New" data-options="closed: true,modal:true" style="width: 100%; height: 100%; padding:10px; top: 0; left: 0;">
+<div id="dlg_insert" class="easyui-dialog" title="Add New" data-options="closed: true,modal:true" style="width: 1100px; height: 500px; padding:10px; top: 20px;">
     <form id="frm_insert" method="post" enctype="multipart/form-data" novalidate>
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
             <legend><b>Form Data</b></legend>
             <div style="width: 50%; float: left;">
                 <div class="fitem">
                     <span style="width:30%; display:inline-block;">Request Date</span>
-                    <input style="width:60%;" name="trans_date" id="trans_date" required class="easyui-datebox" data-options="formatter:myformatter,parser:myparser,editable:false">
+                    <input style="width:60%;" name="trans_date" id="trans_date" required class="easyui-datebox" data-options="formatter:myformatter,parser:myparser,editable:false" value="<?= date("Y-m-d") ?>">
                 </div>
                 <div class="fitem" id="u_division">
                     <span style="width:30%; display:inline-block;">Division</span>
@@ -138,11 +137,11 @@
             </div>
             <div style="width: 50%; float: left;">
                 <div class="fitem">
-                    <span style="width:30%; display:inline-block;">SPL NO</span>
-                    <input style="width:60%;" name="idm_no" id="idm_no" class="easyui-textbox" readonly required>
+                    <span style="width:30%; display:inline-block;">IDM No</span>
+                    <input style="width:60%;" name="idm_no" id="idm_no" class="easyui-textbox" required>
                 </div>
                 <div class="fitem" id="u_idm">
-                    <span style="width:30%; display:inline-block;">Attachment SPL</span>
+                    <span style="width:30%; display:inline-block;">Attachment IDM</span>
                     <input style="width:60%;" name="attachment_idm" id="attachment_idm" accept=".jpg, .png, .jpeg, .pdf" class="easyui-filebox" data-options="prompt: 'Max 2 Mb'">
                 </div>
                 <div class="fitem" id="u_attachment">
@@ -171,8 +170,8 @@
                 <input name="file_upload" style="width: 60%;" required="" accept=".xls" id="file_excel" class="easyui-filebox">
             </div>
             <div class="fitem">
-                <span style="width:30%; display:inline-block;">SPL NO</span>
-                <input style="width:60%;" name="idm_no" id="idm_no_2" class="easyui-textbox" required>
+                <span style="width:30%; display:inline-block;">IDM No</span>
+                <input style="width:60%;" name="idm_no" id="idm_no" class="easyui-textbox" required>
             </div>
             <div class="fitem">
                 <span style="width:30%; display:inline-block;">Attachment IDM</span>
@@ -190,50 +189,6 @@
     </div>
 </div>
 
-<div id="dlg_generate" class="easyui-dialog" title="Generate Data" data-options="closed: true,modal:true" style="width: 1000px; padding:10px; top: 20px;">
-    <div style="width:50%; float: left; margin-right: 10px;">
-        <div class="alert alert-info" role="alert">
-            Conditions when generating:<br>
-            1. If overtime in the master group = 0 then it will not be included in the generated list<br>
-            2. If the attendance is empty then it is not considered overtime
-        </div>
-        <form id="frm_generate" method="post" enctype="multipart/form-data" novalidate>
-            <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
-                <legend><b>Form Data</b></legend>
-                <div class="fitem">
-                    <span style="width:30%; display:inline-block;">Trans Date</span>
-                    <input style="width:60%;" name="period" id="period" required class="easyui-datebox" data-options="formatter:myformatter,parser:myparser,editable:false">
-                </div>
-                <div class="fitem" id="u_division">
-                    <span style="width:30%; display:inline-block;">Division</span>
-                    <input style="width:60%;" id="gen_division_id" class="easyui-combobox">
-                </div>
-                <div class="fitem" id="u_departement">
-                    <span style="width:30%; display:inline-block;">Departement</span>
-                    <input style="width:60%;" id="gen_departement_id" class="easyui-combobox">
-                </div>
-                <div class="fitem" id="u_departement">
-                    <span style="width:30%; display:inline-block;">Departement Sub</span>
-                    <input style="width:60%;" id="gen_departement_sub_id" class="easyui-combobox">
-                </div>
-                <div class="fitem">
-                    <span style="width:30%; display:inline-block;"></span>
-                    <a href="javascript:;" class="easyui-linkbutton" onclick="generate_start()"><i class="fa fa-add"></i> Start Generate</a>
-                </div>
-            </fieldset>
-        </form>
-    </div>
-    <div style="width:48%; float: left;">
-        <div id="g_upload" class="easyui-progressbar" style="width:100%; margin-top: 10px;"></div>
-        <center><b id="g_start">0</b> Of <b id="g_finish">0</b></center>
-        <div id="g_remarks" title="History Generate" class="easyui-panel" style="width:100%; height:270px; padding:10px; margin-top: 10px;">
-            <ul id="remarks_generate">
-
-            </ul>
-        </div>
-    </div>
-</div>
-
 <!-- PDF -->
 <iframe id="printout" src="" style="width: 100%;" hidden></iframe>
 
@@ -242,8 +197,6 @@
     function add() {
         $('#dlg_insert').dialog('open');
         $('#dg2').datagrid('loadData', []);
-        $('#frm_insert').form('clear');
-
         url_save = '<?= base_url('attandance/cash_carries/create') ?>';
         $('#trans_date').datebox('setValue', '<?= date("Y-m-d") ?>');
         $('#request_name').textbox('setValue', '<?= $this->session->name ?>');
@@ -252,128 +205,6 @@
         $("#u_idm").show();
         $("#u_attachment").show();
         $("#addrow").show();
-    }
-
-    function generate() {
-        $('#dlg_generate').dialog('open');
-        $('#frm_generate').form('clear');
-
-        $('#gen_division_id').combobox({
-            url: '<?php echo base_url('employee/divisions/reads'); ?>',
-            valueField: 'id',
-            textField: 'name',
-            prompt: 'Choose Division',
-            onSelect: function(div) {
-                $('#gen_departement_id').combobox({
-                    url: '<?php echo base_url('employee/departements/reads'); ?>?division_id=' + div.id,
-                    valueField: 'id',
-                    textField: 'name',
-                    prompt: 'Choose Departement',
-                    onSelect: function(dept) {
-                        $('#gen_departement_sub_id').combobox({
-                            url: '<?php echo base_url('employee/departement_subs/reads'); ?>?division_id=' + div.id + "&departement_id=" + dept.id,
-                            valueField: 'id',
-                            textField: 'name',
-                            prompt: 'Choose Departement Sub',
-                        });
-                    }
-                });
-            }
-        });
-    }
-
-    function generate_start() {
-        var period = $("#period").datebox('getValue');
-        var division = $("#gen_division_id").combobox('getValue');
-        var departement = $("#gen_departement_id").combobox('getValue');
-        var departement_sub = $("#gen_departement_sub_id").combobox('getValue');
-
-        if (period != "") {
-            $.messager.prompt('Confirmation', 'Please Input the Password', function(r) {
-                if (r == "GENERATEOT") {
-                    $('#dlg_generate').dialog('close');
-
-                    Swal.fire({
-                        title: 'Please Wait for Generating Data',
-                        showConfirmButton: false,
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        },
-                    });
-
-                    $.ajax({
-                        method: 'post',
-                        url: '<?= base_url('attandance/cash_carries/readGenerate') ?>',
-                        data: {
-                            period: period,
-                            division_id: division,
-                            departement_id: departement,
-                            departement_sub_id: departement_sub,
-                        },
-                        success: function(result) {
-                            var json = eval('(' + result + ')');
-                            Swal.close();
-                            $('#dlg_generate').dialog('open');
-                            requestData(json.total, json);
-
-                            function requestData(total, json, number = 1, value = 0) {
-                                if (value < 100) {
-                                    value = Math.floor((number / total) * 100);
-                                    $('#g_upload').progressbar('setValue', value);
-                                    $('#g_start').html(number);
-                                    $('#g_finish').html(total);
-
-                                    $.ajax({
-                                        url: "<?= base_url('attandance/cash_carries/createGenerate') ?>",
-                                        type: 'post',
-                                        data: json['rows'][number - 1],
-                                        success: function(note) {
-                                            var result = eval('(' + note + ')');
-                                            if (result.theme == "success") {
-                                                var title = "<b style='color: green;'>" + result.title + "</b> | " + result.message;
-                                            } else {
-                                                var title = "<b style='color: red;'>" + result.title + "</b> | " + result.message;
-                                            }
-                                            $("#g_remarks").append(title + "<br>");
-                                            requestData(total, json, number + 1, value);
-
-                                            if (number == total) {
-                                                Swal.fire(
-                                                    'Generate Completed',
-                                                    'Generate Overtime Completed',
-                                                    'success'
-                                                );
-                                            }
-                                        },
-                                        fail: function(jqXHR, textStatus) {
-                                            if (textStatus == "error") {
-                                                Swal.fire({
-                                                    title: 'Connection Time Out, Check Your Connection',
-                                                    showConfirmButton: false,
-                                                    allowOutsideClick: false,
-                                                    allowEscapeKey: false,
-                                                    didOpen: () => {
-                                                        Swal.showLoading();
-                                                    },
-                                                });
-
-                                                setTimeout(function() {
-                                                    requestData(total, json, number, value);
-                                                }, 5000);
-                                            }
-                                        }
-                                    });
-                                }
-                            }
-                        },
-                    });
-                }
-            });
-        } else {
-            toastr.warning("Trans Date cannot empty");
-        }
     }
 
     //EDIT DATA
@@ -392,7 +223,7 @@
             var lastIndex;
             $('#dg2').datagrid({
                 singleSelect: true,
-                url: '<?= base_url('attandance/cash_carries/datatable_updates?id=') ?>' + window.btoa(row.id),
+                url: '<?= base_url('attandance/cash_carries/datatable_updates?request_code=') ?>' + window.btoa(row.request_code),
                 columns: [
                     [{
                         field: 'employee_name',
@@ -459,7 +290,7 @@
                         editor: {
                             type: 'numberbox',
                             options: {
-                                required: false,
+                                required: true,
                             }
                         }
                     }, {
@@ -470,7 +301,7 @@
                         editor: {
                             type: 'numberbox',
                             options: {
-                                required: false,
+                                required: true,
                             }
                         }
                     }, {
@@ -526,9 +357,7 @@
     function addTable(departement_id) {
         var lastIndex;
         var dg = $('#dg2').datagrid({
-            url: '<?= base_url('attandance/cash_carries/datatableTemp?departement_id=') ?>' + window.btoa(departement_id),
             singleSelect: true,
-            rownumbers: true,
             columns: [
                 [{
                     field: 'employee_name',
@@ -735,7 +564,11 @@
     }
 
     function deleterow(target) {
-        $('#dg2').datagrid('deleteRow', getRowIndex(target));
+        $.messager.confirm('Confirm', 'Are you sure?', function(r) {
+            if (r) {
+                $('#dg2').datagrid('deleteRow', getRowIndex(target));
+            }
+        });
     }
 
     function saverow(target) {
@@ -912,6 +745,48 @@
                                 var data = eval('(' + data + ')');
                                 var file_attachment = data.attachment;
                                 var file_attachment_idm = data.attachment_idm;
+
+                                for (let i = 0; i < totalrows; i++) {
+                                    if (rows[i].employee_id) {
+                                        $.ajax({
+                                            type: "post",
+                                            url: url_save,
+                                            data: {
+                                                trans_date: trans_date,
+                                                request_code: request_code,
+                                                request_name: request_name,
+                                                idm_no: idm_no,
+                                                type: type,
+                                                attachment: file_attachment,
+                                                attachment_idm: file_attachment_idm,
+                                                employee_id: rows[i].employee_id,
+                                                start: rows[i].start,
+                                                end: rows[i].end,
+                                                meal: rows[i].meal,
+                                                plan: rows[i].plan,
+                                                actual: rows[i].actual,
+                                                break: rows[i].break,
+                                                remarks: rows[i].remarks
+                                            },
+                                            dataType: "json",
+                                            success: function(result) {
+                                                if (totalrows == (i + 1)) {
+                                                    Swal.close();
+                                                    Swal.fire({
+                                                        title: "Save Cash Carries Success",
+                                                        icon: "success",
+                                                        confirmButtonText: 'Ok',
+                                                        allowOutsideClick: false,
+                                                    }).then((result) => {
+                                                        if (result.isConfirmed) {
+                                                            location.reload();
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
                             }
                         });
 
@@ -930,50 +805,6 @@
                         //     var explode_idm = attachment_idm['name'].split('.');
                         //     var file_attachment_idm = idm_no + "." + explode_idm[1];
                         // }
-
-                        for (let i = 0; i < totalrows; i++) {
-                            if (rows[i].start) {
-                                $.ajax({
-                                    type: "post",
-                                    url: url_save,
-                                    data: {
-                                        trans_date: trans_date,
-                                        request_code: request_code,
-                                        request_name: request_name,
-                                        idm_no: idm_no,
-                                        type: type,
-                                        attachment: file_attachment,
-                                        attachment_idm: file_attachment_idm,
-                                        employee_id: rows[i].employee_id,
-                                        start: rows[i].start,
-                                        end: rows[i].end,
-                                        meal: rows[i].meal,
-                                        plan: rows[i].plan,
-                                        actual: rows[i].actual,
-                                        break: rows[i].break,
-                                        remarks: rows[i].remarks
-                                    },
-                                    dataType: "json",
-                                    success: function(result) {
-                                        //Swal.close();
-                                    }
-                                });
-                            }
-                        }
-
-                        setTimeout(function() {
-                            Swal.close();
-                            Swal.fire({
-                                title: "Save Cash Carries Success",
-                                icon: "success",
-                                confirmButtonText: 'Ok',
-                                allowOutsideClick: false,
-                            }).then((result) => {
-                                if (result.isConfirmed) {
-                                    location.reload();
-                                }
-                            });
-                        }, 5000);
 
                         $('#dlg_insert').dialog('close');
                     } else {
@@ -1220,30 +1051,15 @@
                     textField: 'name',
                     prompt: 'Choose Departement',
                     onSelect: function(dept) {
-                        addTable(dept.id);
-                        var trans_date = $("#trans_date").datebox('getValue');
-
                         $.ajax({
-                            url: '<?= base_url('attandance/cash_carries/requestIdm') ?>',
+                            url: '<?= base_url('attandance/cash_carries/requestCode') ?>',
                             type: 'post',
-                            data: 'trans_date=' + trans_date + "&departement=" + dept.number,
-                            success: function(idm_no) {
-                                $("#idm_no").textbox('setValue', idm_no);
+                            data: 'departement_id=' + dept.id,
+                            success: function(requestCode) {
+                                addTable(dept.id);
+                                $("#request_code").textbox('setValue', requestCode);
                             }
                         });
-                    }
-                });
-            }
-        });
-
-        $("#trans_date").datebox({
-            onChange: function(trans_date) {
-                $.ajax({
-                    url: '<?= base_url('attandance/cash_carries/requestCode') ?>',
-                    type: 'post',
-                    data: 'trans_date=' + trans_date,
-                    success: function(result) {
-                        $("#request_code").textbox('setValue', result);
                     }
                 });
             }

@@ -14,16 +14,18 @@
                     <input style="width:60%;" id="filter_group" name="filter_group" class="easyui-combobox">
                 </div>
                 <div class="fitem">
+                    <span style="width:35%; display:inline-block;"></span>
+                    <a href="javascript:;" class="easyui-linkbutton" onclick="filter()"><i class="fa fa-search"></i> Filter Data</a>
+                </div>
+            </div>
+            <div style="width: 50%; float:left;">
+                <div class="fitem">
                     <span style="width:35%; display:inline-block;">Source</span>
                     <input style="width:60%;" id="filter_source" name="filter_source" class="easyui-combobox">
                 </div>
                 <div class="fitem">
                     <span style="width:35%; display:inline-block;">Employee</span>
                     <input style="width:60%;" id="filter_employee" class="easyui-combogrid">
-                </div>
-                <div class="fitem">
-                    <span style="width:35%; display:inline-block;"></span>
-                    <a href="javascript:;" class="easyui-linkbutton" onclick="filter()"><i class="fa fa-search"></i> Filter Data</a>
                 </div>
             </div>
         </fieldset>
@@ -32,7 +34,7 @@
 </div>
 
 <div class="easyui-panel" title="Print Preview" style="width:100%;padding:10px;" data-options="fit:true">
-    <iframe id="printout" src="" style="width: 100%; height:98%; border: 0;"></iframe>
+    <iframe id="printout" src="" style="width: 100%; height:97%; border: 0;"></iframe>
 </div>
 <script>
     function reload() {

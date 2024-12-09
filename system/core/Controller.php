@@ -116,10 +116,10 @@ class CI_Controller
 
 		$html   = '';
 		if (@$data->v_add == "1") {
-			$html .= '<a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="add()"><i class="fa fa-plus"></i> <span id="add">Add</span></a>';
+			$html .= '<a href="javascript:;" style="margin-right:5px;" class="easyui-linkbutton" data-options="plain:true" onclick="add()"><i class="fa fa-plus"></i> <span id="add">Add</span></a>';
 		}
 		if (@$data->v_edit == "1") {
-			$html .= '<a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="update()"><i class="fa fa-edit"></i> Update</a>';
+			$html .= '<a href="javascript:;" style="margin-right:5px;" class="easyui-linkbutton" data-options="plain:true" onclick="update()"><i class="fa fa-edit"></i> Update</a>';
 		}
 		if (@$data->v_delete == "1") {
 			$html .= '<a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="deleted()"><i class="fa fa-trash"></i> Delete</a>';

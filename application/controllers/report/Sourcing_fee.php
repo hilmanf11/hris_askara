@@ -77,7 +77,7 @@ class Sourcing_fee extends CI_Controller
             $this->db->select('a.id as group_id, a.name as group_name, b.sourcing_fee, b.id as source_id, b.name as source_name');
             $this->db->from('groups a');
             $this->db->join('sources b', 'a.id = b.group_id');
-            $this->db->where('a.id', $filter_group);
+            $this->db->like('a.id', $filter_group);
             $this->db->like('b.id', $filter_source);
             $this->db->group_by('b.id');
             $this->db->order_by('a.name', 'ASC');
@@ -98,90 +98,96 @@ class Sourcing_fee extends CI_Controller
                             LEFT JOIN allowances e ON d.allowance_id = e.id
                             WHERE a.period_start = '$period_start' and a.period_end = '$period_end' and (e.type != 'TEMPORARY' or e.type is null)
                             AND b.status = 0
-                            AND b.group_id = '$record[group_id]'
+                            
                             AND b.source_id = '$record[source_id]'
                             ORDER BY a.`name` ASC");
                 $employees = $query->result_array();
 
-                $html .= '  <center>
-                                <div style="float: left; font-size: 12px; text-align: left;">
-                                    <table style="width: 100%;">
-                                        <tr>
-                                            <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
-                                                <img src="' . $config->favicon . '" width="30">
-                                            </td>
-                                            <td style="font-size: 14px; text-align: left; margin:2px;">
-                                                <b>' . $config->name . '</b><br>
-                                                <small>' . $config->description . '</small>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </div>
-                                <div style="float: right; font-size: 12px; text-align: right;">
-                                    Print Date ' . date("d M Y H:i:s") . ' <br>
-                                    Print By ' . $this->session->username . '  
-                                </div>
-                            </center><br><br><br>
-                        <center>
-                            <h3 style="margin:0;">SOURCE FEE REPORT ' . $record['group_name'] . ' ' . $record['source_name'] . '</h3>
-                            <p style="margin:0;">Period <b>' . date("d F Y", strtotime($filter_from)) . '</b> to <b>' . date("d F Y", strtotime($filter_to)) . '</b></p>
-                            <br>
-                        </center>
-                        <table id="customers" border="1">
-                            <tr>
-                                <th width="20">No</th>
-                                <th style="text-align:center;">Employee ID</th>
-                                <th style="text-align:center;">Employee Name</th>
-                                <th style="text-align:center;">Amount</th>
-                            </tr>';
+                if(count($employees) > 0){
+                    $html .= '  <center>
+                                    <div style="float: left; font-size: 12px; text-align: left;">
+                                        <table style="width: 100%;">
+                                            <tr>
+                                                <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
+                                                    <img src="' . $config->favicon . '" width="30">
+                                                </td>
+                                                <td style="font-size: 14px; text-align: left; margin:2px;">
+                                                    <b>' . $config->name . '</b><br>
+                                                    <small>' . $config->description . '</small>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div style="float: right; font-size: 12px; text-align: right;">
+                                        Print Date ' . date("d M Y H:i:s") . ' <br>
+                                        Print By ' . $this->session->username . '  
+                                    </div>
+                                </center><br><br><br>
+                            <center>
+                                <h3 style="margin:0;">SOURCE FEE REPORT ' . $record['group_name'] . ' ' . $record['source_name'] . '</h3>
+                                <p style="margin:0;">Period <b>' . date("d F Y", strtotime($filter_from)) . '</b> to <b>' . date("d F Y", strtotime($filter_to)) . '</b></p>
+                                <br>
+                            </center>
+                            <table id="customers" border="1">
+                                <tr>
+                                    <th width="20">No</th>
+                                    <th style="text-align:center;">Employee ID</th>
+                                    <th style="text-align:center;">Employee Name</th>
+                                    <th style="text-align:center;">Fit Of Service</th>
+                                    <th style="text-align:center;">WD</th>
+                                    <th style="text-align:center;">Amount</th>
+                                </tr>';
 
-                $total = 0;
-                foreach ($employees as $employee) {
-                    $start  = date_create($employee['date_sign']);
-                    $end = date_create($filter_to);
-                    $diff  = date_diff($start, $end);
-                    $selisih = date_diff(date_create($employee['date_sign']), date_create($filter_to));
-                    $d = $diff->d . ' Days ';
+                    $total = 0;
+                    foreach ($employees as $employee) {
+                        $start  = date_create($employee['date_sign']);
+                        $end = date_create($filter_to);
+                        $diff  = date_diff($start, $end);
+                        $selisih = date_diff(date_create($employee['date_sign']), date_create($filter_to));
+                        $d = $diff->d . ' Days ';
 
-                    if ($diff->y == 0) {
-                        $y = '';
-                    } else {
-                        $y = $diff->y . ' Years, ';
+                        if ($diff->y == 0) {
+                            $y = '';
+                        } else {
+                            $y = $diff->y . ' Years, ';
+                        }
+
+                        if ($diff->m == 0) {
+                            $m = '';
+                        } else {
+                            $m = $diff->m . ' Month, ';
+                        }
+
+                        $services = $y . $m . $d;
+
+                        if ($selisih->format('%a') > 30) {
+                            $wd = $hkw;
+                        } else {
+                            $wd = $employee['attandance_wd'];
+                        }
+
+                        $fee = (($record['sourcing_fee'] / $hkw) * $wd);
+
+                        $html .= '  <tr>
+                                        <td>' . $no . '</td>
+                                        <td style="mso-number-format:\@;">' . $employee['number'] . '</td>
+                                        <td>' . $employee['name'] . '</td>
+                                        <td>' . $services . '</td>
+                                        <td>' . $wd . '</td>
+                                        <td style="text-align:right;">' . round($fee) . '</td>
+                                    </tr>';
+                        $total += round($fee);
+                        $no++;
                     }
-
-                    if ($diff->m == 0) {
-                        $m = '';
-                    } else {
-                        $m = $diff->m . ' Month, ';
-                    }
-
-                    $services = $y . $m . $d;
-
-                    if ($selisih->format('%a') > 30) {
-                        $wd = $hkw;
-                    } else {
-                        $wd = $employee['attandance_wd'];
-                    }
-
-                    $fee = (($record['sourcing_fee'] / $hkw) * $wd);
 
                     $html .= '  <tr>
-                                    <td>' . $no . '</td>
-                                    <td style="mso-number-format:\@;">' . $employee['number'] . '</td>
-                                    <td>' . $employee['name'] . '</td>
-                                    <td style="text-align:right;">' . round($fee) . '</td>
+                                    <th colspan="5" style="text-align:right;">Grand Total</th>
+                                    <th style="text-align:right;">' . round($total) . '</th>
                                 </tr>';
-                    $total += $fee;
-                    $no++;
+
+                    $html .= '</table>
+                                <div style="page-break-after:always;"></div>';
                 }
-
-                $html .= '  <tr>
-                                <th colspan="5" style="text-align:right;">Grand Total</th>
-                                <th style="text-align:right;">' . round($total) . '</th>
-                            </tr>';
-
-                $html .= '</table>
-                            <div style="page-break-after:always;"></div>';
             }
 
             $html .= '</body></html>';

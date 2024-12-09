@@ -7,7 +7,7 @@
 		</div>
 
 		<div class="logo-company animate__animated animate__bounceIn animate__slower">
-			<img src="<?= $config->favicon ?>" width="80"><br>
+			<img src="<?= $config->favicon ?>" width="50"><br>
 		</div>
 		<div class="name-company animate__animated animate__bounceIn animate__slower">
 			<b style="font-size: 16px !important;"><?= $config->name ?></b><br>
@@ -36,6 +36,8 @@
 
 	<!-- MAIN MENU -->
 	<div data-options="region:'west',split:false, collapsed:true, hideCollapsedContent:false, title:'Main Menu'" style="width:250px; padding:10px;">
+		<input id="searchMenu" placeholder="Search Menus" onchange="searchMenu(this.value)" title="Please Enter for Search Menu" style="width:100%; padding: 5px;">
+		<br><br>
 		<ul class="easyui-tree" id="menu" data-options="url:'<?= base_url('home/menus') ?>', method:'get',animate:true, lines:true"></ul>
 	</div>
 
@@ -190,7 +192,7 @@
 		<div hidden>
 			<input class="easyui-textbox" id="table_name" />
 			<input class="easyui-textbox" id="approved_to" />
-			<input class="easyui-textbox" id="created_by" />
+			<input class="easyui-textbox" id="approved_by" />
 		</div>
 		<table id="dg_approval" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar_approval" data-options="fitColumns: true, rownumbers: true"></table>
 	</div>
@@ -236,6 +238,10 @@
 </body>
 
 <script>
+	function searchMenu(e){
+		menu(e);
+	};
+
 	$(function() {
 		window.addEventListener('load', function(event) {
 			detectInternet();
@@ -305,46 +311,50 @@
 				}
 			}
 		});
+
+		menu();
 	});
 
-	$('#menu').tree({
-		url: '<?= base_url('home/menus') ?>',
-		method: 'get',
-		animate: 'true',
-		lines: 'true',
-		loadFilter: function(rows) {
-			return convert(rows);
-		},
-		onSelect: function(node) {
-			var node = $(this).tree('getSelected');
-			if (node) {
-				var nama = node.text;
-				var link = node.link;
-				var id = node.id;
-				if (node.attributes) {
-					link += "," + node.attributes.p1 + "," + node.attributes.p2;
-					nama += "," + node.attributes.p1 + "," + node.attributes.p2;
-					id += "," + node.attributes.p1 + "," + node.attributes.p2;
-				}
-				if ($('#tabs').tabs('exists', nama)) {
-					$('#tabs').tabs('select', nama);
-				} else {
-					if (link == null || link == "") {
-						return false;
+	function menu(searchName = ""){
+		$('#menu').tree({
+			url: '<?= base_url('home/menus?name=') ?>' + searchName,
+			method: 'get',
+			animate: 'true',
+			lines: 'true',
+			loadFilter: function(rows) {
+				return convert(rows);
+			},
+			onSelect: function(node) {
+				var node = $(this).tree('getSelected');
+				if (node) {
+					var nama = node.text;
+					var link = node.link;
+					var id = node.id;
+					if (node.attributes) {
+						link += "," + node.attributes.p1 + "," + node.attributes.p2;
+						nama += "," + node.attributes.p1 + "," + node.attributes.p2;
+						id += "," + node.attributes.p1 + "," + node.attributes.p2;
+					}
+					if ($('#tabs').tabs('exists', nama)) {
+						$('#tabs').tabs('select', nama);
 					} else {
-						var content = '<iframe src="' + link + '/index/' + window.btoa(id) + '" scrolling="yes" id="page" style="border: 0; width: 100%; height: 99%; margin:0;"></iframe>';
-						//$('#form').panel('setTitle', nama);
-						$('#tabs').tabs('add', {
-							title: nama,
-							content: content,
-							closable: true,
-							iconCls: node.iconCls
-						});
+						if (link == null || link == "") {
+							return false;
+						} else {
+							var content = '<iframe src="' + link + '/index/' + window.btoa(id) + '" scrolling="yes" id="page" style="border: 0; width: 100%; height: 99%; margin:0;"></iframe>';
+							//$('#form').panel('setTitle', nama);
+							$('#tabs').tabs('add', {
+								title: nama,
+								content: content,
+								closable: true,
+								iconCls: node.iconCls
+							});
+						}
 					}
 				}
 			}
-		}
-	});
+		});
+	}
 
 	function convert(rows) {
 		function exists(rows, parentId) {
@@ -504,14 +514,14 @@
 		});
 	}
 
-	function approvalDetail(table = "", approved_to = "", created_by = "") {
+	function approvalDetail(table = "", approved_to = "", approved_by = "") {
 		if (table == "" || approved_to == "") {
 			toastr.error("Notification Cannot get Data", "Error");
 		} else {
 			$('#dlg_approval_detail').window('open');
 			$("#table_name").textbox('setValue', table);
 			$("#approved_to").textbox('setValue', approved_to);
-			$("#created_by").textbox('setValue', created_by);
+			$("#approved_by").textbox('setValue', approved_by);
 			$("#approveall").linkbutton('enable');
 			$("#disapproveall").linkbutton('enable');
 
@@ -519,7 +529,7 @@
 				$('#dg_approval').datagrid({
 					singleSelect: true,
 					rownumbers: true,
-					url: '<?= base_url('approvals/approvalUsers/') ?>' + approved_to + "/" + created_by,
+					url: '<?= base_url('approvals/approvalUsers/') ?>' + approved_to + "/" + approved_by,
 					columns: [
 						[{
 							field: 'number',
@@ -587,7 +597,7 @@
 				$('#dg_approval').datagrid({
 					singleSelect: true,
 					rownumbers: true,
-					url: '<?= base_url('approvals/approvalAgreements/') ?>' + approved_to + "/" + created_by,
+					url: '<?= base_url('approvals/approvalAgreements/') ?>' + approved_to + "/" + approved_by,
 					columns: [
 						[{
 							field: 'number',
@@ -665,7 +675,7 @@
 				$('#dg_approval').datagrid({
 					singleSelect: true,
 					rownumbers: true,
-					url: '<?= base_url('approvals/approvalMutations/') ?>' + approved_to + "/" + created_by,
+					url: '<?= base_url('approvals/approvalMutations/') ?>' + approved_to + "/" + approved_by,
 					columns: [
 						[{
 							field: 'employee_number',
@@ -738,7 +748,7 @@
 				$('#dg_approval').datagrid({
 					singleSelect: true,
 					rownumbers: true,
-					url: '<?= base_url('approvals/approvalPermits/') ?>' + approved_to + "/" + created_by,
+					url: '<?= base_url('approvals/approvalPermits/') ?>' + approved_to + "/" + approved_by,
 					columns: [
 						[{
 							field: 'employee_number',
@@ -810,10 +820,10 @@
 				$('#dg_approval').datagrid({
 					singleSelect: true,
 					rownumbers: true,
-					url: '<?= base_url('approvals/approvalOvertimes/') ?>' + approved_to + "/" + created_by,
+					url: '<?= base_url('approvals/approvalOvertimes/') ?>' + approved_to + "/" + approved_by,
 					columns: [
 						[{
-							field: 'employee_id',
+							field: 'employee_number',
 							width: 120,
 							halign: 'center',
 							title: "Employee ID",
@@ -906,10 +916,10 @@
 				$('#dg_approval').datagrid({
 					singleSelect: true,
 					rownumbers: true,
-					url: '<?= base_url('approvals/approvalCashCarries/') ?>' + approved_to + "/" + created_by,
+					url: '<?= base_url('approvals/approvalCashCarries/') ?>' + approved_to + "/" + approved_by,
 					columns: [
 						[{
-							field: 'employee_id',
+							field: 'employee_number',
 							width: 120,
 							halign: 'center',
 							title: "Employee ID",
@@ -975,6 +985,17 @@
 							halign: 'center',
 							title: "Note",
 						}, {
+							field: 'attachment_idm',
+							width: 80,
+							halign: 'center',
+							title: "IDM",
+							formatter:fileFormatter2
+						}, {
+							field: 'remarks',
+							width: 200,
+							halign: 'center',
+							title: "Note",
+						}, {
 							field: 'action',
 							width: 80,
 							align: 'center',
@@ -993,10 +1014,10 @@
 				$('#dg_approval').datagrid({
 					singleSelect: true,
 					rownumbers: true,
-					url: '<?= base_url('approvals/approvalChangeDays/') ?>' + approved_to + "/" + created_by,
+					url: '<?= base_url('approvals/approvalChangeDays/') ?>' + approved_to + "/" + approved_by,
 					columns: [
 						[{
-							field: 'employee_id',
+							field: 'employee_number',
 							width: 120,
 							halign: 'center',
 							title: "Employee ID",
@@ -1068,7 +1089,7 @@
 					singleSelect: true,
 					rownumbers: true,
 					showFooter: true,
-					url: '<?= base_url('approvals/approvalPayrolls/') ?>' + approved_to + "/" + created_by,
+					url: '<?= base_url('approvals/approvalPayrolls/') ?>' + approved_to + "/" + approved_by,
 					columns: [
 						[{
 							field: 'group_name',
@@ -1120,10 +1141,10 @@
 				$('#dg_approval').datagrid({
 					singleSelect: true,
 					rownumbers: true,
-					url: '<?= base_url('approvals/approvalSetupSalary/') ?>' + approved_to + "/" + created_by,
+					url: '<?= base_url('approvals/approvalSetupSalary/') ?>' + approved_to + "/" + approved_by,
 					columns: [
 						[{
-							field: 'employee_id',
+							field: 'employee_number',
 							width: 120,
 							halign: 'center',
 							title: "Employee ID",
@@ -1201,10 +1222,10 @@
 				$('#dg_approval').datagrid({
 					singleSelect: true,
 					rownumbers: true,
-					url: '<?= base_url('approvals/approvalWarningLetters/') ?>' + approved_to + "/" + created_by,
+					url: '<?= base_url('approvals/approvalWarningLetters/') ?>' + approved_to + "/" + approved_by,
 					columns: [
 						[{
-							field: 'employee_id',
+							field: 'employee_number',
 							width: 120,
 							halign: 'center',
 							title: "Employee ID",
@@ -1282,10 +1303,10 @@
 				$('#dg_approval').datagrid({
 					singleSelect: true,
 					rownumbers: true,
-					url: '<?= base_url('approvals/approvalResignations/') ?>' + approved_to + "/" + created_by,
+					url: '<?= base_url('approvals/approvalResignations/') ?>' + approved_to + "/" + approved_by,
 					columns: [
 						[{
-							field: 'employee_id',
+							field: 'employee_number',
 							width: 120,
 							halign: 'center',
 							title: "Employee ID",
@@ -1359,6 +1380,102 @@
 						}]
 					],
 				}).datagrid('enableFilter');
+			} else if (table == "employees"){
+				$('#dg_approval').datagrid({
+					singleSelect: true,
+					rownumbers: true,
+					url: '<?= base_url('approvals/approvalEmployees/') ?>' + approved_to + "/" + approved_by,
+					columns: [
+						[{
+							field: 'number',
+							width: 120,
+							halign: 'center',
+							title: "Employee ID",
+						}, {
+							field: 'name',
+							width: 200,
+							halign: 'center',
+							title: "Employee Name",
+						}, {
+							field: 'division_name',
+							width: 150,
+							halign: 'center',
+							title: "Division",
+						}, {
+							field: 'departement_name',
+							width: 150,
+							halign: 'center',
+							title: "Departement",
+						}, {
+							field: 'departement_sub_name',
+							width: 150,
+							halign: 'center',
+							title: "Departement Sub",
+						}, {
+							field: 'group_name',
+							width: 120,
+							halign: 'center',
+							title: "Group",
+						}, {
+							field: 'marital_name',
+							width: 100,
+							halign: 'center',
+							title: "Marital",
+						}, {
+							field: 'date_sign',
+							width: 100,
+							halign: 'center',
+							title: "Sign Date",
+						}, {
+							field: 'date_expired',
+							width: 100,
+							halign: 'center',
+							title: "Expired Date",
+						}, {
+							field: 'national_id',
+							width: 150,
+							halign: 'center',
+							title: "National ID",
+						}, {
+							field: 'jamsostek',
+							width: 120,
+							halign: 'center',
+							title: "Jamsostek",
+						}, {
+							field: 'jkn',
+							width: 120,
+							halign: 'center',
+							title: "JKN",
+						}, {
+							field: 'email',
+							width: 150,
+							halign: 'center',
+							title: "Email",
+						}, {
+							field: 'bank_no',
+							width: 100,
+							halign: 'center',
+							title: "Bank No",
+						}, {
+							field: 'bank_name',
+							width: 150,
+							halign: 'center',
+							title: "Bank Name",
+						}, {
+							field: 'action',
+							width: 80,
+							align: 'center',
+							title: "Action",
+							formatter: function(val, row) {
+								var approve = "approve('" + row.id + "','" + table + "')";
+								var disapprove = "disapprove('" + row.id + "','" + table + "')";
+								var a = '<a class="btn btn-success w-50" style="pointer-events: visible; opacity:1;" onclick="' + approve + '"><i class="fa fa-check"></i></a>';
+								var b = '<a class="btn btn-danger w-50" style="pointer-events: visible; opacity:1;" onclick="' + disapprove + '"><i class="fa fa-times"></i></a>';
+								return a + " " + b;
+							}
+						}]
+					],
+				}).datagrid('enableFilter');
 			}
 		}
 	}
@@ -1401,14 +1518,14 @@
 	function approveall() {
 		var table_name = $("#table_name").textbox('getValue');
 		var approved_to = $("#approved_to").textbox('getValue');
-		var created_by = $("#created_by").textbox('getValue');
+		var approved_by = $("#approved_by").textbox('getValue');
 
 		$.messager.confirm('Warning', 'Are you sure you want to approve all data?', function(r) {
 			if (r) {
 				$.post('<?= base_url('approvals/approveall') ?>', {
 					table_name: table_name,
 					approved_to: approved_to,
-					created_by: created_by,
+					approved_by: approved_by,
 				}, function(result) {
 					var result = eval('(' + result + ')');
 					if (result.theme == "success") {
@@ -1425,7 +1542,7 @@
 	function disapproveall() {
 		var table_name = $("#table_name").textbox('getValue');
 		var approved_to = $("#approved_to").textbox('getValue');
-		var created_by = $("#created_by").textbox('getValue');
+		var approved_by = $("#approved_by").textbox('getValue');
 
 		$.messager.confirm('Warning', 'Are you sure you want to disapprove all data?', function(r) {
 			if (r) {
@@ -1442,7 +1559,7 @@
 				$.post('<?= base_url('approvals/disapproveall') ?>', {
 					table_name: table_name,
 					approved_to: approved_to,
-					created_by: created_by,
+					approved_by: approved_by,
 				}, function(result) {
 					var result = eval('(' + result + ')');
 					Swal.close();
@@ -1619,6 +1736,14 @@
 			return '<a href="' + value + '" target="_blank" style="text-decoration: none;"><i class="fa fa-eye"></i> View</a>';
 		}
 	};
+
+	function fileFormatter2(value) {
+        if (value == "" || value == null) {
+            return '-';
+        } else {
+            return '<a href="<?= base_url('assets/image/cash_carry/') ?>' + value + '" target="_blank" class="btn btn-primary btn-sm" style="pointer-events:auto; opacity:1;"><i class="fa fa-eye"></i> View</a>';
+        }
+    };
 </script>
 
 </html>

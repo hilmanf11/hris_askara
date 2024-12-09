@@ -8,6 +8,7 @@
             <th rowspan="2" data-options="field:'division_name',width:200,halign:'center'">Division</th>
             <th rowspan="2" data-options="field:'departement_name',width:200,halign:'center'">Departement</th>
             <th rowspan="2" data-options="field:'departement_sub_name',width:200,halign:'center'">Departement Sub</th>
+            <th rowspan="2" data-options="field:'position_name',width:150,halign:'center'">Position</th>
             <th rowspan="2" data-options="field:'allowance_name',width:200,halign:'center', editor:{
                 type:'combobox',
                 options:{

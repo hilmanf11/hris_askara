@@ -83,14 +83,15 @@ class Setup_cash_carries extends CI_Controller
             $offset = ($page - 1) * $rows;
             $result = array();
             //Select Query
-            $this->db->select('a.*, b.name as allowance_name, b.weekday, b.saturday, b.sunday, b.holiday, b.meal, c.id as employee_id, c.number as employee_number, c.name as employee_name, d.name as division_name, e.name as departement_name, f.name as departement_sub_name');
+            $this->db->select('a.*, b.name as allowance_name, b.weekday, b.saturday, b.sunday, b.holiday, b.meal, c.id as employee_id, c.number as employee_number, c.name as employee_name, d.name as division_name, e.name as departement_name, f.name as departement_sub_name, i.name as position_name');
             $this->db->from('employees c');
             $this->db->join('setup_cash_carries a', 'a.employee_id = c.id', 'left');
             $this->db->join('allowance_cash_carries b', 'a.allowance_id = b.id', 'left');
             $this->db->join('divisions d', 'c.division_id = d.id');
             $this->db->join('departements e', 'c.departement_id = e.id');
             $this->db->join('departement_subs f', 'c.departement_sub_id = f.id');
-            $this->db->join('privilege_groups h', "c.group_id = h.group_id and h.username = '$username' and h.status = '1'");
+            $this->db->join('positions i', 'i.id = c.position_id');
+            // $this->db->join('privilege_groups h', "c.group_id = h.group_id and h.username = '$username' and h.status = '1'");
             $this->db->where('c.deleted', 0);
             $this->db->where('c.status', 0);
             if($filter_allowance != ""){

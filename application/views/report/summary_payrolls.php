@@ -64,7 +64,7 @@
 </div>
 
 <div id="dlg_print" class="easyui-window" title="Print Preview" data-options="closed: true,minimizable:false,collapsible:false,maximizable:true,modal:true,footer:'#footer'" style="width: 1000px; height: 500px; top: 20px;">
-    <iframe id="printout" src="" style="width: 100%; height:550px; border: 0;"></iframe>
+    <iframe id="printout" src="" style="width: 100%; height:98%; border: 0;"></iframe>
     <div id="footer" style="padding:5px; text-align:right;">
         <a class="easyui-linkbutton c6" id="pdf_detail" onclick="pdf_detail()" style="width:120px">Print</a>
     </div>
@@ -89,7 +89,7 @@
         var filter_departement = $("#filter_departement").combobox('getValue');
         var filter_departement_sub = $("#filter_departement_sub").combobox('getValue');
         var filter_employee = $("#filter_employee").combogrid('getValue');
-        var filter_group = $("#filter_group").combobox('getValue');
+        var filter_group = $("#filter_group").combobox('getText');
 
         if (filter_from == "" || filter_to == "" || filter_division == "") {
             toastr.warning("Please Choose Filter Date & Division");
@@ -100,7 +100,7 @@
                 '&filter_from=' + filter_from +
                 '&filter_to=' + filter_to +
                 '&filter_employee=' + filter_employee +
-                '&filter_group=' + filter_group;
+                '&filter_group=' + window.btoa(filter_group);
 
             $('#dg').datagrid({
                 url: '<?= base_url('report/summary_payrolls/datatables') ?>' + url
@@ -161,7 +161,7 @@
         var filter_departement = $("#filter_departement").combobox('getValue');
         var filter_departement_sub = $("#filter_departement_sub").combobox('getValue');
         var filter_employee = $("#filter_employee").combogrid('getValue');
-        var filter_group = $("#filter_group").combobox('getValue');
+        var filter_group = $("#filter_group").combobox('getText');
 
         if (filter_from == "" || filter_to == "" || filter_division == "") {
             toastr.warning("Please Choose Filter Date & Division");
@@ -172,7 +172,7 @@
                 '&filter_from=' + filter_from +
                 '&filter_to=' + filter_to +
                 '&filter_employee=' + filter_employee +
-                '&filter_group=' + filter_group;
+                '&filter_group=' + btoa(filter_group);
 
             window.location.assign('<?= base_url('report/summary_payrolls/print_detail/excel') ?>' + url);
         }
@@ -185,7 +185,7 @@
         var filter_departement = $("#filter_departement").combobox('getValue');
         var filter_departement_sub = $("#filter_departement_sub").combobox('getValue');
         var filter_employee = $("#filter_employee").combogrid('getValue');
-        var filter_group = $("#filter_group").combobox('getValue');
+        var filter_group = $("#filter_group").combobox('getText');
 
         if (filter_from == "" || filter_to == "" || filter_division == "") {
             toastr.warning("Please Choose Filter Date & Division");
@@ -196,7 +196,7 @@
                 '&filter_from=' + filter_from +
                 '&filter_to=' + filter_to +
                 '&filter_employee=' + filter_employee +
-                '&filter_group=' + filter_group;
+                '&filter_group=' + window.btoa(filter_group);
 
             window.location.assign('<?= base_url('report/summary_payrolls/print_recap/excel') ?>' + url);
         }
@@ -330,6 +330,7 @@
             valueField: 'id',
             textField: 'name',
             prompt: "Choose All",
+            multiple: true,
             icons: [{
                 iconCls: 'icon-clear',
                 handler: function(e) {
@@ -362,7 +363,7 @@
     }
 
     function FormatterFile(value, row) {
-        var linkPrint = "pdf_view('" + row.departement_id + "','" + row.departement_sub_id + "','" + row.group_id + "')";
+        var linkPrint = "pdf_view('" + row.departement_id + "','" + row.departement_sub_id + "','" + btoa(row.group_id) + "')";
         if (row.approved_to == "" || row.approved_to == null) {
             $("#pdf_detail").linkbutton('enable');
         } else {
@@ -374,7 +375,7 @@
 
     function FormatterExcel(value, row) {
         if (row.approved_to == "" || row.approved_to == null) {
-            var linkPrint = "excel_detail('" + row.departement_id + "','" + row.departement_sub_id + "','" + row.group_id + "')";
+            var linkPrint = "excel_detail('" + row.departement_id + "','" + row.departement_sub_id + "','" + btoa(row.group_id) + "')";
         } else {
             var linkPrint = "toastr.info('Still Checked Approval')";
         }

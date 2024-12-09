@@ -1,16 +1,18 @@
 <!-- TABLE DATAGRID -->
-<table id="dg" class="easyui-datagrid" style="width:99.5%;" toolbar="#toolbar">
+<table id="dg" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar">
     <thead>
         <tr>
             <th field="ck" checkbox="true"></th>
+            <th data-options="field:'departement_name',width:150">Departement</th>
             <th data-options="field:'number',width:150">Number ID</th>
             <th data-options="field:'name',width:200">Name</th>
             <th data-options="field:'username',width:150">Username</th>
             <th data-options="field:'email',width:200">Email</th>
             <th data-options="field:'phone',width:150">Phone</th>
             <th data-options="field:'position',width:200">Position</th>
-            <th data-options="field:'avatar',width:200">File Foto</th>
+            <th data-options="field:'avatar',width:80">Avatar</th>
             <th data-options="field:'theme',width:100">Theme</th>
+            <th data-options="field:'api_key',width:250">API Key</th>
             <th data-options="field:'actived',width:150, styler:cellStyler, formatter:cellFormatter">Status</th>
             <th data-options="field:'access',width:150, styler:cellStyler2, formatter:cellFormatter2">Access</th>
         </tr>
@@ -183,7 +185,7 @@
             clientPaging: false,
             remoteFilter: true,
             rownumbers: true,
-            fit: true,
+            fit:true,
             pageList: [20, 50, 100, 500, 1000],
             pageSize: 20,
         }).datagrid('enableFilter');

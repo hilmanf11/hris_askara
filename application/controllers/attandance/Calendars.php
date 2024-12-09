@@ -132,7 +132,7 @@ class Calendars extends CI_Controller
 
             if (date("l", mktime(0, 0, 0, $bulan, $d, $tahun)) == "Sunday") {
                 $style = "background:#FFDADA !important;";
-                $note = "<textarea rows='2' hidden name='description[]'></textarea>";
+                // $note = "<textarea rows='2' hidden name='description[]'></textarea>";
                 $permit = "<select hidden name='permit[]'><option value='0'>No</option><option value='1'>Yes</option></select>";
             }
 

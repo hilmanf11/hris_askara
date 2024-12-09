@@ -165,7 +165,6 @@ class Crud extends CI_Model
         $size = $_FILES[$filename]['size'];
         $temporary = $_FILES[$filename]['tmp_name'];
         $newname  = round(microtime(true)) . '.' . $extension_final;
-        $fileSave  = base_url($path) . round(microtime(true)) . '.' . $extension_final;
 
         if (in_array($extension_final, $extension) === true || $file == "") {
             if ($size < 2097152) {
@@ -185,7 +184,7 @@ class Crud extends CI_Model
                     }
 
                     @move_uploaded_file($temporary, $path . $newname);
-                    return $fileSave;
+                    return $newname;
                 }
             } else {
                 show_error("Your file is too big a maximum of 2 mb", 200, "File Upload Error");

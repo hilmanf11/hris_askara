@@ -166,7 +166,7 @@ class Shift_details extends CI_Controller
                 <th>Category</th>
                 <th>Name</th>
                 <th>Tolerance</th>
-                <th>Briefing</th>
+                <!-- <th>Briefing</th> -->
                 <th>Start</th>
                 <th>Ending</th>
                 <th>Working Day</th>
@@ -179,7 +179,7 @@ class Shift_details extends CI_Controller
                         <td>' . $data['shift_name'] . '</td>
                         <td>' . $data['name'] . '</td>
                         <td>' . $data['tolerance'] . '</td>
-                        <td>' . $data['briefing'] . '</td>
+                        <!-- <td>' . $data['briefing'] . '</td> -->
                         <td>' . $data['start'] . '</td>
                         <td>' . $data['end'] . '</td>
                         <td>' . $data['days'] . '</td>

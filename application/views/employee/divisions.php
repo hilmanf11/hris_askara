@@ -3,6 +3,7 @@
     <thead>
         <tr>
             <th rowspan="2" field="ck" checkbox="true"></th>
+            <th rowspan="2" data-options="field:'logo',width:40,halign:'center',formatter:FormatterImage">Logo</th>
             <th rowspan="2" data-options="field:'number',width:80,align:'center'">Code</th>
             <th rowspan="2" data-options="field:'name',width:200,halign:'center'">Name</th>
             <th rowspan="2" data-options="field:'description',width:150,halign:'center'">Description</th>
@@ -25,7 +26,7 @@
 
 <!-- DIALOG SAVE AND UPDATE -->
 <div id="dlg_insert" class="easyui-dialog" title="Add New" data-options="closed: true,modal:true" style="width: 400px; padding:10px; top: 20px;">
-    <form id="frm_insert" method="post" novalidate>
+    <form id="frm_insert" method="post" novalidate enctype="multipart/form-data">
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
             <legend><b>Form Data</b></legend>
             <div class="fitem">
@@ -39,6 +40,10 @@
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Description</span>
                 <input style="width:60%;" name="description" class="easyui-textbox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Logo</span>
+                <input style="width:60%;" name="logo" id="logo" accept=".jpg, .jpeg, .png" class="easyui-filebox">
             </div>
         </fieldset>
     </form>
@@ -153,4 +158,12 @@
             }]
         });
     });
+
+    function FormatterImage(val) {
+        if (val == "" || val == null) {
+            return '<img style="width: 100%; border-radius:50%;" src="<?= base_url('assets/image/users/default.png'); ?>" />';
+        } else {
+            return '<img style="width: 100%; border-radius:50%;" src="<?= base_url('assets/image/division/'); ?>' + val + '" />';
+        }
+    };
 </script>

@@ -81,7 +81,18 @@ class Divisions extends CI_Controller
         if ($this->input->post()) {
             if ($this->form_validation->run() == TRUE) {
                 $post   = $this->input->post();
-                $send   = $this->crud->create('divisions', $post);
+                $logo = isset($_FILES['logo']);
+                $postFinal = array(
+                    "number" => $post['number'],
+                    "name" => $post['name'],
+                    "description" => $post['description'],
+                );
+                if ($logo == null || $logo == '') {
+                    $send   = $this->crud->create('divisions', $postFinal);
+                } else {
+                    $logo = $this->crud->upload('logo', ["jpg", "jpeg", "png"], 'assets/image/division/', ["number" => $post['number']], "divisions", "logo");
+                    $send   = $this->crud->create('divisions', array_merge($postFinal, array("logo" => $logo)));
+                }
                 echo $send;
             } else {
                 show_error(validation_errors());
@@ -97,7 +108,18 @@ class Divisions extends CI_Controller
         if ($this->input->post()) {
             $id   = base64_decode($this->input->get('id'));
             $post = $this->input->post();
-            $send = $this->crud->update('divisions', ["id" => $id], $post);
+            $logo = isset($_FILES['logo']);
+            $postFinal = array(
+                "number" => $post['number'],
+                "name" => $post['name'],
+                "description" => $post['description'],
+            );
+            if ($logo == null || $logo == '') {
+                $send = $this->crud->update('divisions', ["id" => $id], $postFinal);
+            } else {
+                $logo = $this->crud->upload('logo', ["jpg", "jpeg", "png"], 'assets/image/division/', ["number" => $post['number']], "divisions", "logo");
+                $send = $this->crud->update('divisions', ["id" => $id], array_merge($postFinal, array("logo" => $logo)));
+            }
             echo $send;
         } else {
             show_error("Cannot Process your request");

@@ -6,7 +6,7 @@
             <th rowspan="2" data-options="field:'shift_name',width:150,halign:'center'">Shift</th>
             <th rowspan="2" data-options="field:'name',width:200,halign:'center'">Name</th>
             <th rowspan="2" data-options="field:'tolerance',width:100,halign:'center'">Time Tolerance</th>
-            <th rowspan="2" data-options="field:'briefing',width:100,halign:'center'">Time Briefing</th>
+            <!-- <th rowspan="2" data-options="field:'briefing',width:100,halign:'center'">Time Briefing</th> -->
             <th rowspan="2" data-options="field:'start',width:100,halign:'center'">Start</th>
             <th rowspan="2" data-options="field:'end',width:100,halign:'center'">End</th>
             <th rowspan="2" data-options="field:'working',width:120,halign:'center'">Working Status</th>
@@ -63,10 +63,10 @@
                 <span style="width:30%; display:inline-block;">Time Tolerance</span>
                 <input style="width:30%;" name="tolerance" required="" data-options="buttonText:'Hour', buttonAlign:'right'" class="easyui-numberbox">
             </div>
-            <div class="fitem" style="margin-bottom: 2px;">
+            <!-- <div class="fitem" style="margin-bottom: 2px;">
                 <span style="width:30%; display:inline-block;">Time Briefing</span>
                 <input style="width:30%;" name="briefing" required="" mask="99:99:99" class="easyui-maskedbox">
-            </div>
+            </div> -->
             <div class="fitem" style="margin-bottom: 2px;">
                 <span style="width:30%; display:inline-block;">Time Start</span>
                 <input style="width:30%;" name="start" required="" mask="99:99:99" class="easyui-maskedbox">

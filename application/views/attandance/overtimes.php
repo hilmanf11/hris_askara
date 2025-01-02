@@ -121,6 +121,10 @@
                 <input style="width:30%;" name="end" mask="99:99:99" required id="end" class="easyui-maskedbox">
             </div>
             <div class="fitem">
+                <span style="width:30%; display:inline-block;">Duration <small style="color:red;">(hour)</small></span>
+                <input style="width:60%;" name="duration_hour" required id="duration_hour" class="easyui-numberbox">
+            </div>
+            <div class="fitem">
                 <span style="width:30%; display:inline-block;">Remarks</span>
                 <input style="width:60%; height:50px;" multiline="true" name="remarks" id="remarks" class="easyui-textbox">
             </div>
@@ -160,6 +164,7 @@
         $('#trans_date').datebox('setValue', '<?= date("Y-m-d") ?>');
         $('#start').maskedbox('setValue', '08:00:00');
         $('#end').maskedbox('setValue', '17:00:00');
+        $('#duration_hour').numberbox('setValue', 9);
         $('#employee_id').combogrid('enable');
         $('#request_code').textbox('enable');
     }
@@ -297,92 +302,111 @@
                     var start = $("#start").maskedbox('getValue');
                     var end = $("#end").maskedbox('getValue');
 
-                    $.ajax({
-                        type: "post",
-                        url: "<?= base_url('attandance/overtimes/readOvertimeSumDept') ?>?employee_id=" + btoa(employee_id) + "&trans_date=" + btoa(trans_date) + "&start=" + btoa(start) + "&end=" + btoa(end),
-                        data: "data",
-                        dataType: "json",
-                        success: function(response) {
-                            if (response.theme == "success") {
-                                $.ajax({
-                                    type: "post",
-                                    url: "<?= base_url('attandance/overtimes/readOvertimeSumEmp') ?>?employee_id=" + btoa(employee_id) + "&trans_date=" + btoa(trans_date) + "&start=" + btoa(start) + "&end=" + btoa(end),
-                                    data: "data",
-                                    dataType: "json",
-                                    success: function(response_over) {
-                                        if (response_over.theme == "success") {
-                                            $('#frm_insert').form('submit', {
-                                                url: url_save,
-                                                onSubmit: function() {
-                                                    return $(this).form('validate');
-                                                },
-                                                success: function(result) {
-                                                    var result = eval('(' + result + ')');
+                    $('#frm_insert').form('submit', {
+                        url: url_save,
+                        onSubmit: function() {
+                            return $(this).form('validate');
+                        },
+                        success: function(result) {
+                            var result = eval('(' + result + ')');
 
-                                                    if (result.theme == "success") {
-                                                        toastr.success(result.message, result.title);
-                                                    } else {
-                                                        toastr.error(result.message, result.title);
-                                                    }
-
-                                                    $('#dlg_insert').dialog('close');
-                                                    $('#dg').datagrid('reload');
-                                                }
-                                            });
-                                        } else if (response_over.theme == "warning") {
-                                            $.messager.confirm('Warning', response_over.message, function(r) {
-                                                if (r) {
-                                                    $('#frm_insert').form('submit', {
-                                                        url: url_save,
-                                                        onSubmit: function() {
-                                                            return $(this).form('validate');
-                                                        },
-                                                        success: function(result) {
-                                                            var result = eval('(' + result + ')');
-
-                                                            if (result.theme == "success") {
-                                                                toastr.success(result.message, result.title);
-                                                            } else {
-                                                                toastr.error(result.message, result.title);
-                                                            }
-
-                                                            $('#dlg_insert').dialog('close');
-                                                            $('#dg').datagrid('reload');
-                                                        }
-                                                    });
-                                                }
-                                            });
-                                        } else {
-                                            toastr.error(response_over.message, response_over.title);
-                                        }
-                                    }
-                                });
-                            } else if (response.theme == "warning") {
-                                $.messager.confirm('Warning', response.message, function(r) {
-                                    $('#frm_insert').form('submit', {
-                                        url: url_save,
-                                        onSubmit: function() {
-                                            return $(this).form('validate');
-                                        },
-                                        success: function(result) {
-                                            var result = eval('(' + result + ')');
-
-                                            if (result.theme == "success") {
-                                                toastr.success(result.message, result.title);
-                                            } else {
-                                                toastr.error(result.message, result.title);
-                                            }
-
-                                            $('#dlg_insert').dialog('close');
-                                            $('#dg').datagrid('reload');
-                                        }
-                                    });
-                                });
+                            if (result.theme == "success") {
+                                toastr.success(result.message, result.title);
                             } else {
-                                toastr.error(response.message);
+                                toastr.error(result.message, result.title);
                             }
+
+                            $('#dlg_insert').dialog('close');
+                            $('#dg').datagrid('reload');
                         }
                     });
+
+                    // $.ajax({
+                    //     type: "post",
+                    //     url: "<?= base_url('attandance/overtimes/readOvertimeSumDept') ?>?employee_id=" + btoa(employee_id) + "&trans_date=" + btoa(trans_date) + "&start=" + btoa(start) + "&end=" + btoa(end),
+                    //     data: "data",
+                    //     dataType: "json",
+                    //     success: function(response) {
+                    //         if (response.theme == "success") {
+                    //             $.ajax({
+                    //                 type: "post",
+                    //                 url: "<?= base_url('attandance/overtimes/readOvertimeSumEmp') ?>?employee_id=" + btoa(employee_id) + "&trans_date=" + btoa(trans_date) + "&start=" + btoa(start) + "&end=" + btoa(end),
+                    //                 data: "data",
+                    //                 dataType: "json",
+                    //                 success: function(response_over) {
+                    //                     if (response_over.theme == "success") {
+                    //                         $('#frm_insert').form('submit', {
+                    //                             url: url_save,
+                    //                             onSubmit: function() {
+                    //                                 return $(this).form('validate');
+                    //                             },
+                    //                             success: function(result) {
+                    //                                 var result = eval('(' + result + ')');
+
+                    //                                 if (result.theme == "success") {
+                    //                                     toastr.success(result.message, result.title);
+                    //                                 } else {
+                    //                                     toastr.error(result.message, result.title);
+                    //                                 }
+
+                    //                                 $('#dlg_insert').dialog('close');
+                    //                                 $('#dg').datagrid('reload');
+                    //                             }
+                    //                         });
+                    //                     } else if (response_over.theme == "warning") {
+                    //                         $.messager.confirm('Warning', response_over.message, function(r) {
+                    //                             if (r) {
+                    //                                 $('#frm_insert').form('submit', {
+                    //                                     url: url_save,
+                    //                                     onSubmit: function() {
+                    //                                         return $(this).form('validate');
+                    //                                     },
+                    //                                     success: function(result) {
+                    //                                         var result = eval('(' + result + ')');
+
+                    //                                         if (result.theme == "success") {
+                    //                                             toastr.success(result.message, result.title);
+                    //                                         } else {
+                    //                                             toastr.error(result.message, result.title);
+                    //                                         }
+
+                    //                                         $('#dlg_insert').dialog('close');
+                    //                                         $('#dg').datagrid('reload');
+                    //                                     }
+                    //                                 });
+                    //                             }
+                    //                         });
+                    //                     } else {
+                    //                         toastr.error(response_over.message, response_over.title);
+                    //                     }
+                    //                 }
+                    //             });
+                    //         } else if (response.theme == "warning") {
+                    //             $.messager.confirm('Warning', response.message, function(r) {
+                    //                 $('#frm_insert').form('submit', {
+                    //                     url: url_save,
+                    //                     onSubmit: function() {
+                    //                         return $(this).form('validate');
+                    //                     },
+                    //                     success: function(result) {
+                    //                         var result = eval('(' + result + ')');
+
+                    //                         if (result.theme == "success") {
+                    //                             toastr.success(result.message, result.title);
+                    //                         } else {
+                    //                             toastr.error(result.message, result.title);
+                    //                         }
+
+                    //                         $('#dlg_insert').dialog('close');
+                    //                         $('#dg').datagrid('reload');
+                    //                     }
+                    //                 });
+                    //             });
+                    //         } else {
+                    //             toastr.error(response.message);
+                    //         }
+                    //     }
+                    // });
                 }
             }]
         });
@@ -692,4 +716,31 @@
 
         return "<b>" + formatter.format(value) + "</b>";
     }
+
+    function calculateDuration() {
+        const transDate = $('#trans_date').datebox('getValue');
+        const startTime = $('#start').val();
+        const endTime = $('#end').val();
+
+        if (transDate && startTime && endTime) {
+            const timeBegin = new Date(`${transDate}T${startTime}`);
+            const timeEnd = new Date(`${transDate}T${endTime}`);
+
+            // Calculate the difference in hours
+            const diffInMilliseconds = timeEnd - timeBegin;
+            const durationInHours = Math.floor(diffInMilliseconds / (1000 * 60 * 60)); // Convert to hours
+
+            if (!isNaN(durationInHours)) {
+                $('#duration_hour').numberbox('setValue', durationInHours);
+            }
+        }
+    }
+
+    // Attach event listeners to start and end inputs
+    $('#start').maskedbox({
+        onChange: calculateDuration
+    });
+    $('#end').maskedbox({
+        onChange: calculateDuration
+    });
 </script>

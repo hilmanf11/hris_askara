@@ -200,7 +200,7 @@ class Overtimes extends CI_Controller
         }
     }
 
-    public function readOvertimePrice($employee_id, $trans_date, $start, $end)
+    public function readOvertimePrice($employee_id, $trans_date, $start, $end, $duration_hour=NULL)
     {
         $this->db->select('c.days');
         $this->db->from('shift_employees a');
@@ -220,6 +220,7 @@ class Overtimes extends CI_Controller
         $time_end = strtotime(@$trans_date . " " . @$end);
         $diff = $time_end - $time_begin;
         $hour = floor($diff / (60 * 60));
+        $hour = $duration_hour ? $duration_hour : $hour;
 
         $start = strtotime($trans_date);
 
@@ -393,9 +394,9 @@ class Overtimes extends CI_Controller
             $hour = floor($diff / (60 * 60));
             $minutes = $diff - $hour * (60 * 60);
             $duration = $hour . " Hour " . floor($minutes / 60) . " Minutes";
-            $duration_hour = $hour;
+            $duration_hour = $post['duration_hour'];
 
-            $ot_amount = $this->readOvertimePrice($employee_id, $trans_date, $start, $end);
+            $ot_amount = $this->readOvertimePrice($employee_id, $trans_date, $start, $end, $duration_hour);
 
             $post_final = array(
                 "trans_date" =>  $trans_date,
@@ -430,6 +431,13 @@ class Overtimes extends CI_Controller
             $id   = base64_decode($this->input->get('id'));
             $post = $this->input->post();
 
+            $trans_date = $post['trans_date'];
+            $start = $post['start'];
+            $end = $post['end'];
+            
+            $overtime = $this->crud->read('overtimes', [], ["id" => $id]);
+            $employee_id = $overtime->employee_id;
+
             //Set Duration
             $time_begin = strtotime($post['trans_date'] . " " . $post['start']);
             $time_end = strtotime($post['trans_date'] . " " . $post['end']);
@@ -437,6 +445,9 @@ class Overtimes extends CI_Controller
             $hour = floor($diff / (60 * 60));
             $minutes = $diff - $hour * (60 * 60);
             $duration = $hour . " Hour " . floor($minutes / 60) . " Minutes";
+            $duration_hour = $post['duration_hour'];
+
+            $ot_amount = $this->readOvertimePrice($employee_id, $trans_date, $start, $end, $duration_hour);
 
             $post_final = array(
                 "trans_date" =>  $post['trans_date'],
@@ -444,6 +455,9 @@ class Overtimes extends CI_Controller
                 "end" =>  $post['end'],
                 "type" =>  $post['type'],
                 "duration" =>  $duration,
+                "duration_hour" =>  $duration_hour,
+                "duration_convert" =>  $ot_amount['convert'],
+                "amount" =>  $ot_amount['amount'],
                 "remarks" =>  $post['remarks'],
                 "updated_by" => $this->session->username,
                 "updated_date" => date('Y-m-d H:i:s')
@@ -526,8 +540,9 @@ class Overtimes extends CI_Controller
                 'trans_date' => $data->val($i, 3),
                 'start' => $data->val($i, 4),
                 'end' => $data->val($i, 5),
-                'type' => $data->val($i, 6),
-                'remarks' => $data->val($i, 7),
+                'duration_hour' => $data->val($i, 6),
+                'type' => $data->val($i, 7),
+                'remarks' => $data->val($i, 8),
                 'request_code' => $templatefinal
             );
         }
@@ -590,7 +605,7 @@ class Overtimes extends CI_Controller
                         $duration = $hour . " Hour " . floor($minutes / 60) . " Minutes";
                         $duration_hour = $hour;
 
-                        $ot_amount = $this->readOvertimePrice($employee->id, $data['trans_date'], $data['start'], $data['end']);
+                        $ot_amount = $this->readOvertimePrice($employee->id, $data['trans_date'], $data['start'], $data['end'],$data['duration_hour']);
 
                         $post_overtime = array(
                             'employee_id' => $employee->id,
@@ -600,7 +615,7 @@ class Overtimes extends CI_Controller
                             'end' => $data['end'],
                             'type' => $data['type'],
                             'duration' => $duration,
-                            'duration_hour' => $duration_hour,
+                            'duration_hour' => $data['duration_hour'],
                             'remarks' => $data['remarks'],
                             'duration_convert' =>  $ot_amount['convert'],
                             'amount' =>  $ot_amount['amount']

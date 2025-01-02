@@ -84,7 +84,7 @@ class Attandances extends CI_Controller
             $this->db->order_by("a.name", "asc");
             $this->db->order_by("b.date_in", "asc");
             $employees = $this->db->get()->result_array();
-
+            
             die(json_encode($employees));
 
             $datas['total'] = count($employees);
@@ -280,8 +280,9 @@ class Attandances extends CI_Controller
             $data = $this->input->post('data');
             $explode = explode(" ", $data['date_in']);
             $date_in = $this->formatTanggal($explode[0]);
-            // $time_in = $explode[1];
-            $time_in = substr($explode[1], 0, 6) . '00';
+            $time_in = str_replace('.', ':', $explode[1]);
+
+            // $time_in = substr($explode[1], 0, 6) . '00';
 
             //Employee
             $this->db->select('*');

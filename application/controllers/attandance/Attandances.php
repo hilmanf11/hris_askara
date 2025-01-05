@@ -54,6 +54,13 @@ class Attandances extends CI_Controller
             $filter_status = $this->input->get('filter_status');
             $result = array();
 
+            $page   = $this->input->post('page');
+            $rows   = $this->input->post('rows');
+            //Pagination 1-10
+            $page   = isset($page) ? intval($page) : 1;
+            $rows   = isset($rows) ? intval($rows) : 10;
+            $offset = ($page - 1) * $rows;
+
             //Employee
             $this->db->select("a.id, b.id as attandance_id, a.number, a.name, a.division_id, a.departement_id, a.departement_sub_id,
                 DAYNAME(b.date_in) as dayname,
@@ -83,12 +90,18 @@ class Attandances extends CI_Controller
             $this->db->order_by("d.name", "asc");
             $this->db->order_by("a.name", "asc");
             $this->db->order_by("b.date_in", "asc");
+
+            //Total Data
+            $totalRows = $this->db->count_all_results('', false);
+            //Limit 1 - 10
+            $this->db->limit($rows, $offset);
+            //Get Data Array
             $employees = $this->db->get()->result_array();
             
-            die(json_encode($employees));
+            // die(json_encode($employees));
 
-            $datas['total'] = count($employees);
-            $datas['rows'] = $employees;
+            $datas['total'] = $totalRows;
+            $datas = array_merge($datas, ['rows' => @$employees]);
             echo json_encode($datas);
         }
     }
@@ -212,6 +225,7 @@ class Attandances extends CI_Controller
             for ($i = 2; $i <= $total_row; $i++) {
                 $datein = explode(";", $data->val($i, 4));
                 $datas[] = array(
+                    'machine_code' => $data->val($i, 3),
                     'lokasi' => $data->val($i, 5),
                     'number' => trim($data->val($i, 6)),
                     'date_in' => $datein[0] . " " . $datein[1],
@@ -287,12 +301,13 @@ class Attandances extends CI_Controller
             //Employee
             $this->db->select('*');
             $this->db->from('employees');
-            if ($data['barcode'] != '') {
-                $this->db->where('barcode', $data['barcode']);
-            }
 
-            if ($data['pin'] != '') {
-                $this->db->where('number', $data['pin']);
+            if ($data['machine_code'] != '') {
+                $this->db->where('machine_code', $data['machine_code']);
+            } else if ($data['number'] != '') {
+                $this->db->where('number', $data['number']);
+            } else {
+                $this->db->where('number IS NOT NULL');
             }
             $employee = $this->db->get()->row();
 
@@ -303,7 +318,7 @@ class Attandances extends CI_Controller
                     //Attandance
                     $this->db->select('*');
                     $this->db->from('attandances');
-                    $this->db->where('number', $data['number']);
+                    $this->db->where('number', $employee->number);
                     $this->db->where("date_in = '$date_in'");
                     $attandance_in = $this->db->get()->row();
 
@@ -334,7 +349,7 @@ class Attandances extends CI_Controller
                     if (!empty($attandance_in->number)) {
                         if ((substr(@$time_in, 0, 2) <= "12")) {
                             $data_attandance = array(
-                                'number' => $data['number'],
+                                'number' => $employee->number,
                                 'date_in' => $date_in,
                                 'time_in' => $time_in,
                                 'shift_start' => @$shift->start,
@@ -348,7 +363,7 @@ class Attandances extends CI_Controller
                             echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check In", "theme" => "success"));
                         } else {
                             $data_attandance = array(
-                                'number' => $data['number'],
+                                'number' => $employee->number,
                                 'date_out' => $date_in,
                                 'time_out' => $time_in,
                                 'shift_start' => @$shift->start,
@@ -363,7 +378,7 @@ class Attandances extends CI_Controller
                         }
                     } else {
                         $data_attandance = array(
-                            'number' => $data['number'],
+                            'number' => $employee->number,
                             'date_in' => $date_in,
                             'time_in' => $time_in,
                             'date_out' => $date_out,
@@ -384,7 +399,7 @@ class Attandances extends CI_Controller
                     //Attandance
                     $this->db->select('*');
                     $this->db->from('attandances');
-                    $this->db->where('number', $data['number']);
+                    $this->db->where('number', $employee->number);
                     $this->db->where("date_out = '$date_in'");
                     $attandance_out = $this->db->get()->row();
 
@@ -415,7 +430,7 @@ class Attandances extends CI_Controller
                     if (!empty($attandance_out->number)) {
                         if ((substr(@$time_in, 0, 2) <= "12")) {
                             $data_attandance = array(
-                                'number' => $data['number'],
+                                'number' => $employee->number,
                                 'date_in' => $date_in,
                                 'time_in' => $time_in,
                                 'shift_start' => @$shift->start,
@@ -429,7 +444,7 @@ class Attandances extends CI_Controller
                             echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check In", "theme" => "success"));
                         } else {
                             $data_attandance = array(
-                                'number' => $data['number'],
+                                'number' => $employee->number,
                                 'date_out' => $date_in,
                                 'time_out' => $time_in,
                                 'shift_start' => @$shift->start,
@@ -444,7 +459,7 @@ class Attandances extends CI_Controller
                         }
                     } else {
                         $data_attandance = array(
-                            'number' => $data['number'],
+                            'number' => $employee->number,
                             'date_in' => $date_out,
                             // 'time_in' => @$shift->start,
                             'date_out' => $date_in,

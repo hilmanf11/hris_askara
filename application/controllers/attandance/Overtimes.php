@@ -386,6 +386,16 @@ class Overtimes extends CI_Controller
             $end = $post['end'];
             $type = $post['type'];
             $remarks = $post['remarks'];
+            $meal = $post['meal'] ?? 0;
+            $break_hour = $post['break_hour'];
+
+            $checkAttandance = $this->checkAttandance($trans_date, $employee_id);
+
+            if (!$checkAttandance) {
+                echo json_encode(array("title" => "Attendance Not Found", "message" => "Overtime requests can only be submitted if attendance data is available", "theme" => "error"));
+                die();
+                exit();
+            } 
 
             //Set Duration
             $time_begin = strtotime($trans_date . " " . $start);
@@ -409,7 +419,9 @@ class Overtimes extends CI_Controller
                 "duration_hour" =>  $duration_hour,
                 "duration_convert" =>  $ot_amount['convert'],
                 "amount" =>  $ot_amount['amount'],
-                "remarks" =>  $remarks
+                "remarks" =>  $remarks,
+                "meal" =>  $meal,
+                "break_hour" =>  $break_hour
             );
 
             $overtime = $this->crud->reads('overtimes', [], ["employee_id" => $employee_id, "trans_date" => $trans_date, "type" => $type]);
@@ -446,6 +458,8 @@ class Overtimes extends CI_Controller
             $minutes = $diff - $hour * (60 * 60);
             $duration = $hour . " Hour " . floor($minutes / 60) . " Minutes";
             $duration_hour = $post['duration_hour'];
+            $meal = $post['meal'] ?? 0;
+            $break_hour = $post['break_hour'];
 
             $ot_amount = $this->readOvertimePrice($employee_id, $trans_date, $start, $end, $duration_hour);
 
@@ -460,7 +474,9 @@ class Overtimes extends CI_Controller
                 "amount" =>  $ot_amount['amount'],
                 "remarks" =>  $post['remarks'],
                 "updated_by" => $this->session->username,
-                "updated_date" => date('Y-m-d H:i:s')
+                "updated_date" => date('Y-m-d H:i:s'),
+                "break_hour" =>  $break_hour,
+                "meal" =>  $meal
             );
 
             if ($this->crud->update('overtimes', ["id" => $id], $post_final)) {
@@ -768,4 +784,78 @@ class Overtimes extends CI_Controller
         $html .= '</table></body></html>';
         echo $html;
     }
+
+    public function readAttandance()
+    {
+        if ($this->input->post()) {
+            $transDate = $this->input->post('trans_date');
+            $employee_id = $this->input->post('employee_id');
+
+            $readEmployee = $this->crud->read('employees', ["id" => $employee_id]);
+            if (!empty($readEmployee)) {
+                $attandance = $this->checkAttandance($transDate, $employee_id);
+
+                if ($attandance) {
+                    $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$attandance->time_in)));
+                    $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$attandance->time_in)));
+                    $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
+                    $this->db->from('shift_employees b');
+                    $this->db->join('shifts c', 'c.id = b.shift_id');
+                    $this->db->join('shift_details d', 'd.shift_id = c.id');
+                    $this->db->where('b.employee_id', $employee_id);
+                    if (@$attandance->time_in > "23:00:00") {
+                        $this->db->where("d.start >= '$tolerance_hour_min'");
+                    } elseif (@$attandance->time_in != "") {
+                        $this->db->where("d.start >= '$tolerance_hour_min' and d.start <= '$tolerance_hour_plus'");
+                    }
+                    $shift = $this->db->get()->row();
+
+                    if (@$shift->start == null) {
+                        echo json_encode([
+                            'start' => '00:00:00',
+                            'end' => '00:00:00'
+                        ]);
+                    } else {
+                        $dayType = $this->checkDayType($transDate, $shift->days);
+    
+                        if ($dayType == 'WEEKDAY') {
+                            $start = $shift->end;
+                            $end = $attandance->time_out;
+                        } else {
+                            $start = $attandance->time_in;
+                            $end = $attandance->time_out;
+                        }
+    
+                        echo json_encode([
+                            'start' => $start,
+                            'end' => $end
+                        ]);
+                    }
+
+                } else {
+                    echo json_encode(['message' => 'Overtime requests can only be submitted if attendance data is available']);
+                }
+            }
+        }
+    }
+
+    public static function checkDayType($date, $days) {
+        $dayOfWeek = date('N', strtotime($date));
+        return ($dayOfWeek > $days) ? 'WEEKEND' : 'WEEKDAY';
+    }
+
+    public static function checkAttandance($transDate, $employee_id) {
+        $CI =& get_instance();
+
+        $CI->db->select("a.date_in, a.time_in, a.date_out, a.time_out");
+        $CI->db->from('attandances a');
+        $CI->db->join('employees e', 'a.number = e.number', 'left');
+        $CI->db->where("a.date_in = '$transDate'");
+        $CI->db->where('e.id', $employee_id);
+        $CI->db->order_by('date_in', 'asc');
+        $attandance = $CI->db->get()->row();
+
+        return $attandance;
+    }
+    
 }

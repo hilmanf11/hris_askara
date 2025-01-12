@@ -98,7 +98,8 @@ class Attandances extends CI_Controller
                 <meta http-equiv="expires" content="0">
                 <meta http-equiv="pragma" content="no-cache">
             <head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 10px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>';
-            $this->db->select("a.id, a.number, a.name, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.warning_letter, a.date_sign");
+
+            $this->db->select("a.id, a.number, a.name, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.warning_letter, a.date_sign, c.logo");
             $this->db->from('employees a');
             $this->db->join('divisions c', 'a.division_id = c.id');
             $this->db->join('departements d', 'a.departement_id = d.id');
@@ -142,10 +143,10 @@ class Attandances extends CI_Controller
                         <table style="width: 100%;">
                             <tr>
                                 <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
-                                    <img src="' . $config->favicon . '" width="30">
+                                    <img src="' . $record['logo'] . '" width="30">
                                 </td>
                                 <td style="font-size: 14px; text-align: left; margin:2px;">
-                                    <b>' . $config->name . '</b><br>
+                                    <b>' . $record['division_name'] . '</b><br>
                                     <small>' . $config->description . '</small>
                                 </td>
                             </tr>
@@ -204,7 +205,7 @@ class Attandances extends CI_Controller
                     <tr>
                         <th width="20" rowspan="2">No</th>
                         <th rowspan="2" style="text-align:center;">Date</th>
-                        <th colspan="3" style="text-align:center;">Attandance</th>
+                        <th colspan="5" style="text-align:center;">Attandance</th>
                         <th colspan="3" style="text-align:center;">Overtime</th>
                         <th rowspan="2" style="text-align:center;">Duration</th>
                         <th rowspan="2" style="text-align:center;">Status</th>
@@ -212,6 +213,8 @@ class Attandances extends CI_Controller
                     </tr>
                     <tr>
                         <th style="text-align:center;">Shift</th>
+                        <th style="text-align:center;">Schedule IN</th>
+                        <th style="text-align:center;">Schedule OUT</th>
                         <th style="text-align:center;">IN</th>
                         <th style="text-align:center;">OUT</th>
                         <th style="text-align:center;">Request No</th>
@@ -270,6 +273,7 @@ class Attandances extends CI_Controller
                     $this->db->join('shifts c', 'c.id = b.shift_id');
                     $this->db->join('shift_details d', 'd.shift_id = c.id');
                     $this->db->where('b.employee_id', $record['id']);
+                    $this->db->where('d.working', $working);
                     if (@$attandance->time_in > "23:00:00") {
                         $this->db->where("d.start >= '$tolerance_hour_min'");
                     } elseif (@$attandance->time_in != "") {
@@ -421,6 +425,8 @@ class Attandances extends CI_Controller
                                         <td>' . $no . '</td>
                                         <td>' . date('d F Y', strtotime($working_date)) . '</td>
                                         <td>' . $shiftName . '</td>
+                                        <td>' . @$shift->start . '</td>
+                                        <td>' . @$shift->end . '</td>
                                         <td>' . @$attandance->time_in . '</td>
                                         <td>' . @$attandance->time_out . '</td>
                                         <td>' . @$cash_carry->idm_no . '</td>
@@ -435,6 +441,8 @@ class Attandances extends CI_Controller
                                     <td>' . $no . '</td>
                                     <td>' . date('d F Y', strtotime($working_date)) . '</td>
                                     <td>' . $shiftName . '</td>
+                                    <td>' . @$shift->start . '</td>
+                                    <td>' . @$shift->end . '</td>
                                     <td>' . @$attandance->time_in . '</td>
                                     <td>' . @$attandance->time_out . '</td>
                                     <td>' . @$cash_carry->idm_no . '</td>

@@ -121,6 +121,14 @@
                 <input style="width:30%;" name="end" mask="99:99:99" required id="end" class="easyui-maskedbox">
             </div>
             <div class="fitem">
+                <span style="width:30%; display:inline-block;">Break <small style="color:red;">(hour)</small></span>
+                <input style="width:60%;" name="break_hour" id="break_hour" class="easyui-numberbox">
+            </div>
+            <div class="fitem">
+                <span style="width:30%; display:inline-block;">Meal</span>
+                <input type="checkbox" id="meal" name="meal"  data-options="on:1,off:0" value="1">
+            </div>
+            <div class="fitem">
                 <span style="width:30%; display:inline-block;">Duration <small style="color:red;">(hour)</small></span>
                 <input style="width:60%;" name="duration_hour" required id="duration_hour" class="easyui-numberbox">
             </div>
@@ -164,7 +172,7 @@
         $('#trans_date').datebox('setValue', '<?= date("Y-m-d") ?>');
         $('#start').maskedbox('setValue', '08:00:00');
         $('#end').maskedbox('setValue', '17:00:00');
-        $('#duration_hour').numberbox('setValue', 9);
+        $('#duration_hour').numberbox('setValue', 8);
         $('#employee_id').combogrid('enable');
         $('#request_code').textbox('enable');
     }
@@ -728,9 +736,15 @@
 
             // Calculate the difference in hours
             const diffInMilliseconds = timeEnd - timeBegin;
-            const durationInHours = Math.floor(diffInMilliseconds / (1000 * 60 * 60)); // Convert to hours
+            let durationInHours = Math.floor(diffInMilliseconds / (1000 * 60 * 60)); // Convert to hours
 
             if (!isNaN(durationInHours)) {
+                let break_hour = 0;
+                if (durationInHours >= 5) {
+                    break_hour = 1;
+                }
+                durationInHours = durationInHours - break_hour;
+                $('#break_hour').numberbox('setValue', break_hour);
                 $('#duration_hour').numberbox('setValue', durationInHours);
             }
         }
@@ -743,4 +757,46 @@
     $('#end').maskedbox({
         onChange: calculateDuration
     });
+
+    function fetchAttendance() {
+        let transDate = $('#trans_date').datebox('getValue');
+        let employeeId = $('#employee_id').combogrid('getValue');        
+        
+        if (transDate && employeeId) {
+            $.ajax({
+                url: '<?php echo base_url('attandance/overtimes/readAttandance'); ?>',
+                method: 'POST',
+                data: {
+                    trans_date: transDate,
+                    employee_id: employeeId
+                },
+                dataType: 'json',
+                success: function (response) {
+                    if (response.start && response.end) {
+                        $('#start').maskedbox('setValue', response.start);
+                        $('#end').maskedbox('setValue', response.end);
+                    } else {
+                        toastr.warning(response.message, "Information");
+                    }
+                },
+                error: function (xhr, status, error) {
+                    $('#start').maskedbox('setValue', '00:00:00');
+                    $('#end').maskedbox('setValue', '00:00:00');
+                }
+            });
+        }
+    }
+
+    $('#trans_date').datebox({
+        onChange: function () {
+            fetchAttendance();
+        }
+    });
+
+    $('#employee_id').combogrid({
+        onChange: function () {
+            fetchAttendance();
+        }
+    });
+
 </script>

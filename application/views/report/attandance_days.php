@@ -111,16 +111,22 @@
         var Difference_In_Time = date2.getTime() - date1.getTime();
         var Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
 
-        if(filter_departement != "" || filter_employee != ""){
-            if (Difference_In_Days <= 31) {
-                $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
-                $("#printout").attr('src', '<?= base_url('report/attandance_days/print') ?>' + url);
-            } else {
-                toastr.error("Max Duration Period Date is 31 Days");
-            }
-        }else{
-            toastr.info("It is recommended to immediately click export to csv");
+        if (Difference_In_Days <= 31) {
+            $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
+            $("#printout").attr('src', '<?= base_url('report/attandance_days/print') ?>' + url);
+        } else {
+            toastr.error("Max Duration Period Date is 31 Days");
         }
+        // if(filter_departement != "" || filter_employee != ""){
+        //     if (Difference_In_Days <= 31) {
+        //         $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
+        //         $("#printout").attr('src', '<?= base_url('report/attandance_days/print') ?>' + url);
+        //     } else {
+        //         toastr.error("Max Duration Period Date is 31 Days");
+        //     }
+        // }else{
+        //     toastr.info("It is recommended to immediately click export to csv");
+        // }
     }
 
     function excel() {

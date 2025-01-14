@@ -57,4 +57,22 @@ class Employees extends CI_Controller
             show_error("Cannot Process your request");
         }
     }
+
+    public function readFulls()
+    {
+        $this->db->select('a.name, a.national_id as nik, c.name as division_name, f.name as position_name, a.email, a.mobile_phone');
+        $this->db->from('employees a');
+        $this->db->join('divisions c', 'a.division_id = c.id');
+        $this->db->join('positions f', 'a.position_id = f.id');
+        $this->db->where('a.status', 0);
+        $this->db->order_by('a.name', 'asc');
+        $employees = $this->db->get()->result_array();
+
+        die(json_encode(array(
+            "title" => "Success",
+            "message" => "Data Found",
+            "theme" => "success",
+            "results" => $employees
+        )));
+    }
 }

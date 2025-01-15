@@ -309,7 +309,7 @@ class Attandances extends CI_Controller
                         }
                     } else {
                         //sabtu doang libur
-                        if (date('w', $i) !== '0') {
+                        if (date('w', $i) !== '0' && @$shift->days) {
                             $weekend = "";
                         } else {
                             $weekend = "Weekend";
@@ -360,7 +360,7 @@ class Attandances extends CI_Controller
                             // } else {
                             //     $style = "style='background: #FFADAD;'";
                             // }
-                        } elseif ($weekend == "Weekend") {
+                        } elseif ($weekend == "Weekend" && @$attandance->time_in == null) {
                             $holiday = $weekend;
                             $style = "style='background: #FFBEB0;'";
                         } elseif (@$permit->permit_name != null) {
@@ -400,7 +400,7 @@ class Attandances extends CI_Controller
                             $style_status = "style='color:red; font-weight:bold;'";
                         }
                     } else {
-                        if ($holiday == "Weekend") {
+                        if ($holiday == "Weekend" && @$attandance->time_in == null) {
                             $attandance_status = "";
                             $shiftName = "";
                         } elseif (@$permit->permit_name != null) {

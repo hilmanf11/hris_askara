@@ -367,9 +367,87 @@ class Overtimes extends CI_Controller
             //Get Data Array
             $records = $this->db->get()->result_array();
 
+            $datas = [];
+            $total = 0;
+            foreach ($records as $record) {
+                $this->db->select('
+                    COALESCE(i.weekday, 0) as total_weekday,
+                    COALESCE(i.sunday, 0) as total_sunday,
+                    COALESCE(i.saturday, 0) as total_saturday,
+                    COALESCE(i.holiday, 0) as total_holiday,
+                    COALESCE(i.meal, 0) as total_meal
+                ');
+
+                $this->db->from('setup_cash_carries h');
+                $this->db->join('allowance_cash_carries i', 'h.allowance_id = i.id', 'left');
+                $this->db->where('h.employee_id', $record['employee_id']);
+
+                $setup_cash_carries = $this->db->get()->row();
+
+                $this->db->select('c.days');
+                $this->db->from('shift_employees a');
+                $this->db->join('shifts b', 'a.shift_id = b.id', 'left');
+                $this->db->join('shift_details c', 'b.id = c.shift_id', 'left');
+                $this->db->where('a.employee_id', $record['employee_id']);
+                $shift_employee = $this->db->get()->row();
+
+
+                $this->db->select('trans_date');
+                $this->db->from('calendars');
+                $this->db->where('trans_date', $record['trans_date']);
+                $calendars = $this->db->get()->result_array();
+
+                $start = strtotime($record['trans_date']);
+                $hour = $record['duration_hour'];
+
+                if ($record['meal'] == 0) {
+                    $meal = 0;
+                } else {
+                    $meal = @$record['meal'];
+                }
+
+                if (@$shift_employee->days == "5") {
+                    if (date('w', $start) !== '0' && date('w', $start) !== '6') {
+
+                        //Kalo ada tanggal Merah
+                        if (count($calendars) > 0) {
+                            $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
+                        } else {
+                            $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
+                        }
+                    } else {
+                        if (date('w', $start) === '0') {
+                            $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
+                        } else {
+                            $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
+                        }
+                    }
+                } else {
+                    if (date('w', $start) !== '0') {
+
+                        //Kalo ada tanggal Merah
+                        if (count($calendars) > 0) {
+                            $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
+                        } else {
+                            $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
+                        }
+                    } else {
+                        if (date('w', $start) === '0') {
+                            $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
+                        } else {
+                            $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
+                        }
+                    }
+                }
+
+                $total_duration = $record['break_hour'] + $record['duration_hour'];
+                $amount = ["amount_cash_carry" => $total, "duration_total" => $total_duration];
+                $datas[] = array_merge($record, $amount);
+            }
+
             //Mapping Data
             $result['total'] = $totalRows;
-            $result = array_merge($result, ['rows' => @$records]);
+            $result = array_merge($result, ['rows' => @$datas]);
             echo json_encode($result);
         }
     }

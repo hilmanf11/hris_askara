@@ -11,9 +11,10 @@
             <th rowspan="2" data-options="field:'start',width:80,halign:'center'">Start</th>
             <th rowspan="2" data-options="field:'end',width:80,halign:'center'">End</th>
             <th rowspan="2" data-options="field:'type',width:100,halign:'center'">Type</th>
-            <th rowspan="2" data-options="field:'duration_hour',width:120,halign:'center'">Duration</th>
-            <th rowspan="2" data-options="field:'duration_convert',width:80,halign:'center'">Convert</th>
-            <th rowspan="2" data-options="field:'amount',width:80,halign:'center', formatter:numberformat">Amount</th>
+            <th rowspan="2" data-options="field:'duration_total',width:120,halign:'center'">Total Duration</th>
+            <th rowspan="2" data-options="field:'break_hour',width:80,halign:'center'">Break</th>
+            <th rowspan="2" data-options="field:'duration_hour',width:120,halign:'center'">Actual Duration</th>
+            <th rowspan="2" data-options="field:'amount_cash_carry',width:100,halign:'center', formatter:numberformat">Amount</th>
             <th rowspan="2" data-options="field:'remarks',width:200,halign:'center'">Remarks</th>
             <th colspan="3" data-options="field:'',width:100,halign:'center'"> Approval</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
@@ -725,7 +726,7 @@
         return "<b>" + formatter.format(value) + "</b>";
     }
 
-    function calculateDuration() {
+    function calculateDuration(change_break=false) {
         const transDate = $('#trans_date').datebox('getValue');
         const startTime = $('#start').val();
         const endTime = $('#end').val();
@@ -740,11 +741,15 @@
 
             if (!isNaN(durationInHours)) {
                 let break_hour = 0;
-                if (durationInHours >= 5) {
-                    break_hour = 1;
+                if (change_break) {
+                    break_hour = $('#break_hour').numberbox('getValue');
+                } else {
+                    if (durationInHours >= 5) {
+                        break_hour = 1;
+                    }
+                    $('#break_hour').numberbox('setValue', break_hour);
                 }
                 durationInHours = durationInHours - break_hour;
-                $('#break_hour').numberbox('setValue', break_hour);
                 $('#duration_hour').numberbox('setValue', durationInHours);
             }
         }
@@ -752,10 +757,20 @@
 
     // Attach event listeners to start and end inputs
     $('#start').maskedbox({
-        onChange: calculateDuration
+        onChange: function () {
+            calculateDuration(change_break=false);
+        }
     });
     $('#end').maskedbox({
-        onChange: calculateDuration
+        onChange: function () {
+            calculateDuration(change_break=false);
+        }
+    });
+
+    $('#break_hour').numberbox({
+        onChange: function () {
+            calculateDuration(change_break=true);
+        }
     });
 
     function fetchAttendance() {

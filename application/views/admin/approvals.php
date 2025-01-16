@@ -4,8 +4,8 @@
         <tr>
             <th rowspan="2" field="ck" checkbox="true"></th>
             <th rowspan="2" data-options="field:'table_name',width:200,halign:'center'">Module</th>
-            <th rowspan="2" data-options="field:'division_name',width:150,halign:'center'">Division</th>
-            <th rowspan="2" data-options="field:'departement_name',width:150,halign:'center'">Departement</th>
+            <!-- <th rowspan="2" data-options="field:'division_name',width:150,halign:'center'">Division</th> -->
+            <th rowspan="2" data-options="field:'employee_name',width:150,halign:'center'"> Employee Name</th>
             <th rowspan="2" data-options="field:'user_approval_name_1',width:200,halign:'center'">Approval 1</th>
             <th rowspan="2" data-options="field:'user_approval_name_2',width:200,halign:'center'">Approval 2</th>
             <th rowspan="2" data-options="field:'user_approval_name_3',width:200,halign:'center'">Approval 3</th>
@@ -34,13 +34,14 @@
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
             <legend><b>Form Data</b></legend>
             <div class="fitem">
-                <span style="width:35%; display:inline-block;">Division</span>
-                <input style="width:60%;" name="division_id" id="division_id" required="" class="easyui-combobox">
+                <span style="width:35%; display:inline-block;">Employee</span>
+                <input style="width:60%;" name="employee_id" id="employee_id" required="" class="easyui-combogrid">
             </div>
+            <!-- 
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Departement</span>
                 <input style="width:60%;" name="departement_id" id="departement_id" required="" class="easyui-combobox">
-            </div>
+            </div> -->
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Module</span>
                 <select style="width:60%;" name="table_name" id="table_name" required="true" data-options="prompt:'Select Module'" class="easyui-combobox">
@@ -185,7 +186,7 @@
                                 toastr.error(result.message, result.title);
                             }
 
-                            //$('#dlg_insert').dialog('close');
+                            $('#dlg_insert').dialog('close');
                             $('#dg').datagrid('reload');
                         }
                     });
@@ -326,19 +327,47 @@
         });
 
         //Get Division
-        $('#division_id').combobox({
-            url: '<?php echo base_url('employee/divisions/reads'); ?>',
-            valueField: 'id',
+        // $('#division_id').combobox({
+        //     url: '<?php echo base_url('employee/divisions/reads'); ?>',
+        //     valueField: 'id',
+        //     textField: 'name',
+        //     prompt: 'Choose Division',
+        //     onSelect: function(division) {
+        //         $('#departement_id').combobox({
+        //             url: '<?php echo base_url('employee/departements/reads'); ?>?division_id=' + division.id,
+        //             valueField: 'id',
+        //             textField: 'name',
+        //             prompt: 'Choose Departement'
+        //         });
+        //     }
+        // });
+
+        //Get Employee
+        $('#employee_id').combogrid({
+            url: '<?= base_url('employee/employees/reads') ?>',
+            panelWidth: 450,
+            idField: 'id',
             textField: 'name',
-            prompt: 'Choose Division',
-            onSelect: function(division) {
-                $('#departement_id').combobox({
-                    url: '<?php echo base_url('employee/departements/reads'); ?>?division_id=' + division.id,
-                    valueField: 'id',
-                    textField: 'name',
-                    prompt: 'Choose Departement'
-                });
-            }
+            mode: 'remote',
+            fitColumns: true,
+            prompt: 'Choose All',
+            icons: [{
+                iconCls: 'icon-clear',
+                handler: function(e) {
+                    $(e.data.target).combogrid('clear').combogrid('textbox').focus();
+                }
+            }],
+            columns: [
+                [{
+                    field: 'number',
+                    title: 'Employee ID',
+                    width: 120
+                }, {
+                    field: 'name',
+                    title: 'Employee Name',
+                    width: 200
+                }]
+            ],
         });
     });
 </script>

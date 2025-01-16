@@ -52,6 +52,7 @@ class Approvals extends CI_Controller
                 d.name as user_approval_name_3,
                 e.name as user_approval_name_4,
                 f.name as user_approval_name_5,
+                i.name as employee_name
             ');
             $this->db->from('approvals a');
             $this->db->join('users b', 'a.user_approval_1 = b.username', 'left');
@@ -61,6 +62,7 @@ class Approvals extends CI_Controller
             $this->db->join('users f', 'a.user_approval_5 = f.username', 'left');
             $this->db->join('divisions g', 'a.division_id = g.id', 'left');
             $this->db->join('departements h', 'a.departement_id = h.id', 'left');
+            $this->db->join('employees i', 'a.employee_id = i.id', 'left');
             $this->db->where('a.deleted', 0);
             $this->db->where('a.status', 0);
             $this->db->order_by('table_name', 'asc');
@@ -100,7 +102,7 @@ class Approvals extends CI_Controller
         if ($this->input->post()) {
             if ($this->form_validation->run() == TRUE) {
                 $post = $this->input->post();
-                $approvals = $this->crud->read('approvals', [], ["table_name" => $post['table_name'], "departement_id" => $post['departement_id']]);
+                $approvals = $this->crud->read('approvals', [], ["table_name" => $post['table_name'], "employee_id" => $post['employee_id']]);
                 if (!$approvals) {
                     $send = $this->crud->create('approvals', $post);
                     echo $send;

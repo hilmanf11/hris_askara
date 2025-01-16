@@ -217,7 +217,9 @@ class Crud extends CI_Model
         $fields = $query->result_array();
 
         $user = $this->read('users', [], ["username" => $this->session->username]);
-        $approval = $this->read('approvals', [], ["table_name" => $table, "departement_id" => @$user->departement_id]);
+        $employee = $this->read($table, [], ["id" => $table_id]);
+
+        $approval = $this->read('approvals', [], ["table_name" => $table, "employee_id" => @$employee->employee_id]);
 
         $fieldExists = false;
         foreach ($fields as $field) {

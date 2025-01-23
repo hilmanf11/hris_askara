@@ -35,7 +35,7 @@ class Notifications extends CI_Controller
                 $tablename = $this->input->post('module');
                 $data = $this->mobile->read($tablename, [], ["id" => $id]);
                 $user = $this->mobile->read('users', [], ["username" => $data->created_by]);
-                $approval = $this->mobile->read('approvals', [], ["table_name" => $tablename, "departement_id" => @$user->departement_id]);
+                $approval = $this->mobile->read('approvals', [], ["table_name" => $tablename, "employee_id" => @$data->employee_id]);
 
                 if ($data->approved == 1) {
                     $users_id = @$approval->user_approval_2;
@@ -109,7 +109,7 @@ class Notifications extends CI_Controller
                 foreach ($datas as $data) {
                     $id = $data->id;
                     $user = $this->mobile->read('users', [], ["username" => $data->created_by]);
-                    $approval = $this->mobile->read('approvals', [], ["table_name" => $table_name, "departement_id" => @$user->departement_id]);
+                    $approval = $this->mobile->read('approvals', [], ["table_name" => $table_name, "employee_id" => @$data->employee_id]);
                     
                     if ($data->approved == 1) {
                         $users_id = @$approval->user_approval_2;
@@ -215,7 +215,7 @@ class Notifications extends CI_Controller
                 $this->db->from('permits a');
                 $this->db->join('users b', 'a.approved_by = b.username');
                 $this->db->join('users c', 'a.approved_to = c.username');
-                $this->db->join('employees d', 'b.number = d.number');
+                $this->db->join('employees d', 'b.number = d.number', 'left');
                 $this->db->where('a.approved_to', $user->username);
                 $this->db->group_by('a.created_by');
                 $permits = $this->db->get()->result_object();
@@ -286,6 +286,9 @@ class Notifications extends CI_Controller
 
     public function approvalDetails($approved_to, $created_by, $module)
     {
+        $approved_to = urldecode($approved_to);
+        $created_by = urldecode($created_by);
+
         switch ($module) {
             case "cash_carries":
                 $this->db->select('a.*, 

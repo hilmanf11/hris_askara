@@ -97,7 +97,7 @@ class Payrolls extends CI_Controller
             $this->db->from('payrolls a');
             $this->db->join('employees b', 'a.employee_id = b.id');
             $this->db->join('sources d', 'b.source_id = d.id', 'left');
-            $this->db->join('privilege_groups c', "(b.group_id = c.group_id or b.group_id is null or b.group_id = '') and c.username = '$username' and c.status = '1'");
+            $this->db->join('privilege_groups c', "(b.group_id = c.group_id or b.group_id is null or b.group_id = '') and c.username = '$username' and c.status = '1'", 'left');
             $this->db->join('resignations e', 'e.employee_id = b.id', 'left');
             $this->db->join('account_coa f', 'b.division_id = f.division_id and b.departement_id = f.departement_id and b.position_id = f.position_id and b.contract_id = f.contract_id', 'left');
             $this->db->join('accounts g', "f.account_id = g.id and g.category = 'payroll'", 'left');
@@ -110,12 +110,30 @@ class Payrolls extends CI_Controller
             }elseif($filter_status == "1"){
                 $this->db->where('e.employee_id !=', null);
             }
-            $this->db->like('b.division_id', $filter_division);
-            $this->db->like('b.departement_id', $filter_departement);
-            $this->db->like('b.departement_sub_id', $filter_departement_sub);
-            $this->db->like('b.id', $filter_employee);
-            $this->db->like('b.contract_id', $filter_employee_type);
-            $this->db->like('c.group_id', $filter_group);
+
+            if($filter_division != ""){
+               $this->db->like('b.division_id', $filter_division);
+            }
+
+            if($filter_departement != ""){
+                $this->db->like('b.departement_id', $filter_departement);
+            }
+
+            if($filter_departement_sub != ""){
+                $this->db->like('b.departement_sub_id', $filter_departement_sub);
+            }
+
+            if($filter_employee != ""){
+                $this->db->like('b.id', $filter_employee);
+            }
+           
+            if($filter_employee_type != ""){
+                $this->db->like('b.contract_id', $filter_employee_type);
+            }
+            if($filter_group != ""){
+                $this->db->like('c.group_id', $filter_group);
+            }
+            
             $this->db->order_by('a.name', 'ASC');
             $this->db->group_by('a.employee_id');
             //Total Data
@@ -224,6 +242,43 @@ class Payrolls extends CI_Controller
             $filter_employee = $this->input->get('filter_employee');
             $filter_employee_type = $this->input->get('filter_employee_type');
             $filter_group = $this->input->get('filter_group');
+
+            if($filter_division != ""){
+                $divisions = " AND a.division_id LIKE '%$filter_division%' ";
+            } else {
+                $divisions = "";
+            }
+
+            if($filter_departement != ""){
+                $department = " AND a.departement_id LIKE '%$filter_departement%' ";
+            } else {
+                $department = "";
+            }
+
+            if ($filter_departement_sub != "") {
+                $department_sub = " AND a.departement_sub_id LIKE '%$filter_departement_sub%' ";
+            } else {
+                $department_sub = "";
+            }
+
+            if($filter_employee_type != ""){
+                $employee_type = " AND a.contract_id LIKE '%$filter_employee_type%' ";
+            } else {
+                $employee_type = "";
+            }
+
+            if($filter_employee != ""){
+                $employee = " AND a.id LIKE '%$filter_employee%' ";
+            } else {
+                $employee = "";
+            }
+
+            if($filter_group != ""){
+                $f_group = " AND a.group_id LIKE '%$filter_group%' ";
+            } else {
+                $f_group = "";
+            }
+
             $username = $this->session->username;
 
             $query = $this->db->query("SELECT a.*, 
@@ -257,14 +312,15 @@ class Payrolls extends CI_Controller
                 LEFT JOIN shift_details l ON n.id = l.shift_id
                 JOIN setup_salaries p ON p.employee_id = a.id
                 LEFT JOIN maritals q ON a.marital_id = q.id
-                JOIN privilege_groups m ON (i.id = m.group_id or m.group_id is null or m.group_id = '') and m.username = '$username' and m.status = '1'
+                LEFT JOIN privilege_groups m ON (i.id = m.group_id or m.group_id is null or m.group_id = '') 
+                and m.username = '$username' and m.status = '1'
                 WHERE a.deleted = 0 and a.status = 0 and a.date_sign <= '$filter_to'
-                AND a.division_id LIKE '%$filter_division%'
-                AND a.departement_id LIKE '%$filter_departement%'
-                AND a.departement_sub_id LIKE '%$filter_departement_sub%'
-                AND a.contract_id LIKE '%$filter_employee_type%'
-                AND a.id LIKE '%$filter_employee%'
-                AND a.group_id LIKE '%$filter_group%'
+                $divisions
+                $department
+                $department_sub
+                $employee_type
+                $employee
+                $f_group
                 GROUP BY a.id
                 ORDER BY b.name ASC, c.name ASC, d.name ASC, a.number, a.name ASC");
             $records = $query->result_array();
@@ -1082,7 +1138,7 @@ class Payrolls extends CI_Controller
         $query = $this->db->query("SELECT a.*, b.national_id, d.name as source_name, e.employee_id as status_resign, g.number as account_no FROM payrolls a
             JOIN employees b on a.employee_id = b.id
             LEFT JOIN sources d on b.source_id = d.id
-            JOIN privilege_groups c ON b.group_id = c.group_id and c.username = '$username' and c.status = '1'
+            LEFT JOIN privilege_groups c ON b.group_id = c.group_id and c.username = '$username' and c.status = '1'
             LEFT JOIN resignations e ON b.id = e.employee_id
             LEFT JOIN account_coa f ON b.division_id = f.division_id and b.departement_id = f.departement_id and b.position_id = f.position_id and b.contract_id = f.contract_id
             LEFT JOIN accounts g ON f.account_id = g.id and g.category = 'payroll'

@@ -169,7 +169,7 @@
     <?= $button ?>
 </div>
 
-<div id="dlg_generate" class="easyui-dialog" title="Generating Data" data-options="closed: true,modal:true,closable: false" style="width: 500px; padding:10px; top: 20px;">
+<div id="dlg_generate" class="easyui-dialog" title="Generating Data" data-options="closed: true,modal:true" style="width: 500px; padding:10px; top: 20px;">
     <div class="alert alert-warning" role="alert">
         Please wait until the generate process is complete
     </div>

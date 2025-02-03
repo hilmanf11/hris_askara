@@ -389,7 +389,7 @@ class Attandance_days extends CI_Controller
             $filter_status = $this->input->get('filter_status');
             $filter_status_employee = $this->input->get('filter_status_employee');
 
-            $this->db->select('b.id as employee_id, b.number as employee_number, b.name as employee_name, c.name as division_name, 
+            $this->db->select('b.id as employee_id, b.position_id, b.number as employee_number, b.name as employee_name, c.name as division_name, 
             d.name as departement_name, e.name as departement_sub_name, g.name as shift_name, h.days, b.date_sign');
             $this->db->from('employees b');
             $this->db->join('divisions c', 'b.division_id = c.id');
@@ -472,6 +472,8 @@ class Attandance_days extends CI_Controller
                 $arrHoliday[] = ["trans_date" => $holiday['trans_date'], "description" => $holiday['description']];
             }
 
+            $arr_staff_up = ["20221213000002", "20241213000001", "20241213000002", "20241213000003", "20241213000004", "20241213000005"];
+            //BOARD OF DIRECTOR, DIRECTOR, MANAGER, ASST. MANAGER, LEADER, STAFF
             foreach ($records as $data) {
                 //Attandance and Overtime
                 $this->db->select("date_in, time_in, date_out, time_out");
@@ -724,6 +726,8 @@ class Attandance_days extends CI_Controller
 
                     if ($status == "WEEKEND") {
                         $style = "style='color:red; font-weight:bold;'";
+                        $day = date('l', strtotime($working_date));
+                        $status = strtoupper($day);
                     } elseif ($status == "PERMIT") {
                         $style = "style='color:blue; font-weight:bold;'";
                     } elseif ($status == "CHANGE DAY START" || $status == "CHANGE DAY END") {

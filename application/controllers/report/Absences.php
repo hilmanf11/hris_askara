@@ -54,8 +54,12 @@ class Absences extends CI_Controller
             $this->db->select("a.id as division_id, a.name as division_name, b.id as departement_id, b.name as departement_name");
             $this->db->from('divisions a');
             $this->db->join('departements b', 'a.id = b.division_id');
-            $this->db->where('a.id', $filter_division);
-            $this->db->where('b.id', $filter_departement);
+            if ($filter_division != "") {
+                $this->db->where('a.id', $filter_division);
+            }
+            if ($filter_departement != "") {
+                $this->db->where('b.id', $filter_departement);
+            }
             $this->db->group_by('b.id');
             $this->db->order_by('b.name', 'asc');
             $records = $this->db->get()->result_array();

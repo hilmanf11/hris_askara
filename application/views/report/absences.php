@@ -38,7 +38,7 @@
 </div>
 
 <div class="easyui-panel" title="Print Preview" style="width:100%;padding:10px;" data-options="fit:true">
-    <iframe id="printout" src="" style="width: 100%; height:95%; border: 0;"></iframe>
+    <iframe id="printout" src="" style="width: 100%; height:90vh; border: 0;"></iframe>
 </div>
 <script>
     function reload() {
@@ -64,12 +64,12 @@
             '&filter_to=' + filter_to +
             '&filter_employee=' + filter_employee;
 
-        if(filter_departement != "" || filter_departement_sub != ""){
+        // if(filter_departement != "" || filter_departement_sub != ""){
             $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
             $("#printout").attr('src', '<?= base_url('report/absences/print') ?>' + url);
-        } else {
-            toastr.error("Please Choose Departement");
-        }
+        // } else {
+        //     toastr.error("Please Choose Departement");
+        // }
     }
 
     function excel() {

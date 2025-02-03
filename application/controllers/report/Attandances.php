@@ -99,7 +99,7 @@ class Attandances extends CI_Controller
                 <meta http-equiv="pragma" content="no-cache">
             <head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 10px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>';
 
-            $this->db->select("a.id, a.number, a.name, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.warning_letter, a.date_sign, c.logo");
+            $this->db->select("a.id, a.number, a.position_id, a.name, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.warning_letter, a.date_sign, c.logo");
             $this->db->from('employees a');
             $this->db->join('divisions c', 'a.division_id = c.id');
             $this->db->join('departements d', 'a.departement_id = d.id');
@@ -126,6 +126,9 @@ class Attandances extends CI_Controller
 
             $start = strtotime($filter_from);
             $finish = strtotime($filter_to);
+
+            $arr_staff_up = ["20221213000002", "20241213000001", "20241213000002", "20241213000003", "20241213000004", "20241213000005"];
+            //BOARD OF DIRECTOR, DIRECTOR, MANAGER, ASST. MANAGER, LEADER, STAFF
 
             foreach ($records as $record) {
                 if (!empty($record['warning_letter'])) {
@@ -274,11 +277,11 @@ class Attandances extends CI_Controller
                     $this->db->join('shift_details d', 'd.shift_id = c.id');
                     $this->db->where('b.employee_id', $record['id']);
                     $this->db->where('d.working', $working);
-                    if (@$attandance->time_in > "23:00:00") {
-                        $this->db->where("d.start >= '$tolerance_hour_min'");
-                    } elseif (@$attandance->time_in != "") {
-                        $this->db->where("d.start >= '$tolerance_hour_min' and d.start <= '$tolerance_hour_plus'");
-                    }
+                    // if (@$attandance->time_in > "23:00:00") {
+                    //     $this->db->where("d.start >= '$tolerance_hour_min'");
+                    // } elseif (@$attandance->time_in != "") {
+                    //     $this->db->where("d.start >= '$tolerance_hour_min' and d.start <= '$tolerance_hour_plus'");
+                    // }
                     $shift = $this->db->get()->row();
 
                     $this->db->select("*");
@@ -316,8 +319,17 @@ class Attandances extends CI_Controller
                         }
                     }
 
+                    $this->db->select("d.days");
+                    $this->db->from('shift_employees b');
+                    $this->db->join('shifts c', 'c.id = b.shift_id');
+                    $this->db->join('shift_details d', 'd.shift_id = c.id');
+                    $this->db->where('b.employee_id', $record['id']);
+                    $shift_employee = $this->db->get()->row();
+
                     if (@$shift->start >= @$attandance->time_in) {
                         $status_masuk = "ON TIME";
+                    } elseif (@$shift->start == null && @$attandance->time_in != null && @$shift_employee->days == "5") {
+                        $status_masuk = "OVERTIME";
                     } elseif (@$shift->start == null) {
                         $status_masuk = "UN SETTING";
                     } elseif (@$shift->start <= @$attandance->time_in) {
@@ -418,6 +430,11 @@ class Attandances extends CI_Controller
                         } else {
                             $style_status = "style='color:orange; font-weight:bold;'";
                         }
+                    }
+
+                    if ($holiday == "Weekend") {
+                        $day = date('l', strtotime($working_date));
+                        $holiday = $day;
                     }
 
                     if ($attandance_status == @strtoupper($filter_permit_type)) {

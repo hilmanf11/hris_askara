@@ -403,7 +403,7 @@ class Overtimes extends CI_Controller
                 if ($record['meal'] == 0) {
                     $meal = 0;
                 } else {
-                    $meal = @$record['meal'];
+                    $meal = @$setup_cash_carries->total_meal;
                 }
 
                 if (@$shift_employee->days == "5") {

@@ -28,6 +28,7 @@
             <th rowspan="2" data-options="field:'working_day',width:80,align:'center'">Working<br>Calendar</th>
             <th rowspan="2" data-options="field:'salary',width:100,align:'center', formatter:numberformat">Salary</th>
             <th colspan="<?= (count($allowance)) ?>">Allowence</th>
+            <th colspan="4">Overtime</th>
             <th colspan="<?= count($bpjs) ?>">BPJS Company</th>
             <th rowspan="2" data-options="field:'bpjs_company_total',width:100,align:'center', formatter:numberformat">Total BPJS<br>Company</th>
             <th rowspan="2" data-options="field:'correction_plus',width:100,align:'center', formatter:numberformat">Correction<br>Plus</th>
@@ -63,6 +64,12 @@
                 $allowance_field = "field:'" . strtolower($allowance_data->number) . "',width:100,align:'center'";
                 echo '<th data-options="' . $allowance_field . ', formatter:numberformat">' . $allowance_data->number . '</th>';
             }
+            ?>
+            <th data-options="field:'overtime_amount_weekday',width:100,align:'center', formatter:numberformat">HKW</th>
+            <th data-options="field:'overtime_amount_saturday',width:100,align:'center', formatter:numberformat">Saturday</th>
+            <th data-options="field:'overtime_amount_sunday',width:100,align:'center', formatter:numberformat">Sunday</th>
+            <th data-options="field:'overtime_amount_holiday',width:100,align:'center', formatter:numberformat">National <br> Holiday</th>
+            <?php            
 
             foreach ($bpjs as $bpjs_data) {
                 $bpjs_field = "field:'" . strtolower($bpjs_data->number) . "_company',width:100,align:'center'";

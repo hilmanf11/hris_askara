@@ -181,6 +181,8 @@ class Payrolls extends CI_Controller
                     "overtime_holiday" => $record['overtime_holiday'],
                     "overtime_convert_holiday" => $record['overtime_convert_holiday'],
                     "overtime_amount_holiday" => $record['overtime_amount_holiday'],
+                    "overtime_amount_saturday" => $record['overtime_amount_saturday'],
+                    "overtime_amount_sunday" => $record['overtime_amount_sunday'],
                     "overtime_correction" => $record['overtime_correction'],
                     "overtime_convert_correction" => $record['overtime_convert_correction'],
                     "overtime_amount_correction" => $record['overtime_amount_correction'],
@@ -527,6 +529,114 @@ class Payrolls extends CI_Controller
             $this->db->where('loan_type', 'OTHER');
             $loan_other = $this->db->get()->row();
             $loan_other_amount = empty($loan_other->amount) ? 0 : $loan_other->amount;
+
+            //Overtime
+            $this->db->select("*");
+            $this->db->from('overtimes');
+            $this->db->where('employee_id', $record['id']);
+            $this->db->where('trans_date >=', $filter_from);
+            $this->db->where('trans_date <=', $filter_to);
+            $overtimes = $this->db->get()->result_array();
+
+            $this->db->select('
+                COALESCE(i.weekday, 0) as total_weekday,
+                COALESCE(i.sunday, 0) as total_sunday,
+                COALESCE(i.saturday, 0) as total_saturday,
+                COALESCE(i.holiday, 0) as total_holiday,
+                COALESCE(i.meal, 0) as total_meal
+            ');
+
+            $this->db->from('setup_cash_carries h');
+            $this->db->join('allowance_cash_carries i', 'h.allowance_id = i.id', 'left');
+            $this->db->where('h.employee_id', $record['id']);
+
+            $setup_cash_carries = $this->db->get()->row();
+
+            $this->db->select('c.days');
+            $this->db->from('shift_employees a');
+            $this->db->join('shifts b', 'a.shift_id = b.id', 'left');
+            $this->db->join('shift_details c', 'b.id = c.shift_id', 'left');
+            $this->db->where('a.employee_id', $record['id']);
+            $shift_employee = $this->db->get()->row();
+
+            $overtime_weekday = 0;
+            $overtime_amount_weekday = 0;
+            $overtime_holiday = 0;
+            $overtime_amount_holiday = 0;
+            $overtime_saturday = 0;
+            $overtime_amount_saturday = 0;
+            $overtime_sunday = 0;
+            $overtime_amount_sunday = 0;
+            foreach ($overtimes as $overtime) {
+
+                $this->db->select('trans_date');
+                $this->db->from('calendars');
+                $this->db->where('trans_date', $overtime['trans_date']);
+                $calendars = $this->db->get()->result_array();
+
+                $start = strtotime($overtime['trans_date']);
+                $hour = $overtime['duration_hour'];
+
+                if ($overtime['meal'] == 0) {
+                    $meal = 0;
+                } else {
+                    $meal = @$setup_cash_carries->total_meal;
+                }
+
+                if (@$shift_employee->days == "5") {
+                    if (date('w', $start) !== '0' && date('w', $start) !== '6') {
+
+                        //Kalo ada tanggal Merah
+                        if (count($calendars) > 0) {
+                            $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
+                            $overtime_holiday += $hour;
+                            $overtime_amount_holiday += $total;
+                        } else {
+                            $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
+                            $overtime_weekday += $hour;
+                            $overtime_amount_weekday += $total;
+                        }
+                    } else {
+                        if (date('w', $start) === '0') {
+                            $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
+                            $overtime_sunday += $hour;
+                            $overtime_amount_sunday += $total;
+                        } else {
+                            $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
+                            $overtime_saturday += $hour;
+                            $overtime_amount_saturday += $total;
+                        }
+                    }
+                } else {
+                    if (date('w', $start) !== '0') {
+
+                        //Kalo ada tanggal Merah
+                        if (count($calendars) > 0) {
+                            $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
+                            $overtime_holiday += $hour;
+                            $overtime_amount_holiday += $total;
+                        } else {
+                            $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
+                            $overtime_weekday += $hour;
+                            $overtime_amount_weekday += $total;
+                        }
+                    } else {
+                        if (date('w', $start) === '0') {
+                            $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
+                            $overtime_sunday += $hour;
+                            $overtime_amount_sunday += $total;
+                        } else {
+                            $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
+                            $overtime_saturday += $hour;
+                            $overtime_amount_saturday += $total;
+                        }
+                    }
+                }
+            }
+
+            $total_overtime = $overtime_weekday + $overtime_sunday + $overtime_saturday + $overtime_holiday;
+            $total_overtime_amount = $overtime_amount_weekday + $overtime_amount_sunday + $overtime_amount_saturday + $overtime_amount_holiday;
+            // end overtime
 
             //Attandances
             $tomorow = date('Y-m-d', strtotime("+1 day", strtotime($filter_from)));
@@ -948,7 +1058,7 @@ class Payrolls extends CI_Controller
             }
 
             //Total keseluruhan
-            $netincome = ($income - $ter - $arr_deduction_amount_total - $arr_bpjs_emp_amount_total - @$loan_cooperative->amount - @$loan_bank->amount - @$loan_other->amount);
+            $netincome = ($income + $total_overtime - $ter - $arr_deduction_amount_total - $arr_bpjs_emp_amount_total - @$loan_cooperative->amount - @$loan_bank->amount - @$loan_other->amount);
             $roundup = 500; // digit pembulatan, dalam hal ini ratusan
             $roundupIncome = ceil($netincome / $roundup) * $roundup;
             //-------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -980,18 +1090,22 @@ class Payrolls extends CI_Controller
                 "bpjs_company" => json_encode($arr_bpjs_com_combine),
                 "bpjs_company_total" => $arr_bpjs_com_amount_total,
                 "correction_plus" => @$correction_plus_amount,
-                "overtime_weekday" => 0,
+                "overtime_weekday" => @$overtime_weekday,
                 "overtime_convert_weekday" => 0,
-                "overtime_amount_weekday" => 0,
-                "overtime_holiday" => 0,
+                "overtime_amount_weekday" => @$overtime_amount_weekday,
+                "overtime_holiday" => @$overtime_holiday,
                 "overtime_convert_holiday" => 0,
-                "overtime_amount_holiday" => 0,
+                "overtime_amount_holiday" => @$overtime_amount_holiday,
+                "overtime_sunday" => @$overtime_sunday,
+                "overtime_amount_sunday" => @$overtime_amount_sunday,
+                "overtime_saturday" => @$overtime_saturday,
+                "overtime_amount_saturday" => @$overtime_amount_saturday,
                 "overtime_correction" => 0,
                 "overtime_convert_correction" => 0,
                 "overtime_amount_correction" => 0,
-                "total_overtime" => 0,
+                "total_overtime" => @$total_overtime,
                 "total_overtime_convert" => 0,
-                "total_overtime_amount" => 0,
+                "total_overtime_amount" => @$total_overtime_amount,
                 "total_all_allowance" => $total_all_allowance,
                 "deduction_number" => json_encode($arr_permit_type_combine_b),
                 "deduction_amount" => json_encode($arr_permit_type_combine),

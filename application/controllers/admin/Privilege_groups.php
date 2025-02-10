@@ -31,7 +31,7 @@ class Privilege_groups extends CI_Controller
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
         $username = $this->session->username;
-        $send = $this->crud->query("SELECT b.id, b.name FROM privilege_groups a JOIN groups b ON a.group_id = b.id WHERE a.username = '$username' and a.status = '1'");
+        $send = $this->crud->query("SELECT b.id, b.name FROM privilege_groups a JOIN groups b ON a.group_id = b.id WHERE a.username = '$username' and a.status = '0'");
         echo json_encode($send);
     }
 

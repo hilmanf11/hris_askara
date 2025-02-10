@@ -302,6 +302,12 @@ class Attandances extends CI_Controller
                     $this->db->where('trans_date', $working_date);
                     $cash_carry = $this->db->get()->row();
 
+                    $this->db->select("*");
+                    $this->db->from('overtimes');
+                    $this->db->where('employee_id', $record['id']);
+                    $this->db->where('trans_date', $working_date);
+                    $overtime = $this->db->get()->row();
+
                     //Jika hari kerja nya adalah 5 hari
                     if (@$shift->days == "5") {
                         //sabtu dan minggu libur
@@ -343,6 +349,9 @@ class Attandances extends CI_Controller
                         //cek apakah harinya minggu jika iya maka default Weekend
                         if (@$cash_carry->start != null) {
                             $holiday = "Cash Carry " . $cash_carry->request_code;
+                            $style = "style='background: #ffe9ad;'";
+                        } elseif (@$overtime->start != null) {
+                            $holiday = "Overtime  " . $overtime->request_code;
                             $style = "style='background: #ffe9ad;'";
                         } elseif (@$change_day->start != null) {
                             $holiday = "Change Days to " . $change_day->end;
@@ -446,10 +455,10 @@ class Attandances extends CI_Controller
                                         <td>' . @$shift->end . '</td>
                                         <td>' . @$attandance->time_in . '</td>
                                         <td>' . @$attandance->time_out . '</td>
-                                        <td>' . @$cash_carry->idm_no . '</td>
-                                        <td>' . @$cash_carry->start . '</td>
-                                        <td>' . @$cash_carry->end . '</td>
-                                        <td></td>
+                                        <td>' . @$overtime->request_code . '</td>
+                                        <td>' . @$overtime->start . '</td>
+                                        <td>' . @$overtime->end . '</td>
+                                        <td>' . @$overtime->duration_hour . '</td>
                                         <td ' . $style_status . '>' . $attandance_status . '</td>
                                         <td>' . $holiday . '</td>
                                     </tr>';
@@ -462,10 +471,10 @@ class Attandances extends CI_Controller
                                     <td>' . @$shift->end . '</td>
                                     <td>' . @$attandance->time_in . '</td>
                                     <td>' . @$attandance->time_out . '</td>
-                                    <td>' . @$cash_carry->idm_no . '</td>
-                                    <td>' . @$cash_carry->start . '</td>
-                                    <td>' . @$cash_carry->end . '</td>
-                                    <td></td>
+                                    <td>' . @$overtime->request_code . '</td>
+                                    <td>' . @$overtime->start . '</td>
+                                    <td>' . @$overtime->end . '</td>
+                                    <td>' . @$overtime->duration_hour . '</td>
                                     <td ' . $style_status . '>' . $attandance_status . '</td>
                                     <td>' . $holiday . '</td>
                                 </tr>';

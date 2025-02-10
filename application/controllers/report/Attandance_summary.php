@@ -328,8 +328,7 @@ class Attandance_summary extends CI_Controller
                     //Permit
                     $q_permit = $this->db->query("SELECT b.name, COUNT(a.duration) as permit
                             FROM permit_types b
-                            LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$data[employee_id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to'
-                            WHERE (a.approved_to = '' or a.approved_to is null)
+                            LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$data[employee_id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and (a.approved_to = '' or a.approved_to is null)
                             GROUP BY b.id ORDER BY b.name asc");
                     $r_permit = $q_permit->result_array();
 

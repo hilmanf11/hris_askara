@@ -615,18 +615,18 @@ class Overtimes extends CI_Controller
         $data = new Spreadsheet_Excel_Reader($file, false);
         $total_row = $data->rowcount($sheet_index = 0);
 
-        $date = date("ymd");
-        $this->db->select('max(SUBSTRING(request_code, -4)) as code');
-        $this->db->from('overtimes');
-        $this->db->where('deleted', 0);
-        $this->db->where('SUBSTRING(request_code, 4, 6)=', $date);
-        $records = $this->db->get()->row();
+        // $date = date("ymd");
+        // $this->db->select('max(SUBSTRING(request_code, -4)) as code');
+        // $this->db->from('overtimes');
+        // $this->db->where('deleted', 0);
+        // $this->db->where('SUBSTRING(request_code, 4, 6)=', $date);
+        // $records = $this->db->get()->row();
 
-        $requestcode = (int) $records->code;
-        $requestcode++;
+        // $requestcode = (int) $records->code;
+        // $requestcode++;
 
-        $template = "OT/" . $date . "/";
-        $templatefinal = $template . sprintf("%04s", $requestcode);
+        // $template = "OT/" . $date . "/";
+        // $templatefinal = $template . sprintf("%04s", $requestcode);
 
         for ($i = 3; $i <= $total_row; $i++) {
             $datas[] = array(
@@ -634,9 +634,11 @@ class Overtimes extends CI_Controller
                 'trans_date' => $data->val($i, 3),
                 'start' => $data->val($i, 4),
                 'end' => $data->val($i, 5),
-                'duration_hour' => $data->val($i, 6),
-                'type' => $data->val($i, 7),
-                'remarks' => $data->val($i, 8),
+                'break' => $data->val($i, 6),
+                'meal' => $data->val($i, 7),
+                'duration_hour' => $data->val($i, 8),
+                'type' => $data->val($i, 9),
+                'remarks' => $data->val($i, 10),
                 'request_code' => $templatefinal
             );
         }
@@ -701,15 +703,36 @@ class Overtimes extends CI_Controller
 
                         $ot_amount = $this->readOvertimePrice($employee->id, $data['trans_date'], $data['start'], $data['end'],$data['duration_hour']);
 
+                        if (strtolower($data['meal']) == 'yes') {
+                            $meal = 1;
+                        } else {
+                            $meal = 0;
+                        }
+
+                        $date = date("ymd");
+                        $this->db->select('max(SUBSTRING(request_code, -4)) as code');
+                        $this->db->from('overtimes');
+                        $this->db->where('deleted', 0);
+                        $this->db->where('SUBSTRING(request_code, 4, 6)=', $date);
+                        $records = $this->db->get()->row();
+
+                        $requestcode = (int) $records->code;
+                        $requestcode++;
+
+                        $template = "OT/" . $date . "/";
+                        $templatefinal = $template . sprintf("%04s", $requestcode);
+
                         $post_overtime = array(
                             'employee_id' => $employee->id,
                             'trans_date' => $data['trans_date'],
-                            'request_code' => $data['request_code'],
+                            'request_code' => $templatefinal,
                             'start' => $data['start'],
                             'end' => $data['end'],
                             'type' => $data['type'],
                             'duration' => $duration,
                             'duration_hour' => $data['duration_hour'],
+                            'break_hour' => $data['break'],
+                            'meal' => $meal,
                             'remarks' => $data['remarks'],
                             'duration_convert' =>  $ot_amount['convert'],
                             'amount' =>  $ot_amount['amount']

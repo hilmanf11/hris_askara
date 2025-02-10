@@ -97,7 +97,7 @@ class Payrolls extends CI_Controller
             $this->db->from('payrolls a');
             $this->db->join('employees b', 'a.employee_id = b.id');
             $this->db->join('sources d', 'b.source_id = d.id', 'left');
-            $this->db->join('privilege_groups c', "(b.group_id = c.group_id or b.group_id is null or b.group_id = '') and c.username = '$username' and c.status = '1'", 'left');
+            $this->db->join('privilege_groups c', "(b.group_id = c.group_id or b.group_id is null or b.group_id = '') and c.username = '$username' and c.status = '0'", 'left');
             $this->db->join('resignations e', 'e.employee_id = b.id', 'left');
             $this->db->join('account_coa f', 'b.division_id = f.division_id and b.departement_id = f.departement_id and b.position_id = f.position_id and b.contract_id = f.contract_id', 'left');
             $this->db->join('accounts g', "f.account_id = g.id and g.category = 'payroll'", 'left');
@@ -711,7 +711,16 @@ class Payrolls extends CI_Controller
                         $arr_allowance_amount_number += ($allowance_data['amount']);
                     }
                 } elseif ($allowance_data['type'] == "FIX" && $allowance_data['amount'] > 0) {
-                    $arr_allowance_amount_total_bpjs += ($allowance_data['amount']);
+                    // HL dan Operator
+                    if ($record["group_id"] == '20221213000002' || $record["group_id"] == '20221213000003') {
+                        if ($record['bpjs'] == "0") {
+                            $arr_allowance_amount_total_bpjs += ($allowance_data['amount']);
+                        } else {
+                            $arr_allowance_amount_total_bpjs += ($record['bpjs']);
+                        }
+                    } else {
+                        $arr_allowance_amount_total_bpjs += ($allowance_data['amount']);
+                    }
                     $count_allowance_number += 0;
                     $arr_allowance_amount_number += 0;
                 } else {
@@ -987,7 +996,7 @@ class Payrolls extends CI_Controller
             }
 
             //Total Pendapatan Gaji (Gaji + Tunjangan + BPJS dari perusahaan + Koreksi plus + lembur hari biasa + lembur hari libur)
-            $total_all_allowance = ($record['salary'] + $arr_allowance_amount_total + $arr_bpjs_com_amount_total + @$correction_plus_amount);
+            $total_all_allowance = ($record['salary'] + $arr_allowance_amount_total + $arr_bpjs_com_amount_total + @$correction_plus_amount + $total_overtime_amount);
             $total_all_allowance_ter = ($record['salary'] + $arr_allowance_amount_total + $arr_bpjs_com_amount_total_ter + @$correction_plus_amount);
 
             //Total Potongan Gaji (Ijin/Sakit + Koreksi Minus + alpha)
@@ -1058,7 +1067,7 @@ class Payrolls extends CI_Controller
             }
 
             //Total keseluruhan
-            $netincome = ($income + $total_overtime - $ter - $arr_deduction_amount_total - $arr_bpjs_emp_amount_total - @$loan_cooperative->amount - @$loan_bank->amount - @$loan_other->amount);
+            $netincome = ($income - $ter - $arr_deduction_amount_total - $arr_bpjs_emp_amount_total - @$loan_cooperative->amount - @$loan_bank->amount - @$loan_other->amount);
             $roundup = 500; // digit pembulatan, dalam hal ini ratusan
             $roundupIncome = ceil($netincome / $roundup) * $roundup;
             //-------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1174,7 +1183,7 @@ class Payrolls extends CI_Controller
         $period_end = date("Y-m", strtotime($post['filter_to']));
         $username = $this->session->username;
 
-        $privileges = $this->crud->reads('privilege_groups', [], ["username" => $username, "status" => "1"]);
+        $privileges = $this->crud->reads('privilege_groups', [], ["username" => $username, "status" => "0"]);
 
         foreach ($privileges as $privilege) {
             $group_id = $privilege->group_id;

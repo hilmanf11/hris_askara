@@ -745,7 +745,7 @@
                     break_hour = $('#break_hour').numberbox('getValue');
                 } else {
                     if (durationInHours >= 5) {
-                        break_hour = 1;
+                        break_hour = Math.floor(durationInHours / 5);
                     }
                     $('#break_hour').numberbox('setValue', break_hour);
                 }

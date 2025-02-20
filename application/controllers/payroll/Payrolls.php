@@ -951,7 +951,8 @@ class Payrolls extends CI_Controller
                 // $arr_permit_type_amount .= round(($record['salary'] / 30) * $arr_permit_type_amount_qty) . ",";
                 // @$arr_permit_type_amount_b_total += round(($record['salary'] / 30) * $arr_permit_type_amount_qty) . ",";
 
-                if ($record['group_name'] == "MAGANG") {
+                // JIKA MAGANG DAN HL
+                if ($record["group_id"] == '20221213000002') {
                     // $arr_permit_type_amount .= round((($record['salary'] - $arr_deduction_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
                     // @$arr_permit_type_amount_b_total += round((($record['salary'] - $arr_deduction_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
                     $arr_permit_type_amount .= round(($record['salary'] / $hkw) * $arr_permit_type_amount_qty) . ",";
@@ -987,7 +988,7 @@ class Payrolls extends CI_Controller
             }
 
             //Harga Potong Gaji kalo dia ga masuk kerja
-            if ($record['group_name'] == "MAGANG") {
+            if ($record["group_id"] == '20221213000002') { // JIKA MAGANG DAN HL
                 $absence_amount = round(($record['salary'] / $hkw) * $absence_qty_final);
             } elseif ($count_allowance_number > 0) {
                 $absence_amount = round(($arr_allowance_amount_number / $hkw) * $absence_qty_final);

@@ -583,53 +583,27 @@ class Payrolls extends CI_Controller
                     $meal = @$setup_cash_carries->total_meal;
                 }
 
-                if (@$shift_employee->days == "5") {
-                    if (date('w', $start) !== '0' && date('w', $start) !== '6') {
+                if (date('w', $start) !== '0' && date('w', $start) !== '6') {
 
-                        //Kalo ada tanggal Merah
-                        if (count($calendars) > 0) {
-                            $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
-                            $overtime_holiday += $hour;
-                            $overtime_amount_holiday += $total;
-                        } else {
-                            $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
-                            $overtime_weekday += $hour;
-                            $overtime_amount_weekday += $total;
-                        }
+                    //Kalo ada tanggal Merah
+                    if (count($calendars) > 0) {
+                        $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
+                        $overtime_holiday += $hour;
+                        $overtime_amount_holiday += $total;
                     } else {
-                        if (date('w', $start) === '0') {
-                            $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
-                            $overtime_sunday += $hour;
-                            $overtime_amount_sunday += $total;
-                        } else {
-                            $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
-                            $overtime_saturday += $hour;
-                            $overtime_amount_saturday += $total;
-                        }
+                        $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
+                        $overtime_weekday += $hour;
+                        $overtime_amount_weekday += $total;
                     }
                 } else {
-                    if (date('w', $start) !== '0') {
-
-                        //Kalo ada tanggal Merah
-                        if (count($calendars) > 0) {
-                            $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
-                            $overtime_holiday += $hour;
-                            $overtime_amount_holiday += $total;
-                        } else {
-                            $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
-                            $overtime_weekday += $hour;
-                            $overtime_amount_weekday += $total;
-                        }
+                    if (date('w', $start) === '0') {
+                        $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
+                        $overtime_sunday += $hour;
+                        $overtime_amount_sunday += $total;
                     } else {
-                        if (date('w', $start) === '0') {
-                            $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
-                            $overtime_sunday += $hour;
-                            $overtime_amount_sunday += $total;
-                        } else {
-                            $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
-                            $overtime_saturday += $hour;
-                            $overtime_amount_saturday += $total;
-                        }
+                        $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
+                        $overtime_saturday += $hour;
+                        $overtime_amount_saturday += $total;
                     }
                 }
             }

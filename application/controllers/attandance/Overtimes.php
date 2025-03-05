@@ -406,37 +406,19 @@ class Overtimes extends CI_Controller
                     $meal = @$setup_cash_carries->total_meal;
                 }
 
-                if (@$shift_employee->days == "5") {
-                    if (date('w', $start) !== '0' && date('w', $start) !== '6') {
+                if (date('w', $start) !== '0' && date('w', $start) !== '6') {
 
-                        //Kalo ada tanggal Merah
-                        if (count($calendars) > 0) {
-                            $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
-                        } else {
-                            $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
-                        }
+                    //Kalo ada tanggal Merah
+                    if (count($calendars) > 0) {
+                        $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
                     } else {
-                        if (date('w', $start) === '0') {
-                            $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
-                        } else {
-                            $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
-                        }
+                        $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
                     }
                 } else {
-                    if (date('w', $start) !== '0') {
-
-                        //Kalo ada tanggal Merah
-                        if (count($calendars) > 0) {
-                            $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
-                        } else {
-                            $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
-                        }
+                    if (date('w', $start) === '0') {
+                        $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
                     } else {
-                        if (date('w', $start) === '0') {
-                            $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
-                        } else {
-                            $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
-                        }
+                        $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
                     }
                 }
 

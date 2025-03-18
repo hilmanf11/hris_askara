@@ -312,7 +312,7 @@ class Payrolls extends CI_Controller
                 LEFT JOIN shift_employees k ON a.id = k.employee_id
                 LEFT JOIN shifts n ON k.shift_id = n.id
                 LEFT JOIN shift_details l ON n.id = l.shift_id
-                JOIN setup_salaries p ON p.employee_id = a.id
+                LEFT JOIN setup_salaries p ON p.employee_id = a.id
                 LEFT JOIN maritals q ON a.marital_id = q.id
                 LEFT JOIN privilege_groups m ON (i.id = m.group_id or m.group_id is null or m.group_id = '') 
                 and m.username = '$username' and m.status = '1'
@@ -926,7 +926,7 @@ class Payrolls extends CI_Controller
                 // @$arr_permit_type_amount_b_total += round(($record['salary'] / 30) * $arr_permit_type_amount_qty) . ",";
 
                 // JIKA MAGANG DAN HL
-                if ($record["group_id"] == '20221213000002') {
+                if ($record["group_id"] == '20221213000002' || $record["group_id"] == '20221213000003') {
                     // $arr_permit_type_amount .= round((($record['salary'] - $arr_deduction_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
                     // @$arr_permit_type_amount_b_total += round((($record['salary'] - $arr_deduction_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
                     $arr_permit_type_amount .= round(($record['salary'] / $hkw) * $arr_permit_type_amount_qty) . ",";
@@ -962,7 +962,7 @@ class Payrolls extends CI_Controller
             }
 
             //Harga Potong Gaji kalo dia ga masuk kerja
-            if ($record["group_id"] == '20221213000002') { // JIKA MAGANG DAN HL
+            if ($record["group_id"] == '20221213000002' || $record["group_id"] == '20221213000003') { // JIKA MAGANG DAN HL
                 $absence_amount = round(($record['salary'] / $hkw) * $absence_qty_final);
             } elseif ($count_allowance_number > 0) {
                 $absence_amount = round(($arr_allowance_amount_number / $hkw) * $absence_qty_final);

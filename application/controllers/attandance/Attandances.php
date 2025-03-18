@@ -319,7 +319,7 @@ class Attandances extends CI_Controller
                     $this->db->select('*');
                     $this->db->from('attandances');
                     $this->db->where('number', $employee->number);
-                    $this->db->where("date_in = '$date_in'");
+                    $this->db->where("(date_in = '$date_in' or date_out = '$date_in')");
                     $attandance_in = $this->db->get()->row();
 
                     $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$time_in)));
@@ -377,18 +377,32 @@ class Attandances extends CI_Controller
                             echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check Out", "theme" => "success"));
                         }
                     } else {
-                        $data_attandance = array(
-                            'number' => $employee->number,
-                            'date_in' => $date_in,
-                            'time_in' => $time_in,
-                            'date_out' => $date_out,
-                            'shift_start' => @$shift->start,
-                            'shift_name' => @$shift->name,
-                            'shift_detail' => @$shift->shift_name,
-                            'shift_days' => @$shift->days,
-                            // 'time_out' => @$shift->end,
-                            'status' => "UPLOAD",
-                        );
+                        if ((substr(@$time_in, 0, 2) <= "12")) {
+                            $data_attandance = array(
+                                'number' => $employee->number,
+                                'date_in' => $date_in,
+                                'time_in' => $time_in,
+                                'shift_start' => @$shift->start,
+                                'shift_name' => @$shift->name,
+                                'shift_detail' => @$shift->shift_name,
+                                'shift_days' => @$shift->days,
+                                // 'time_out' => @$shift->end,
+                                'status' => "UPLOAD",
+                            );
+                        } else {
+                            $data_attandance = array(
+                                'number' => $employee->number,
+                                'time_out' => $time_in,
+                                'date_out' => $date_in,
+                                'shift_start' => @$shift->start,
+                                'shift_name' => @$shift->name,
+                                'shift_detail' => @$shift->shift_name,
+                                'shift_days' => @$shift->days,
+                                // 'time_out' => @$shift->end,
+                                'status' => "UPLOAD",
+                            );
+                        }
+
                         $this->crud->create('attandances', $data_attandance);
                         echo json_encode(array("title" => "Created", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create data Check In", "theme" => "success"));
                     }

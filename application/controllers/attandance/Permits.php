@@ -87,7 +87,16 @@ class Permits extends CI_Controller
             $totalPermit += $permit->duration;
         }
 
-        echo json_encode(@array_merge($records, ["total" => (12 - $totalPermit - count($calendar))]));
+        $employee = $this->crud->read("employees", ["id" => $employee_id]);
+
+        $sign_date = $employee->date_sign;
+
+        if (strtotime('+1 year', strtotime($sign_date)) <= time()) {
+            echo json_encode(@array_merge($records, ["total" => (12 - $totalPermit - count($calendar))]));
+        } else {
+            echo json_encode(@array_merge($records, ["total" => 0]));
+        }
+
     }
 
     public function getDays()
@@ -95,6 +104,20 @@ class Permits extends CI_Controller
         $date_from = $this->input->post('date_from');
         $date_to = $this->input->post('date_to');
         $working_day = $this->input->post('working_day');
+        $permit_type_id = $this->input->post('permit_type_id');
+        $reason_id = $this->input->post('reason_id');
+        $employee_id = $this->input->post('employee_id');
+
+        $this->db->select("b.balance");
+        $this->db->from('assign_time_off_master a');
+        $this->db->join('assign_time_off_detail b', 'a.id = b.assign_time_off_id');
+        $this->db->join('employees c', 'b.employee_id = c.number');
+        $this->db->where("(b.start_date <= '$date_to' and b.end_date >= '$date_from')");
+        $this->db->like('a.permit_type_id', $permit_type_id);
+        $this->db->like('a.reason_id', $reason_id);
+        $this->db->like('c.id', $employee_id);
+        $this->db->order_by("b.id", "desc");
+        $assign_time_off = $this->db->get()->row();   
 
         $date_from = strtotime($date_from);
         $date_to = strtotime($date_to);
@@ -115,8 +138,25 @@ class Permits extends CI_Controller
             }
         }
 
-        $total_days = @count($weekdays);
-        echo $total_days;
+        if (!empty($assign_time_off)) {
+            $year = date("Y");
+            $calendar = $this->crud->reads("calendars", ["trans_date" => $year], ["permit" => 1]);
+
+            $permitType = $this->crud->read('permit_types', [], ["id" => $permit_type_id, "cutoff" => "YES"]);
+            $permits = $this->crud->reads('permits', ["employee_id" => $employee_id, "DATE_FORMAT(permit_date, '%Y')" => $year], ["permit_type_id" => @$permitType->id]);
+            $totalPermit = 0;
+            foreach ($permits as $permit) {
+                $totalPermit += $permit->duration;
+            }
+
+            $balance = $assign_time_off->balance - $totalPermit - count($calendar);
+            $is_time_off = 1;
+        } else {
+            $balance = 0;
+            $is_time_off = 0;
+        }
+
+        echo json_encode(@array_merge(['is_time_off' => $is_time_off, 'balance' => $balance], ["total_days" => @count($weekdays)]));
     }
 
 

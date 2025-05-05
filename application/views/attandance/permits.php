@@ -605,6 +605,11 @@
                         var result = eval('(' + row + ')');
                         if (result.total == 0) {
                             $("#leave").numberbox('clear');
+                            if (permit.cutoff == "YES") {
+                                $("#duration").numberbox('setValue', 1);
+                            } else {
+                                $("#duration").numberbox('setValue', 0);
+                            }
                         } else {
                             if (permit.cutoff == "YES") {
                                 $("#duration").numberbox('setValue', 1);
@@ -628,6 +633,9 @@
                     onChange: function(index) {
                         var date_to = $("#date_to").datebox('getValue');
                         var working_day = $("#working_day").numberbox('getValue');
+                        var permit_type = $("#permit_type_id").combobox('getValue');
+                        var reason = $("#reason_id").combobox('getValue');
+                        var employee_id = $('#employee_id').combogrid('getValue');
 
                         if (date_from == "" || date_from > index) {
                             toastr.warning("Please Select Permit Date From < Date To");
@@ -635,11 +643,17 @@
                             $.ajax({
                                 url: '<?= base_url('attandance/permits/getDays') ?>',
                                 type: 'post',
-                                data: 'date_from=' + index + '&date_to=' + date_to + '&working_day=' + working_day,
-                                success: function(days) {
-                                    var leave = $("#leave").numberbox('getValue');
+                                data: 'date_from=' + index + '&date_to=' + date_to + '&working_day=' + working_day + '&permit_type_id=' + permit_type + '&reason_id=' + reason + '&employee_id=' + employee_id,
+                                success: function(row) {
+                                    var result = eval('(' + row + ')');
+                                    if (result.is_time_off == 1) {
+                                        $("#leave").numberbox('setValue', result.balance);
+                                        var leave = result.balance;
+                                    } else {
+                                        var leave = $("#leave").numberbox('getValue');
+                                    }
 
-                                    if (parseInt(leave - days) < 0) {
+                                    if (parseInt(leave - result.total_days) < 0) {
                                         toastr.error("the Leave is over", "Leave 0");
                                         $("#date_from").datebox('clear');
                                     }
@@ -653,6 +667,9 @@
                     onChange: function(index) {
                         var date_from = $("#date_from").datebox('getValue');
                         var working_day = $("#working_day").numberbox('getValue');
+                        var permit_type = $("#permit_type_id").combobox('getValue');
+                        var reason = $("#reason_id").combobox('getValue');
+                        var employee_id = $('#employee_id').combogrid('getValue');
 
                         if (date_from == "" || date_from > index) {
                             toastr.warning("Please Select Permit Date From < Date To");
@@ -660,11 +677,17 @@
                             $.ajax({
                                 url: '<?= base_url('attandance/permits/getDays') ?>',
                                 type: 'post',
-                                data: 'date_from=' + date_from + '&date_to=' + index + '&working_day=' + working_day,
-                                success: function(days) {
-                                    var leave = $("#leave").numberbox('getValue');
+                                data: 'date_from=' + date_from + '&date_to=' + index + '&working_day=' + working_day + '&permit_type_id=' + permit_type + '&reason_id=' + reason + '&employee_id=' + employee_id,
+                                success: function(row) {
+                                    var result = eval('(' + row + ')');
+                                    if (result.is_time_off == 1) {
+                                        $("#leave").numberbox('setValue', result.balance);
+                                        var leave = result.balance;
+                                    } else {
+                                        var leave = $("#leave").numberbox('getValue');
+                                    }
 
-                                    if (parseInt(leave - days) < 0) {
+                                    if (parseInt(leave - result.total_days) < 0) {
                                         toastr.error("the Leave is over", "Leave 0");
                                         $("#date_to").datebox('clear');
                                     }

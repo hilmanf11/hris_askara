@@ -298,6 +298,10 @@
                         <input style="width:60%;" name="email" data-options="validType:'email'" id="email" class="easyui-textbox">
                     </div>
                     <div class="fitem">
+                        <span style="width:35%; display:inline-block;">Office Email</span>
+                        <input style="width:60%;" name="office_email" data-options="validType:'office_email'" id="office_email" class="easyui-textbox">
+                    </div>
+                    <div class="fitem">
                         <span style="width:35%; display:inline-block;">Driving Licensed</span>
                         <input style="width:35%;" name="driving_no" id="driving_no" class="easyui-textbox">
                         <input style="width:20%;" name="driving_date" id="driving_date" data-options="formatter:myformatter,parser:myparser, editable: false" class="easyui-datebox">

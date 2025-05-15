@@ -382,6 +382,7 @@ class Employees extends CI_Controller
                 $national_id = $this->crud->read('employees', [], ["national_id", $post['national_id']]);
                 $tax_id = $this->crud->read('employees', [], ["tax_id", $post['tax_id']]);
                 $email = $this->crud->read('employees', [], ["email", $post['email']]);
+                $office_email = $this->crud->read('employees', [], ["office_email", $post['office_email']]);
                 $mobile_phone = $this->crud->read('employees', [], ["mobile_phone", $post['mobile_phone']]);
                 $bank_no = $this->crud->read('employees', [], ["bank_no", $post['bank_no']]);
 
@@ -391,6 +392,8 @@ class Employees extends CI_Controller
                     //     echo json_encode(array("title" => "Duplicate", "message" => "Tax ID Duplicate", "theme" => "error"));
                 } elseif ($email) {
                     echo json_encode(array("title" => "Duplicate", "message" => "Email Duplicate", "theme" => "error"));
+                } elseif ($office_email) {
+                    echo json_encode(array("title" => "Duplicate", "message" => "Office Email Duplicate", "theme" => "error"));
                 } elseif ($mobile_phone) {
                     echo json_encode(array("title" => "Duplicate", "message" => "Mobile Phone Duplicate", "theme" => "error"));
                 } elseif ($bank_no) {
@@ -776,7 +779,7 @@ class Employees extends CI_Controller
             $data = $this->input->post('data');
             $employees = $this->crud->read('employees', ["number" => $data['number']]);
             $divisions = $this->crud->read('divisions', ["number" => $data['division_number']]);
-            $departements = $this->crud->read('departements', ["number" => $data['departement_number']]);
+            $departements = $this->crud->read('departements', [], ["number" => $data['departement_number']]);
             $departement_subs = $this->crud->read('departement_subs', ["number" => $data['departement_sub_number'], "division_id" => @$divisions->id, "departement_id" => @$departements->id]);
             $positions = $this->crud->read('positions', ["number" => $data['position_number']]);
             $contracts = $this->crud->read('contracts', ["number" => $data['contract_number']]);

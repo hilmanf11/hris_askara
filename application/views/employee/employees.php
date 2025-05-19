@@ -221,6 +221,10 @@
                         <input style="width:60%; height: 50px;" name="address" multiline="true" id="address" class="easyui-textbox">
                     </div>
                     <div class="fitem">
+                        <span style="width:35%; display:inline-block;">Residential Address</span>
+                        <input style="width:60%; height: 50px;" name="residential_address" multiline="true" id="residential_address" class="easyui-textbox">
+                    </div>
+                    <div class="fitem">
                         <span style="width:35%; display:inline-block;">Place of Birth</span>
                         <input style="width:60%;" name="place_birth" id="place_birth" class="easyui-textbox">
                     </div>

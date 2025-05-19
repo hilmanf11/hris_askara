@@ -9,6 +9,7 @@ class Notifications extends CI_Controller
     public function __construct()
     {
         parent::__construct();
+        $this->CI = &get_instance(); // Tambahkan ini!
         $this->load->helper('url');
         $this->load->helper(array('form', 'url'));
         $this->load->library('form_validation');
@@ -63,23 +64,23 @@ class Notifications extends CI_Controller
 
                 $send = $this->db->update($tablename, $values, ["id" => $id]);
 
-                if($send){
-                    $message = "Sent a request to approve data ". strtoupper(str_replace("_", " ", $tablename));
+                if ($send) {
+                    $message = "Sent a request to approve data " . strtoupper(str_replace("_", " ", $tablename));
 
-                    if($approved == 0){
+                    if ($approved == 0) {
                         $users_id = $data->created_by;
-                        $message = "Your a Request ".strtoupper(str_replace("_", " ", $tablename))." has been Approved by " .$dataUser->name;
+                        $message = "Your a Request " . strtoupper(str_replace("_", " ", $tablename)) . " has been Approved by " . $dataUser->name;
                     }
 
                     $userFr = $this->mobile->read("users", [], ["username" => $users_id]);
 
-                    if(!empty(@$userFr->api_key)){
+                    if (!empty(@$userFr->api_key)) {
                         $this->apps->where('api_key', @$userFr->api_key);
                         $userAp = $this->apps->get('users')->row();
 
-                        $this->firebaseApproval($userAp->token, $userFr->name, $message);
+                        $this->pushNotification($userAp->token, $userFr->name, $message);
                     }
-                    
+
                     echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
                 } else {
                     echo log_message('error', 'There is an error in your system or data');
@@ -105,12 +106,12 @@ class Notifications extends CI_Controller
                 $table_name = $this->input->post('module');
 
                 $datas = $this->mobile->reads($table_name, [], ["approved_to" => $approved_to, "created_by" => $created_by]);
-                
+
                 foreach ($datas as $data) {
                     $id = $data->id;
                     $user = $this->mobile->read('users', [], ["username" => $data->created_by]);
                     $approval = $this->mobile->read('approvals', [], ["table_name" => $table_name, "employee_id" => @$data->employee_id]);
-                    
+
                     if ($data->approved == 1) {
                         $users_id = @$approval->user_approval_2;
                         $approved = 2;
@@ -237,13 +238,13 @@ class Notifications extends CI_Controller
                     }
                 }
 
-                if(count($permits) > 0) {
+                if (count($permits) > 0) {
                     foreach ($permits as $permit) {
                         $records[] = $this->approvalMessage($permit->image_profile, $permit->fullname, $permit->approved_to, $permit->created_by, $permit->created_date, "permits");
                     }
                 }
 
-                if(count($change_days) > 0) {
+                if (count($change_days) > 0) {
                     foreach ($change_days as $change_day) {
                         $records[] = $this->approvalMessage($change_day->image_profile, $change_day->fullname, $change_day->approved_to, $change_day->created_by, $change_day->created_date, "change_days");
                     }
@@ -261,15 +262,16 @@ class Notifications extends CI_Controller
         }
     }
 
-    public function approvalMessage($foto, $fullname, $approved_to, $created_by, $created_date, $table){
+    public function approvalMessage($foto, $fullname, $approved_to, $created_by, $created_date, $table)
+    {
 
-        if(!empty($foto)){
-            if(substr($foto, -4) == "jpeg"){
+        if (!empty($foto)) {
+            if (substr($foto, -4) == "jpeg") {
                 $avatar = 'assets/image/employee/profile/' . substr($foto, -15);
-            }else{
+            } else {
                 $avatar = 'assets/image/employee/profile/' . substr($foto, -14);
             }
-        }else{
+        } else {
             $avatar = base_url('assets/image/users/default.png');
         }
 
@@ -280,7 +282,7 @@ class Notifications extends CI_Controller
             "created_date" => $created_date,
             "avatar" => $avatar,
             "fullname" => $fullname,
-            "message" => "Sent a request to approve data ". strtoupper(str_replace("_", " ", $table))
+            "message" => "Sent a request to approve data " . strtoupper(str_replace("_", " ", $table))
         );
     }
 
@@ -317,13 +319,13 @@ class Notifications extends CI_Controller
 
                 $data = array();
                 foreach ($records as $record) {
-                    if(!empty($record['attachment'])){
-                        if(substr($record['attachment'], -4) == "jpeg"){
+                    if (!empty($record['attachment'])) {
+                        if (substr($record['attachment'], -4) == "jpeg") {
                             $attachment = "assets/image/cash_carry/" . substr($record['attachment'], -15);
-                        }else{
+                        } else {
                             $attachment = "assets/image/cash_carry/" . substr($record['attachment'], -14);
                         }
-                    }else{
+                    } else {
                         $attachment = null;
                     }
 
@@ -336,7 +338,7 @@ class Notifications extends CI_Controller
                     "theme" => "success",
                     "results" => $data
                 )));
-                
+
                 break;
             case "permits":
                 $this->db->select('a.*,
@@ -365,13 +367,13 @@ class Notifications extends CI_Controller
 
                 $data = array();
                 foreach ($records as $record) {
-                    if(!empty($record['attachment'])){
-                        if(substr($record['attachment'], -4) == "jpeg"){
+                    if (!empty($record['attachment'])) {
+                        if (substr($record['attachment'], -4) == "jpeg") {
                             $attachment = "assets/image/attandance/" . substr($record['attachment'], -15);
-                        }else{
+                        } else {
                             $attachment = "assets/image/attandance/" . substr($record['attachment'], -14);
                         }
-                    }else{
+                    } else {
                         $attachment = null;
                     }
 
@@ -422,25 +424,117 @@ class Notifications extends CI_Controller
         }
     }
 
-    function firebaseApproval($token, $title, $messages){
-        $url = "https://fcm.googleapis.com/fcm/send";
+    // function firebaseApproval($token, $title, $messages)
+    // {
+    //     $url = "https://fcm.googleapis.com/fcm/send";
 
+    //     $notification = [
+    //         'title' => $title,
+    //         'body' => $messages
+    //     ];
+
+    //     $extraNotificationData = ["message" => $messages];
+
+    //     $fields = array(
+    //         "registration_ids" => array($token),
+    //         "notification" => $notification
+    //     );
+
+    //     $headers = array(
+    //         "Authorization:key=AAAACAakFgs:APA91bEodY7R-M67PGckJNeyU6PgIw0vvnCNH5zbYLPkxe8Z2kxUbyr21ec6YdnA5zbFH_fKZr4vOuJOS2dzllM13OGyZO3AId013_cBdD732J0h1iaj1IkglZmUSdcB412gcmd3w6Nv",
+    //         "Content-Type: application/json"
+    //     );
+
+    //     $ch = curl_init();
+    //     curl_setopt($ch, CURLOPT_URL, $url);
+    //     curl_setopt($ch, CURLOPT_POST, true);
+    //     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    //     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    //     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    //     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
+    //     $result = curl_exec($ch);
+    //     // if($result === FALSE){
+    //     //     die('CURL FAILED' . curl_error($ch));
+    //     // }else{
+    //     //     die(json_encode(array("code" => 200, "message" => "Send Firebase Success", "theme" => "success", "results" => json_decode($result))));
+    //     // }
+    //     curl_close($ch);
+    // }
+
+    // function testNotif($created_by)
+    // {
+    //     $this->apps = $this->load->database('apps', TRUE);
+    //     $users_id = $created_by;
+    //     $userFr = $this->mobile->read("users", [], ["username" => $users_id]);
+    //     $this->apps->where('api_key', @$userFr->api_key);
+    //     $userAp = $this->apps->get('users')->row();
+
+    //     $this->pushNotification($userAp->token, $userFr->name, "TESTING");
+    //     // die(json_encode(array("data" => $userAp)));
+    // }
+
+    function getAccessToken()
+    {
+        // Path relatif ke file JSON
+        $pathToFile = APPPATH . 'controllers/mobile/hris-app.json';
+
+        $serviceAccount = json_decode(file_get_contents($pathToFile), true);
+        $header = base64_encode(json_encode(['alg' => 'RS256', 'typ' => 'JWT']));
+        $iat = time();
+        $exp = $iat + 360;
+        $claimSet = base64_encode(json_encode([
+            'iss' => $serviceAccount['client_email'],
+            'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
+            'aud' => 'https://oauth2.googleapis.com/token',
+            'exp' => $exp,
+            'iat' => $iat,
+        ]));
+
+        $signatureInput = $header . '.' . $claimSet;
+        $signature = null;
+        openssl_sign($signatureInput, $signature, $serviceAccount['private_key'], 'SHA256');
+
+        $jwt = $signatureInput . '.' . base64_encode($signature);
+        $ch = curl_init('https://oauth2.googleapis.com/token');
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'assertion' => $jwt,
+        ]));
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $responseArray = json_decode($response, true);
+        return $responseArray['access_token'];
+    }
+
+    function pushNotification($token, $title, $messages)
+    {
+        $url = 'https://fcm.googleapis.com/v1/projects/hris-app-26211/messages:send';
+        // $tokenUser = 'fjt-9yygSH-kcAiPoMY7cY:APA91bEpNVcIP47v5flZ4nSgJJ97i3pkgDip_zO5wlcuAOwOjSrEHIju-v_jqGruP-aW83O9qHhBVoAdv-w0-BmaXTp5QzUFw0LKfac_S4ZJ-DnoIk6NbCg';
+
+        // Data notifikasi dari input
         $notification = [
             'title' => $title,
-            'body' => $messages
+            'body' => $messages,
         ];
 
-        $extraNotificationData = ["message" => $messages];
+        // Payload yang akan dikirim ke Firebase
+        $payload = [
+            'message' => [
+                'token' => $token,
+                'notification' => $notification,
+            ]
+        ];
 
-        $fields = array(
-            "registration_ids" => array($token),
-            "notification" => $notification
-        );
-
-        $headers = array(
-            "Authorization:key=AAAACAakFgs:APA91bEodY7R-M67PGckJNeyU6PgIw0vvnCNH5zbYLPkxe8Z2kxUbyr21ec6YdnA5zbFH_fKZr4vOuJOS2dzllM13OGyZO3AId013_cBdD732J0h1iaj1IkglZmUSdcB412gcmd3w6Nv",
-            "Content-Type: application/json"
-        );
+        $headers = [
+            'Authorization: Bearer ' . $this->getAccessToken(),
+            'Content-Type: application/json',
+        ];
 
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -449,13 +543,10 @@ class Notifications extends CI_Controller
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
         $result = curl_exec($ch);
-        // if($result === FALSE){
-        //     die('CURL FAILED' . curl_error($ch));
-        // }else{
-        //     die(json_encode(array("code" => 200, "message" => "Send Firebase Success", "theme" => "success", "results" => json_decode($result))));
-        // }
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
     }
 }

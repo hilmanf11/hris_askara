@@ -27,32 +27,34 @@ class News extends CI_Controller
 
         if ($api_key != "") {
             $user = $this->crud->read("users", [], ["api_key" => $api_key]);
+            $employee = $this->crud->read("employees", [], ["number" => $user->number]);
 
             if ($user) {
-                $departement_id = $user->departement_id;
+                // $departement_id = $user->departement_id;
+                $division_id = $employee->division_id;
                 $date = date("Y-m-d");
 
-                $announcements = $this->crud->query("SELECT * FROM news WHERE departement_id LIKE '%$departement_id%' and finish_date >= '$date' ORDER BY start_date DESC LIMIT $limit");
+                $announcements = $this->crud->query("SELECT * FROM news WHERE division_id LIKE '%$division_id%' and finish_date >= '$date' ORDER BY start_date DESC LIMIT $limit");
                 $datas = array();
 
                 foreach ($announcements as $announcement) {
                     $userFrom = $this->crud->read("users", [], ["username" => $announcement->created_by]);
                     $employee = $this->crud->read("employees", [], ["number" => $userFrom->number]);
-                    
-                    if(!empty($employee->image_profile)){
-                        if(substr($employee->image_profile, -4) == "jpeg"){
+
+                    if (!empty($employee->image_profile)) {
+                        if (substr($employee->image_profile, -4) == "jpeg") {
                             $avatar = "assets/image/employee/profile/" . substr($employee->image_profile, -15);
-                        }else{
+                        } else {
                             $avatar = "assets/image/employee/profile/" . substr($employee->image_profile, -14);
                         }
-                    }else{
+                    } else {
                         $avatar = "assets/image/users/default.png";
                     }
 
-                    if($announcement->attachment == null || $announcement->attachment == ""){
+                    if ($announcement->attachment == null || $announcement->attachment == "") {
                         $attachment = "";
-                    }else{
-                        $attachment = "assets/document/news/". substr($announcement->attachment, -14);
+                    } else {
+                        $attachment = "assets/document/news/" . substr($announcement->attachment, -14);
                     }
 
                     $datas[] = array(
@@ -88,10 +90,10 @@ class News extends CI_Controller
             $news = $this->crud->read("news", [], ["id" => $id]);
 
             if ($news) {
-                if($news->attachment == null || $news->attachment == ""){
+                if ($news->attachment == null || $news->attachment == "") {
                     $attachment = "";
-                }else{
-                    $attachment = "assets/document/news/". substr($news->attachment, -14);
+                } else {
+                    $attachment = "assets/document/news/" . substr($news->attachment, -14);
                 }
 
                 $datas = array(

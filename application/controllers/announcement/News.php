@@ -238,7 +238,20 @@ class News extends CI_Controller
 
             ));
 
+            if ($send) {
+                $this->apps = $this->load->database('apps', TRUE);
 
+                $title = $post['name'];
+                $message = strip_tags($post['description']);
+
+                $userAp = $this->apps->get('users')->result_array();
+
+                foreach ($userAp as $user) {
+                    if (!empty(@$user['token'])) {
+                        $this->pushNotification($user['token'], $title, $message);
+                    }
+                }
+            }
 
             echo $send;
 
@@ -439,6 +452,82 @@ class News extends CI_Controller
 
         echo $html;
 
+    }
+
+    function getAccessToken()
+    {
+        // Path relatif ke file JSON
+        $pathToFile = APPPATH . 'controllers/mobile/hris-app.json';
+
+        $serviceAccount = json_decode(file_get_contents($pathToFile), true);
+        $header = base64_encode(json_encode(['alg' => 'RS256', 'typ' => 'JWT']));
+        $iat = time();
+        $exp = $iat + 360;
+        $claimSet = base64_encode(json_encode([
+            'iss' => $serviceAccount['client_email'],
+            'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
+            'aud' => 'https://oauth2.googleapis.com/token',
+            'exp' => $exp,
+            'iat' => $iat,
+        ]));
+
+        $signatureInput = $header . '.' . $claimSet;
+        $signature = null;
+        openssl_sign($signatureInput, $signature, $serviceAccount['private_key'], 'SHA256');
+
+        $jwt = $signatureInput . '.' . base64_encode($signature);
+        $ch = curl_init('https://oauth2.googleapis.com/token');
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'assertion' => $jwt,
+        ]));
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $responseArray = json_decode($response, true);
+        return $responseArray['access_token'];
+    }
+
+    function pushNotification($token, $title, $messages)
+    {
+        $url = 'https://fcm.googleapis.com/v1/projects/hris-app-26211/messages:send';
+        // $tokenUser = 'fjt-9yygSH-kcAiPoMY7cY:APA91bEpNVcIP47v5flZ4nSgJJ97i3pkgDip_zO5wlcuAOwOjSrEHIju-v_jqGruP-aW83O9qHhBVoAdv-w0-BmaXTp5QzUFw0LKfac_S4ZJ-DnoIk6NbCg';
+
+        // Data notifikasi dari input
+        $notification = [
+            'title' => $title,
+            'body' => $messages,
+        ];
+
+        // Payload yang akan dikirim ke Firebase
+        $payload = [
+            'message' => [
+                'token' => $token,
+                'notification' => $notification,
+            ]
+        ];
+
+        $headers = [
+            'Authorization: Bearer ' . $this->getAccessToken(),
+            'Content-Type: application/json',
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        $result = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
     }
 
 }

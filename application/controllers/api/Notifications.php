@@ -79,8 +79,16 @@ class Notifications extends CI_Controller
                         $userAp = $this->apps->get('users')->row();
 
                         $this->pushNotification($userAp->token, $userFr->name, $message);
-                    }
 
+                        $users_id_created = $data->created_by;
+                        $message = "Your a Request " . strtoupper(str_replace("_", " ", $tablename)) . " has been Approved by " . $dataUser->name;
+
+                        $userFr_created = $this->mobile->read("users", [], ["username" => $users_id_created]);
+                        if (!empty(@$userFr_created->api_key)) {
+                            $message = "Your a Request " . strtoupper(str_replace("_", " ", $tablename)) . " has been Approved by " . $dataUser->name;
+                            $this->pushNotification($userFr_created->token, $userFr_created->name, $message);
+                        }
+                    }
                     echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
                 } else {
                     echo log_message('error', 'There is an error in your system or data');
@@ -136,7 +144,30 @@ class Notifications extends CI_Controller
                         "approved" => $approved,
                     );
 
-                    $this->db->update($table_name, $values, ["id" => $id]);
+                    $send = $this->db->update($table_name, $values, ["id" => $id]);
+
+                    if ($send) {
+                        $message = "Sent a request to approve data " . strtoupper(str_replace("_", " ", $table_name));
+    
+                        $userFr = $this->mobile->read("users", [], ["username" => $users_id]);
+    
+                        if (!empty(@$userFr->api_key)) {
+                            $this->apps->where('api_key', @$userFr->api_key);
+                            $userAp = $this->apps->get('users')->row();
+    
+                            $this->pushNotification($userAp->token, $userFr->name, $message);
+    
+                            $users_id_created = $data->created_by;
+                            $message = "Your a Request " . strtoupper(str_replace("_", " ", $table_name)) . " has been Approved by " . $dataUser->name;
+    
+                            $userFr_created = $this->mobile->read("users", [], ["username" => $users_id_created]);
+                            if (!empty(@$userFr_created->api_key)) {
+                                $message = "Your a Request " . strtoupper(str_replace("_", " ", $table_name)) . " has been Approved by " . $dataUser->name;
+                                $this->pushNotification($userFr_created->token, $userFr_created->name, $message);
+                            }
+                        }
+                        echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
+                    } 
                 }
 
                 echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
@@ -201,15 +232,15 @@ class Notifications extends CI_Controller
             $user = $this->mobile->read("users", [], ["api_key" => $api_key]);
 
             if ($user) {
-                //Cash Carries
+                //Cash Carries (overtimes)
                 $this->db->select('b.name as fullname, a.approved_to, a.created_by, a.created_date, d.image_profile');
-                $this->db->from('cash_carries a');
+                $this->db->from('overtimes a');
                 $this->db->join('users b', 'a.approved_by = b.username');
                 $this->db->join('users c', 'a.approved_to = c.username');
                 $this->db->join('employees d', 'b.number = d.number');
                 $this->db->where('a.approved_to', $user->username);
                 $this->db->group_by('a.created_by');
-                $cash_carries = $this->db->get()->result_object();
+                $overtimes = $this->db->get()->result_object();
 
                 //Permits
                 $this->db->select('b.name as fullname, a.approved_to, a.created_by, a.created_date, d.image_profile');
@@ -232,9 +263,9 @@ class Notifications extends CI_Controller
                 $change_days = $this->db->get()->result_object();
 
                 $records = array();
-                if (count($cash_carries) > 0) {
-                    foreach ($cash_carries as $cash_carry) {
-                        $records[] = $this->approvalMessage($cash_carry->image_profile, $cash_carry->fullname, $cash_carry->approved_to, $cash_carry->created_by, $cash_carry->created_date, "cash_carries");
+                if (count($overtimes) > 0) {
+                    foreach ($overtimes as $overtime) {
+                        $records[] = $this->approvalMessage($overtime->image_profile, $overtime->fullname, $overtime->approved_to, $overtime->created_by, $overtime->created_date, "overtimes");
                     }
                 }
 
@@ -292,7 +323,7 @@ class Notifications extends CI_Controller
         $created_by = urldecode($created_by);
 
         switch ($module) {
-            case "cash_carries":
+            case "overtimes":
                 $this->db->select('a.*, 
                         c.name as division_name,
                         d.name as departement_name,
@@ -300,7 +331,7 @@ class Notifications extends CI_Controller
                         b.number as employee_number,
                         b.name as employee_name
                     ');
-                $this->db->from('cash_carries a');
+                $this->db->from('overtimes a');
                 $this->db->join('employees b', 'a.employee_id = b.id');
                 $this->db->join('divisions c', 'b.division_id = c.id');
                 $this->db->join('departements d', 'b.departement_id = d.id');
@@ -321,9 +352,9 @@ class Notifications extends CI_Controller
                 foreach ($records as $record) {
                     if (!empty($record['attachment'])) {
                         if (substr($record['attachment'], -4) == "jpeg") {
-                            $attachment = "assets/image/cash_carry/" . substr($record['attachment'], -15);
+                            $attachment = "assets/image/overtime/" . substr($record['attachment'], -15);
                         } else {
-                            $attachment = "assets/image/cash_carry/" . substr($record['attachment'], -14);
+                            $attachment = "assets/image/overtime/" . substr($record['attachment'], -14);
                         }
                     } else {
                         $attachment = null;

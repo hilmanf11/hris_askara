@@ -22,7 +22,8 @@ class Overtimes extends CI_Controller
         show_error("Cannot Process your request");
     }
 
-    public function readShifts($api_key = ""){
+    public function readShifts($api_key = "")
+    {
         if ($api_key != "") {
             $user = $this->mobile->read("users", [], ["api_key" => $api_key]);
 
@@ -51,24 +52,24 @@ class Overtimes extends CI_Controller
 
                 $today = date("Y-m-d");
 
-                if (@$shift->start == null || empty($attandance->time_in)){
+                if (@$shift->start == null || empty($attandance->time_in)) {
                     $start = "";
                     $end = "";
-                }elseif(@$shift->start >= @$attandance->time_in){
-                    $time_in = date("Y-m-d H:i:s", strtotime(@$attandance->date_in. " " .@$shift->start));
-                    $time_out = date("Y-m-d H:i:s", strtotime("-30 minutes", strtotime(@$attandance->date_out. " " .@$attandance->time_out)));
+                } elseif (@$shift->start >= @$attandance->time_in) {
+                    $time_in = date("Y-m-d H:i:s", strtotime(@$attandance->date_in . " " . @$shift->start));
+                    $time_out = date("Y-m-d H:i:s", strtotime("-30 minutes", strtotime(@$attandance->date_out . " " . @$attandance->time_out)));
 
-                    if($time_in < $time_out){
+                    if ($time_in < $time_out) {
                         $start = @$shift->end;
                         $end = @$attandance->time_out;
-                    }elseif($today == @$attandance->date_in){
+                    } elseif ($today == @$attandance->date_in) {
                         $start = @$shift->end;
                         $end = "";
-                    }else{
+                    } else {
                         $start = "";
                         $end = "";
                     }
-                }else{
+                } else {
                     $start = @$shift->start;
                     $end = "";
                 }
@@ -104,7 +105,7 @@ class Overtimes extends CI_Controller
                     COALESCE(i.holiday, 0) as total_holiday,
                     COALESCE(i.meal, 0) as total_meal
                 ');
-                $this->db->from('cash_carries a');
+                $this->db->from('overtimes a');
                 $this->db->join('employees b', 'a.employee_id = b.id');
                 $this->db->join('divisions c', 'b.division_id = c.id');
                 $this->db->join('departements d', 'b.departement_id = d.id');
@@ -209,13 +210,13 @@ class Overtimes extends CI_Controller
                         }
                     }
 
-                    if(!empty($record['attachment'])){
-                        if(substr($record['attachment'], -4) == "jpeg"){
-                            $attachment = "assets/image/cash_carry/" . substr($record['attachment'], -15);
-                        }else{
-                            $attachment = "assets/image/cash_carry/" . substr($record['attachment'], -14);
+                    if (!empty($record['attachment'])) {
+                        if (substr($record['attachment'], -4) == "jpeg") {
+                            $attachment = "assets/image/overtime/" . substr($record['attachment'], -15);
+                        } else {
+                            $attachment = "assets/image/overtime/" . substr($record['attachment'], -14);
                         }
-                    }else{
+                    } else {
                         $attachment = null;
                     }
 
@@ -241,7 +242,7 @@ class Overtimes extends CI_Controller
     {
         $date = date("ymd", strtotime($trans_date));
         $this->db->select('max(SUBSTRING(request_code, -4)) as code');
-        $this->db->from('cash_carries');
+        $this->db->from('overtimes');
         $this->db->where('deleted', 0);
         $this->db->where('SUBSTRING(request_code, 4, 6)=', $date);
         $records = $this->db->get()->row();
@@ -249,7 +250,7 @@ class Overtimes extends CI_Controller
         $requestcode = (int) $records->code;
         $requestcode++;
 
-        $template = "CC/" . $date . "/";
+        $template = "OT/" . $date . "/";
         return $template . sprintf("%04s", $requestcode);
     }
 
@@ -257,7 +258,7 @@ class Overtimes extends CI_Controller
     {
         $date = $departement_id . "-" . date("ym", strtotime($trans_date));
         $this->db->select('max(SUBSTRING(request_code, -4)) as code');
-        $this->db->from('cash_carries');
+        $this->db->from('overtimes');
         $this->db->where('deleted', 0);
         $this->db->where('SUBSTRING(request_code, 4, 6)=', $date);
         $records = $this->db->get()->row();
@@ -269,9 +270,8 @@ class Overtimes extends CI_Controller
         return $template . sprintf("%04s", $requestcode);
     }
 
-    public function readOvertimePrice($employee_id, $trans_date, $duration, $meal)
+    public function readOvertimePrice($employee_id, $trans_date, $start, $end, $duration_hour=NULL)
     {
-        $employee = $this->mobile->read("employees", [], ["id" => $employee_id]);
         $this->db->select('c.days');
         $this->db->from('shift_employees a');
         $this->db->join('shifts b', 'a.shift_id = b.id', 'left');
@@ -279,11 +279,20 @@ class Overtimes extends CI_Controller
         $this->db->where('a.employee_id', $employee_id);
         $shift_employee = $this->db->get()->row();
 
-        $setup_cash_carry = $this->mobile->read("setup_cash_carries", [], ["employee_id" => $employee_id]);
-        $allowance_cash_carry = $this->mobile->read("allowance_cash_carries", [], ["id" => @$setup_cash_carry->allowance_id]);
+        $this->db->select('b.salary');
+        $this->db->from('setup_salaries a');
+        $this->db->join('salary_components b', 'a.salary_component_id = b.id', 'left');
+        $this->db->where('a.employee_id', $employee_id);
+        $salary = $this->db->get()->row();
 
         //ambil durasi berapa jam jika ada lemburan
-        $hourTrans = strtotime($trans_date);
+        $time_begin = strtotime(@$trans_date . " " . @$start);
+        $time_end = strtotime(@$trans_date . " " . @$end);
+        $diff = $time_end - $time_begin;
+        $hour = floor($diff / (60 * 60));
+        $hour = $duration_hour ? $duration_hour : $hour;
+
+        $start = strtotime($trans_date);
 
         //cek apakah ada hari libur nasional per tanggal dari looping
         $this->db->select('trans_date');
@@ -291,48 +300,72 @@ class Overtimes extends CI_Controller
         $this->db->where('trans_date', $trans_date);
         $calendars = $this->db->get()->result_array();
 
-        //Validasi Uang makan
-        if ($meal == 0) {
-            $meal = 0;
-        } else {
-            $meal = @$allowance_cash_carry->meal;
-        }
+        $standard = @round($salary->salary / 173);
+        $total = 0;
+        $convert = 0;
 
+        //Jika karyawan yg di looping masa kerja nya 5 hari dalam seminggu
         if (@$shift_employee->days == "5") {
-            if (date('w', $hourTrans) !== '0' && date('w', $hourTrans) !== '6') {
+            if (date('w', $start) !== '0' && date('w', $start) !== '6') {
 
+                //Ini untuk menghitung overtime
                 //Kalo ada tanggal Merah
                 if (count($calendars) > 0) {
-                    $total = ((@$allowance_cash_carry->holiday * $duration) + $meal);
+                    //Looping dari durasi jam lembur
+                    for ($o = 0; $o < $hour; $o++) {
+                        $total += ($standard * 2);
+                        $convert += (1 * 2);
+                    }
                 } else {
-                    $total = ((@$allowance_cash_carry->weekday * $duration) + $meal);
+                    //Perhitungan Overtime
+                    for ($o = 0; $o < $hour; $o++) {
+                        if ($o == 0) {
+                            $total += ($standard * 1.5);
+                            $convert += (1 * 1.5);
+                        } else {
+                            $total += ($standard * 2);
+                            $convert += (1 * 2);
+                        }
+                    }
                 }
             } else {
-                if (date('w', $hourTrans) === '0') {
-                    $total = ((@$allowance_cash_carry->sunday * $duration) + $meal);
-                } else {
-                    $total = ((@$allowance_cash_carry->saturday * $duration) + $meal);
+                //Perhitungan Overtime
+                for ($o = 0; $o < $hour; $o++) {
+                    $total += ($standard * 2);
+                    $convert += (1 * 2);
                 }
             }
         } else {
-            if (date('w', $hourTrans) !== '0') {
+            if (date('w', $start) !== '0') {
 
                 //Kalo ada tanggal Merah
                 if (count($calendars) > 0) {
-                    $total = ((@$allowance_cash_carry->holiday * $duration) + $meal);
+                    for ($o = 0; $o < $hour; $o++) {
+                        $total += ($standard * 2);
+                        $convert += (1 * 2);
+                    }
                 } else {
-                    $total = ((@$allowance_cash_carry->weekday * $duration) + $meal);
+                    //Perhitungan Overtime
+                    for ($o = 0; $o < $hour; $o++) {
+                        if ($o == 0) {
+                            $total += ($standard * 1.5);
+                            $convert += (1 * 1.5);
+                        } else {
+                            $total += ($standard * 2);
+                            $convert += (1 * 2);
+                        }
+                    }
                 }
             } else {
-                if (date('w', $hourTrans) === '0') {
-                    $total = ((@$allowance_cash_carry->sunday * $duration) + $meal);
-                } else {
-                    $total = ((@$allowance_cash_carry->saturday * $duration) + $meal);
+                //Perhitungan Overtime
+                for ($o = 0; $o < $hour; $o++) {
+                    $total += ($standard * 2);
+                    $convert += (1 * 2);
                 }
             }
         }
 
-        return $total;
+        return array("amount" => round($total), "convert" => $convert);
     }
 
     public function convertHour($trans_date, $start, $end, $employee_id, $break)
@@ -384,15 +417,22 @@ class Overtimes extends CI_Controller
 
     public function createData($api_key = "")
     {
+
+        $this->apps = $this->load->database('apps', TRUE);
+
         if ($api_key != "") {
             $user = $this->mobile->read("users", [], ["api_key" => $api_key]);
 
             if ($user) {
-                if($this->input->post()){
+                if ($this->input->post()) {
                     $post = $this->input->post();
 
                     $employee = $this->mobile->read("employees", [], ["number" => $user->number]);
                     $departement = $this->mobile->read("departements", [], ["id" => $employee->departement_id]);
+
+                    //approval User
+                    $approval = $this->mobile->read("approvals", [], ["employee_id" => $employee->id, "table_name" => "overtimes"]);
+                    $approvalUser = $this->mobile->read("users", [], ["username" => $approval->user_approval_1]);
 
                     $trans_date = $post['request_date'];
                     $employee_id = $employee->id;
@@ -406,15 +446,17 @@ class Overtimes extends CI_Controller
                     $meal = $post['meal'];
                     $plan = $post['plan'];
                     $actual = $post['actual'];
-                    
-                    $attachment = $this->mobile->upload('attachment', ['png', 'jpg', 'jpeg'], 'assets/image/cash_carry/');
-                    
+
+                    $attachment = $this->mobile->upload('attachment', ['png', 'jpg', 'jpeg'], 'assets/image/overtimes/');
+
                     //$attachment_idm = trim($post['attachment_idm']);
                     $remarks = $post['remarks'];
                     $duration = $this->convertHour($trans_date, $start, $end, $employee_id, $break);
-                    $ot_amount = $this->readOvertimePrice($employee_id, $trans_date, $duration['duration_hour'], $meal);
+                    $ot_amount = $this->readOvertimePrice($employee_id, $trans_date, $start, $end, $plan);
 
                     $post_final = array(
+                        "approved_to" => $approval->user_approval_1,
+                        "approved_by" => $user->username,
                         "trans_date" =>  $trans_date,
                         "employee_id" =>  $employee_id,
                         "request_code" =>  $request_code,
@@ -423,34 +465,44 @@ class Overtimes extends CI_Controller
                         "end" =>  $end,
                         "type" =>  $type,
                         "duration" =>  $duration['duration'],
-                        "duration_hour" => $duration['duration_hour'],
-                        "amount" =>  $ot_amount,
+                        "duration_hour" => $plan,
+                        "amount" =>  $ot_amount['amount'],
                         "meal" =>  $meal,
                         "plan" =>  $plan,
                         "actual" =>  $actual,
-                        "break" =>  $break,
+                        "break_hour" =>  $break,
                         "remarks" =>  $remarks,
                         "idm_no" =>  $idm_no,
                         "attachment" =>  $attachment,
                         "attachment_idm" =>  $attachment,
+                        "is_mobile" => 1
                     );
 
-                    $cash_carries = $this->mobile->reads('cash_carries', [], ["employee_id" => $employee_id, "trans_date" => $trans_date]);
+                    $cash_carries = $this->mobile->reads('overtimes', [], ["employee_id" => $employee_id, "trans_date" => $trans_date]);
 
                     if (count($cash_carries) > 0) {
                         show_error("Your overtime application has been sent, please change to another date");
-                    }else{
-                        if($this->mobile->create('cash_carries', $post_final, $user->username)){
+                    } else {
+                        if ($this->mobile->create('overtimes', $post_final, $user->username)) {
+                            if (!empty(@$approvalUser->api_key)) {
+                                $this->apps->where('api_key', @$approvalUser->api_key);
+                                $userAp = $this->apps->get('users')->row();
+
+                                $message = "Sent a request to approve data Overtime";
+
+                                $this->pushNotification($userAp->token, $user->name, $message);
+                            }
+
                             die(json_encode(array(
                                 "title" => "Success",
                                 "message" => "Overtime Success Send",
                                 "theme" => "success"
                             )));
-                        }else{
+                        } else {
                             show_error("Overtimes Failed To Send");
                         }
                     }
-                }else{
+                } else {
                     show_error("Cannot Process your request");
                 }
             } else {
@@ -466,20 +518,97 @@ class Overtimes extends CI_Controller
         if ($api_key != "") {
             $user = $this->mobile->read("users", [], ["api_key" => $api_key]);
             if ($user) {
-                if($this->input->post()){
+                if ($this->input->post()) {
                     $data = $this->input->post();
 
-                    $delete = $this->mobile->delete("cash_carries", ['id' => $data['id']], $user->username);
-                    @unlink("'".$data['attachment']."'");
+                    $delete = $this->mobile->delete("overtimes", ['id' => $data['id']], $user->username);
+                    @unlink("'" . $data['attachment'] . "'");
                     echo $delete;
-                }else{
+                } else {
                     show_error("Cannot Process your request");
                 }
             } else {
                 show_error("Api Key Invalid");
             }
-        }else{
+        } else {
             show_error("Cannot Process your request");
         }
+    }
+
+    // NOTIF
+    function getAccessToken()
+    {
+        // Path relatif ke file JSON
+        $pathToFile = APPPATH . 'controllers/mobile/hris-app.json';
+
+        $serviceAccount = json_decode(file_get_contents($pathToFile), true);
+        $header = base64_encode(json_encode(['alg' => 'RS256', 'typ' => 'JWT']));
+        $iat = time();
+        $exp = $iat + 360;
+        $claimSet = base64_encode(json_encode([
+            'iss' => $serviceAccount['client_email'],
+            'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
+            'aud' => 'https://oauth2.googleapis.com/token',
+            'exp' => $exp,
+            'iat' => $iat,
+        ]));
+
+        $signatureInput = $header . '.' . $claimSet;
+        $signature = null;
+        openssl_sign($signatureInput, $signature, $serviceAccount['private_key'], 'SHA256');
+
+        $jwt = $signatureInput . '.' . base64_encode($signature);
+        $ch = curl_init('https://oauth2.googleapis.com/token');
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'assertion' => $jwt,
+        ]));
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        $responseArray = json_decode($response, true);
+        return $responseArray['access_token'];
+    }
+
+    function pushNotification($token, $title, $messages)
+    {
+        $url = 'https://fcm.googleapis.com/v1/projects/hris-app-26211/messages:send';
+        // $tokenUser = 'fjt-9yygSH-kcAiPoMY7cY:APA91bEpNVcIP47v5flZ4nSgJJ97i3pkgDip_zO5wlcuAOwOjSrEHIju-v_jqGruP-aW83O9qHhBVoAdv-w0-BmaXTp5QzUFw0LKfac_S4ZJ-DnoIk6NbCg';
+
+        // Data notifikasi dari input
+        $notification = [
+            'title' => $title,
+            'body' => $messages,
+        ];
+
+        // Payload yang akan dikirim ke Firebase
+        $payload = [
+            'message' => [
+                'token' => $token,
+                'notification' => $notification,
+            ]
+        ];
+
+        $headers = [
+            'Authorization: Bearer ' . $this->getAccessToken(),
+            'Content-Type: application/json',
+        ];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+        $result = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
     }
 }

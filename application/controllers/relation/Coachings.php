@@ -60,12 +60,14 @@ class Coachings extends CI_Controller
                 f.name as departement_sub_name');
             $this->db->from('coachings a');
             $this->db->join('employees b', 'a.employee_id = b.id');
-            $this->db->join('divisions d', 'b.division_id = d.id');
-            $this->db->join('departements e', 'b.departement_id = e.id');
-            $this->db->join('departement_subs f', 'b.departement_sub_id = f.id');
+            $this->db->join('divisions d', 'b.division_id = d.id', 'left');
+            $this->db->join('departements e', 'b.departement_id = e.id', 'left');
+            $this->db->join('departement_subs f', 'b.departement_sub_id = f.id', 'left');
             $this->db->where('a.deleted', 0);
-            $this->db->where('a.trans_date >=', $filter_from);
-            $this->db->where('a.trans_date <=', $filter_to);
+            if ($filter_from != "" && $filter_to != "") {
+                $this->db->where('a.trans_date >=', $filter_from);
+                $this->db->where('a.trans_date <=', $filter_to);
+            }
             $this->db->like('b.id', $filter_employee);
             $this->db->like('b.division_id', $filter_division);
             $this->db->like('b.departement_id', $filter_departement);
@@ -91,6 +93,8 @@ class Coachings extends CI_Controller
         if ($this->input->post()) {
             if ($this->form_validation->run() == TRUE) {
                 $post   = $this->input->post();
+                $attachment = $this->crud->upload('attachment', ['pdf', 'png', 'jpg', 'jpeg'], 'assets/image/coachings/');
+                $post['attachment'] = $attachment;
                 $send   = $this->crud->create('coachings', $post);
                 echo $send;
             } else {
@@ -107,6 +111,13 @@ class Coachings extends CI_Controller
         if ($this->input->post()) {
             $id   = base64_decode($this->input->get('id'));
             $post = $this->input->post();
+
+            $attachment = $this->crud->upload('attachment', ['pdf', 'png', 'jpg', 'jpeg'], 'assets/image/coachings/');
+
+            if ($attachment) {
+                $post['attachment'] = $attachment;
+            }
+
             $send = $this->crud->update('coachings', ["id" => $id], $post);
             echo $send;
         } else {

@@ -11,6 +11,7 @@
             <th rowspan="2" data-options="field:'trans_date',width:100,align:'center'">Trans Date</th>
             <th rowspan="2" data-options="field:'type',width:100,align:'center'">Type</th>
             <th rowspan="2" data-options="field:'header',width:250,halign:'center'">Header</th>
+            <th rowspan="2" data-options="field:'attachment',width:100,halign:'center', formatter:FormatterFile">Attachment</th>
             <th rowspan="2" data-options="field:'remarks',width:400,halign:'center'">Remarks</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
@@ -75,7 +76,7 @@
 
 <!-- DIALOG SAVE AND UPDATE -->
 <div id="dlg_insert" class="easyui-dialog" title="Add New" data-options="closed: true,modal:true" style="width: 400px; padding:10px; top: 20px;">
-    <form id="frm_insert" method="post" novalidate>
+    <form id="frm_insert" method="post" novalidate enctype="multipart/form-data">
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
             <legend><b>Form Data</b></legend>
             <div class="fitem">
@@ -93,6 +94,10 @@
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Header</span>
                 <input style="width:60%;" name="header" id="header" required="" class="easyui-textbox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Attachment</span>
+                <input style="width:60%;" name="attachment" id="attachment" accept=".pdf, .jpg, .png" class="easyui-filebox">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Description</span>
@@ -387,4 +392,12 @@
             return new Date();
         }
     }
+
+    function FormatterFile(value) {
+        if (value == "" || value == null) {
+            return '-';
+        } else {
+            return '<a href="<?= base_url('assets/image/coachings/') ?>' + value + '" target="_blank" style="text-decoration: none;"><i class="fa fa-download"></i> Download</a>';
+        }
+    };
 </script>

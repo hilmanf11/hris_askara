@@ -109,7 +109,11 @@
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Component Salary</span>
-                <input style="width:60%;" name="salary_component_id" id="salary_component_id" class="easyui-combobox">
+                <input style="width:60%;" name="salary_component_id" id="salary_component_id" class="easyui-combogrid">
+            </div>
+             <div class="fitem">
+                <span style="width:35%; display:inline-block;">Type</span>
+                <input style="width:60%;" id="salary_type" name="salary_type" class="easyui-textbox" readonly="readonly">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Amount</span>
@@ -616,19 +620,34 @@
             }
         });
 
-        $('#salary_component_id').combobox({
+        $('#salary_component_id').combogrid({
             url: '<?= base_url('payroll/components/reads') ?>',
-            valueField: 'id',
+            panelWidth: 400,
+            idField: 'id',
             textField: 'name',
-            prompt: "Optional",
-            icons: [{
-                iconCls: 'icon-clear',
-                handler: function(e) {
-                    $(e.data.target).combobox('clear').combobox('textbox').focus();
-                }
-            }],
-            onSelect: function(salary) {
-                $("#amount").numberbox('setValue', salary.salary);
+            mode: 'remote',
+            fitColumns: true,
+            prompt: 'Choose Component Salary',
+            columns: [
+                [{
+                    field: 'number',
+                    title: 'ID',
+                    width: 100
+                }, {
+                    field: 'name',
+                    title: 'Name',
+                    width: 200
+                },
+                {
+                    field: 'salary_type',
+                    title: 'Type',
+                    width: 100
+                },
+            ]
+            ],
+            onSelect: function(index, row) {
+                $('#salary_type').textbox('setValue', row.salary_type);
+                $("#amount").numberbox('setValue', row.salary);
             }
         });
 

@@ -455,6 +455,7 @@ class Attandance_days extends CI_Controller
                     <th>Time In/Out</th>
                     <th>Status</th>
                     <th>Permit</th>
+                    <th>Status Approval</th>
                     <th>Description</th>
                 </tr>';
             $no = 1;
@@ -514,7 +515,16 @@ class Attandance_days extends CI_Controller
                 $permits = $this->db->get()->result_array();
                 $arrPermit = [];
                 foreach ($permits as $permit) {
-                    $arrPermit[] = ["permit_date" => $permit['permit_date'], "permit_name" => $permit['permit_name'], "note" => $permit['note']];
+                    $permit_status = "";
+                    $permit_color = "";
+                    if ($permit["approved_to"] == "" || $permit["approved_to"] == null) {
+                        $permit_status = "APPROVED";
+                        $permit_color = "color:green;font-weight:bold;";
+                    } else {
+                        $permit_status = "CHECKED";
+                        $permit_color = "color:orange;font-weight:bold;";
+                    }
+                    $arrPermit[] = ["permit_date" => $permit['permit_date'], "permit_name" => $permit['permit_name'], "note" => $permit['note'], "status" => $permit_status, "color" => $permit_color];
                 }
 
                 //Resignation
@@ -542,7 +552,8 @@ class Attandance_days extends CI_Controller
                 $remarks = "";
                 for ($i = $start; $i <= $finish; $i += (60 * 60 * 24)) {
                     $working_date = date('Y-m-d', $i);
-
+                    $permit_status = "";
+                    $permit_color = "";
                     if (@$data['days'] == "5") {
                         //sabtu dan minggu libur
                         if (date('w', $i) !== '0' && date('w', $i) !== '6') {
@@ -578,6 +589,8 @@ class Attandance_days extends CI_Controller
                                     $status = "PERMIT";
                                     $permit = $arrP['permit_name'];
                                     $remarks = $arrP['note'];
+                                    $permit_status = $arrP['status'];
+                                    $permit_color = $arrP['color'];
                                 }
                             }
 
@@ -669,6 +682,8 @@ class Attandance_days extends CI_Controller
                                     $status = "PERMIT";
                                     $permit = $arrP['permit_name'];
                                     $remarks = $arrP['note'];
+                                    $permit_status = $arrP['status'];
+                                    $permit_color = $arrP['color'];
                                 }
                             }
 
@@ -753,6 +768,7 @@ class Attandance_days extends CI_Controller
                                     <td>' . @$time_in . ' - ' . @$time_out . '</td>
                                     <td ' . $style . '>' . $status . '</td>
                                     <td ' . $style . '>' . @$permit . '</td>
+                                    <td style="' . $permit_color . '">' . $permit_status . '</td>
                                     <td>' . $remarks . '</td>
                                 </tr>';
 

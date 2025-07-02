@@ -1,6 +1,8 @@
 <?php
+
 date_default_timezone_set("Asia/Bangkok");
 defined('BASEPATH') or exit('No direct script access allowed');
+
 
 class Setup_salaries extends CI_Controller
 {
@@ -13,9 +15,11 @@ class Setup_salaries extends CI_Controller
         $this->load->library('session');
         $this->load->model('crud');
 
+
         //VALIDASI FORM
         $this->form_validation->set_rules('employee_id', 'Employee', 'required|min_length[1]|max_length[20]|is_unique[setup_salaries.employee_id]');
     }
+
 
     //HALAMAN UTAMA
     public function index()
@@ -25,12 +29,14 @@ class Setup_salaries extends CI_Controller
         } elseif ($this->checkuserAccess($this->id_menu()) > 0) {
             $data['button'] = $this->getbutton($this->id_menu());
 
+
             $this->load->view('template/header', $data);
             $this->load->view('payroll/setup_salaries');
         } else {
             redirect('error_access');
         }
     }
+
 
     //GET DATA
     public function reads()
@@ -39,6 +45,7 @@ class Setup_salaries extends CI_Controller
         $send = $this->crud->reads('setup_salaries', ["name" => $post]);
         echo json_encode($send);
     }
+
 
     // public function readUnregistered()
     // {
@@ -62,6 +69,7 @@ class Setup_salaries extends CI_Controller
     //     $records = $this->db->get()->result_array();
     //     echo json_encode($records);
     // }
+
 
     //GET DATATABLES
     public function datatables()
@@ -94,6 +102,7 @@ class Setup_salaries extends CI_Controller
                 f.name as departement_sub_name, 
                 g.id as component_salary_id,
                 g.name as component_salary_name,
+                g.salary_type,
                 ((a.amount * 75) / 100) as basic,
                 ((a.amount * 25) / 100) as allowance_fix,
                 ((a.amount * 25) / 100) as other,
@@ -109,12 +118,26 @@ class Setup_salaries extends CI_Controller
             $this->db->join('privilege_groups h', "c.group_id = h.group_id and h.username = '$username' and h.status = '1'", 'left');
             $this->db->where('c.deleted', 0);
             $this->db->where('c.status', 0);
-            $this->db->like('c.id', $filter_employee);
-            $this->db->like('d.id', $filter_division);
-            $this->db->like('e.id', $filter_departement);
-            $this->db->like('f.id', $filter_departement_sub);
-            $this->db->like('c.position_id', $filter_position);
-            $this->db->like('h.group_id', $filter_group);
+
+            if($filter_employee != ""){
+                $this->db->where('c.id', $filter_employee);
+            }
+            if($filter_division != ""){
+                $this->db->where('d.id', $filter_division);
+            }
+            if($filter_departement != ""){
+                $this->db->where('e.id', $filter_departement);
+            }
+            if($filter_departement_sub != ""){
+                $this->db->where('f.id', $filter_departement_sub);
+            }
+            if($filter_position != ""){
+                $this->db->where('c.position_id', $filter_position);
+            }
+            if($filter_group != ""){
+                $this->db->where('h.group_id', $filter_group);
+            }
+            
             $this->db->not_like('c.number', 'P');
             $this->db->not_like('c.number', 'HL');
             if ($filter_component_salary != "") {
@@ -139,6 +162,7 @@ class Setup_salaries extends CI_Controller
         }
     }
 
+
     //CREATE DATA
     public function create()
     {
@@ -146,6 +170,7 @@ class Setup_salaries extends CI_Controller
             if ($this->form_validation->run() == TRUE) {
                 $post = $this->input->post();
                 $setup_salaries = $this->crud->read("setup_salaries", [], ["employee_id" => $post['employee_id']]);
+
 
                 if (empty($setup_salaries)) {
                     $send   = $this->crud->create('setup_salaries', $post);
@@ -161,6 +186,8 @@ class Setup_salaries extends CI_Controller
         }
     }
 
+
+
     public function createOrUpdate()
     {
         if ($this->input->post()) {
@@ -168,11 +195,14 @@ class Setup_salaries extends CI_Controller
             $component_name = $post['salary_component_name'];
             $bpjs = $post['bpjs'];
 
+
             $setup_salaries = $this->crud->read("setup_salaries", [], ["employee_id" => $post['employee_id']]);
             $component_bf = $this->crud->read('salary_components', [], ["name" => $component_name]);
             $component = $this->crud->read('salary_components', [], ["name" => $component_name]);
 
+
             if (empty($setup_salaries)) {
+
 
                 if ($component) {
                     $amount = $component->salary;
@@ -180,12 +210,14 @@ class Setup_salaries extends CI_Controller
                     $amount = $post['amount'];
                 }
 
+
                 $postFinal = array(
                     "employee_id" => $post['employee_id'],
                     "salary_component_id" => @$component->id,
                     "amount" => $amount,
                     "bpjs" => $bpjs,
                 );
+
 
                 $send   = $this->crud->create('setup_salaries', $postFinal);
                 echo $send;
@@ -196,12 +228,14 @@ class Setup_salaries extends CI_Controller
                     $amount = $component->salary;
                 }
 
+
                 $postFinal = array(
                     "employee_id" => $post['employee_id'],
                     "salary_component_id" => @$component->id,
                     "amount" => $amount,
                     "bpjs" => $bpjs,
                 );
+
 
                 $send = $this->crud->update('setup_salaries', ["employee_id" => $post['employee_id']], $postFinal);
                 echo $send;
@@ -210,6 +244,7 @@ class Setup_salaries extends CI_Controller
             show_error("Cannot Process your request");
         }
     }
+
 
     //UPDATE DATA
     public function update()
@@ -224,6 +259,7 @@ class Setup_salaries extends CI_Controller
         }
     }
 
+
     //DELETE DATA
     public function delete()
     {
@@ -231,6 +267,7 @@ class Setup_salaries extends CI_Controller
         $send = $this->crud->delete('setup_salaries', $data);
         echo $send;
     }
+
 
     public function upload()
     {
@@ -243,6 +280,7 @@ class Setup_salaries extends CI_Controller
         $data = new Spreadsheet_Excel_Reader($file, false);
         $total_row = $data->rowcount($sheet_index = 0);
 
+
         for ($i = 3; $i <= $total_row; $i++) {
             $datas[] = array(
                 'employee_number' => $data->val($i, 2),
@@ -252,15 +290,18 @@ class Setup_salaries extends CI_Controller
             );
         }
 
+
         $datas['total'] = count($datas);
         echo json_encode($datas);
         unlink($_FILES['file_upload']['name']);
     }
 
+
     public function uploadclearFailed()
     {
         @unlink('failed/setup_salaries.txt');
     }
+
 
     public function uploadcreateFailed()
     {
@@ -272,9 +313,11 @@ class Setup_salaries extends CI_Controller
         }
     }
 
+
     public function uploadDownloadFailed()
     {
         $file = "failed/setup_salaries.txt";
+
 
         header('Content-Description: File Failed');
         header('Content-Disposition: attachment; filename=' . basename($file));
@@ -286,6 +329,8 @@ class Setup_salaries extends CI_Controller
         @readfile($file);
     }
 
+
+
     public function uploadcreate()
     {
         if ($this->input->post()) {
@@ -293,6 +338,7 @@ class Setup_salaries extends CI_Controller
             $employees = $this->crud->read('employees', ["number" => $data['employee_number'], "status" => 0]);
             $salary_component = $this->crud->read('salary_components', [], ["number" => $data['salary_component_number']]);
             $bpjs = $data['bpjs'];
+
 
             if (!empty($salary_component->id)) {
                 $salary_component_id = $salary_component->id;
@@ -302,11 +348,13 @@ class Setup_salaries extends CI_Controller
                 $amount = $data['amount'];
             }
 
+
             if (!empty($employees)) {
                 $this->db->select('*');
                 $this->db->from('setup_salaries');
                 $this->db->where("employee_id", $employees->id);
                 $setup_salaries = $this->db->get()->row();
+
 
                 if (!empty($setup_salaries)) {
                     echo json_encode(array("title" => "Available", "message" => $employees->name . " has been created", "theme" => "error"));
@@ -318,6 +366,7 @@ class Setup_salaries extends CI_Controller
                         'bpjs' => $bpjs
                     );
 
+
                     $send = $this->crud->create('setup_salaries', $post);
                     echo $send;
                 }
@@ -327,6 +376,7 @@ class Setup_salaries extends CI_Controller
         }
     }
 
+
     //PRINT & EXCEL DATA
     public function print($option = "")
     {
@@ -335,6 +385,7 @@ class Setup_salaries extends CI_Controller
             header("Content-type: application/vnd-ms-excel");
             header("Content-Disposition: attachment; filename=setup_salaries_$format.xls");
         }
+
 
         $filter_division = $this->input->get('filter_division');
         $filter_departement = $this->input->get('filter_departement');
@@ -346,10 +397,12 @@ class Setup_salaries extends CI_Controller
         $filter_status = $this->input->get('filter_status');
         $username = $this->session->username;
 
+
         //Config
         $this->db->select('*');
         $this->db->from('config');
         $config = $this->db->get()->row();
+
 
         $this->db->select('a.*, 
                 c.id as employee_id,
@@ -375,12 +428,24 @@ class Setup_salaries extends CI_Controller
         $this->db->join('privilege_groups h', "c.group_id = h.group_id and h.username = '$username' and h.status = '1'", 'left');
         $this->db->where('c.deleted', 0);
         $this->db->where('c.status', 0);
-        $this->db->like('c.id', $filter_employee);
-        $this->db->like('d.id', $filter_division);
-        $this->db->like('e.id', $filter_departement);
-        $this->db->like('f.id', $filter_departement_sub);
-        $this->db->like('c.position_id', $filter_position);
-        $this->db->like('h.group_id', $filter_group);
+        if ($filter_employee != "") {
+            $this->db->where('c.id', $filter_employee);
+        }
+        if ($filter_division != "") {
+            $this->db->where('d.id', $filter_division);
+        }
+        if ($filter_departement != "") {
+            $this->db->where('e.id', $filter_departement);
+        }
+        if ($filter_departement_sub != "") {
+            $this->db->where('f.id', $filter_departement_sub);
+        }
+        if ($filter_position != "") {
+            $this->db->where('c.position_id', $filter_position);
+        }
+        if ($filter_group != "") {
+            $this->db->where('h.group_id', $filter_group);
+        }
         $this->db->not_like('c.number', 'P');
         $this->db->not_like('c.number', 'HL');
         if ($filter_component_salary != "") {
@@ -393,6 +458,7 @@ class Setup_salaries extends CI_Controller
         }
         $this->db->order_by('c.name', 'ASC');
         $records = $this->db->get()->result_array();
+
 
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: center;color: black;}</style>
         <style> .str{ mso-number-format:\@; } </style>
@@ -418,6 +484,7 @@ class Setup_salaries extends CI_Controller
         </center>
         <br><br><br>
         
+
         <table id="customers" border="1">
             <tr>
                 <th width="20">No</th>
@@ -447,6 +514,7 @@ class Setup_salaries extends CI_Controller
                     </tr>';
             $no++;
         }
+
 
         $html .= '</table></body></html>';
         echo $html;

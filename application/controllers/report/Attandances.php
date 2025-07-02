@@ -209,9 +209,10 @@ class Attandances extends CI_Controller
                         <th width="20" rowspan="2">No</th>
                         <th rowspan="2" style="text-align:center;">Date</th>
                         <th colspan="5" style="text-align:center;">Attandance</th>
-                        <th colspan="3" style="text-align:center;">Overtime</th>
+                        <th colspan="4" style="text-align:center;">Overtime</th>
                         <th rowspan="2" style="text-align:center;">Duration</th>
                         <th rowspan="2" style="text-align:center;">Status</th>
+                        <th rowspan="2" style="text-align:center;">Status Approval</th>
                         <th rowspan="2" style="text-align:center;">Remarks</th>
                     </tr>
                     <tr>
@@ -223,6 +224,7 @@ class Attandances extends CI_Controller
                         <th style="text-align:center;">Request No</th>
                         <th style="text-align:center;">Start</th>
                         <th style="text-align:center;">End</th>
+                        <th style="text-align:center;">Status Approval</th>
                     </tr>';
                 $working_date = "";
                 $description = "";
@@ -259,6 +261,18 @@ class Attandances extends CI_Controller
                     $this->db->where('a.employee_id', $record['id']);
                     $this->db->where('a.permit_date', $working_date);
                     $permit = $this->db->get()->row();
+
+                    $permit_status = "";
+                    $permit_color = "";
+                    if (@$permit->id) {
+                        if (@$permit->approved_to == "" || @$permit->approved_to == null) {
+                            $permit_status = "APPROVED";
+                            $permit_color = "color:green;font-weight:bold;";
+                        } else {
+                            $permit_status = "CHECKED";
+                            $permit_color = "color:orange;font-weight:bold;";
+                        }
+                    }
 
                     //Attandance and Overtime
                     $this->db->select("date_in, time_in, date_out, time_out");
@@ -307,6 +321,18 @@ class Attandances extends CI_Controller
                     $this->db->where('employee_id', $record['id']);
                     $this->db->where('trans_date', $working_date);
                     $overtime = $this->db->get()->row();
+
+                    $overtime_status = "";
+                    $overtime_color = "";
+                    if (@$overtime->id) {
+                        if (@$overtime->approved_to == "" || @$overtime->approved_to == null) {
+                            $overtime_status = "APPROVED";
+                            $overtime_color = "color:green;font-weight:bold;";
+                        } else {
+                            $overtime_status = "CHECKED";
+                            $overtime_color = "color:orange;font-weight:bold;";
+                        }
+                    }
 
                     //Jika hari kerja nya adalah 5 hari
                     if (@$shift->days == "5") {
@@ -458,8 +484,10 @@ class Attandances extends CI_Controller
                                         <td>' . @$overtime->request_code . '</td>
                                         <td>' . @$overtime->start . '</td>
                                         <td>' . @$overtime->end . '</td>
+                                        <td style="' . $overtime_color . '">' . $overtime_status . '</td>
                                         <td>' . @$overtime->duration_hour . '</td>
                                         <td ' . $style_status . '>' . $attandance_status . '</td>
+                                        <td style="' . $permit_color . '">' . $permit_status . '</td>
                                         <td>' . $holiday . '</td>
                                     </tr>';
                     } else if($filter_permit_type == "") {
@@ -474,8 +502,10 @@ class Attandances extends CI_Controller
                                     <td>' . @$overtime->request_code . '</td>
                                     <td>' . @$overtime->start . '</td>
                                     <td>' . @$overtime->end . '</td>
+                                    <td style="' . $overtime_color . '">' . $overtime_status . '</td>
                                     <td>' . @$overtime->duration_hour . '</td>
                                     <td ' . $style_status . '>' . $attandance_status . '</td>
+                                    <td style="' . $permit_color . '">' . $permit_status . '</td>
                                     <td>' . $holiday . '</td>
                                 </tr>';
                     }

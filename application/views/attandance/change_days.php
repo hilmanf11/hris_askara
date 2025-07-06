@@ -8,6 +8,7 @@
             <th rowspan="2" data-options="field:'employee_name',width:200,halign:'center'">Employee Name</th>
             <th rowspan="2" data-options="field:'start',width:100,halign:'center'">Start</th>
             <th rowspan="2" data-options="field:'end',width:100,halign:'center'">Replace</th>
+            <th rowspan="2" data-options="field:'attachment',width:100,halign:'center', formatter:FormatterFile">Attachment</th>
             <th rowspan="2" data-options="field:'remarks',width:200,halign:'center'">Remarks</th>
             <th colspan="3" data-options="field:'',width:100,halign:'center'"> Approval</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
@@ -76,7 +77,7 @@
 
 <!-- DIALOG SAVE AND UPDATE -->
 <div id="dlg_insert" class="easyui-dialog" title="Add New" data-options="closed: true,modal:true" style="width: 400px; padding:10px; top: 20px;">
-    <form id="frm_insert" method="post" novalidate>
+    <form id="frm_insert" method="post" enctype="multipart/form-data" novalidate>
         <fieldset style="width:100%; border:1px solid #d0d0d0; margin-bottom: 10px; border-radius:4px; float: left;">
             <legend><b>Form Data</b></legend>
             <div class="fitem" id="edit_employee">
@@ -94,6 +95,10 @@
             <div class="fitem">
                 <span style="width:30%; display:inline-block;">Replace To</span>
                 <input style="width:60%;" name="end" id="end" required class="easyui-datebox" data-options="formatter:myformatter,parser:myparser,editable:false">
+            </div>
+            <div class="fitem">
+                <span style="width:30%; display:inline-block;">Attachment</span>
+                <input style="width:60%;" name="attachment" id="attachment" accept=".pdf, .jpg, .png" class="easyui-filebox">
             </div>
             <div class="fitem">
                 <span style="width:30%; display:inline-block;">Remarks</span>
@@ -575,4 +580,12 @@
             return new Date();
         }
     }
+
+    function FormatterFile(value) {
+        if (value == "" || value == null) {
+            return '-';
+        } else {
+            return '<a href="<?= base_url('assets/image/change_days/') ?>' + value + '" target="_blank" style="text-decoration: none;"><i class="fa fa-download"></i> Download</a>';
+        }
+    };
 </script>

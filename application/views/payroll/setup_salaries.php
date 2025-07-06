@@ -113,7 +113,7 @@
             </div>
              <div class="fitem">
                 <span style="width:35%; display:inline-block;">Type</span>
-                <input style="width:60%;" id="salary_type" name="salary_type" class="easyui-textbox" readonly="readonly">
+                <input style="width:60%;" id="salary_type" class="easyui-textbox" readonly="readonly">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Amount</span>

@@ -138,7 +138,16 @@ class Change_days extends CI_Controller
             if (count($change_days) > 0) {
                 echo json_encode(array("title" => "Duplicate", "message" => "Change Days has been created", "theme" => "error"));
             } else {
-                $send = $this->crud->create('change_days', $post);
+                $attachment = $this->crud->upload('attachment', ['pdf', 'png', 'jpg', 'jpeg'], 'assets/image/change_days/');
+                $post_final = array(
+                    "employee_id" => $post['employee_id'],
+                    "request_code" => $post['request_code'],
+                    "start" => $post['start'],
+                    "end" => $post['end'],
+                    "remarks" => $post['remarks'],
+                    "attachment" => $attachment
+                );
+                $send = $this->crud->create('change_days', $post_final);
                 echo $send;
             }
         } else {
@@ -152,8 +161,10 @@ class Change_days extends CI_Controller
         if ($this->input->post()) {
             $id   = base64_decode($this->input->get('id'));
             $post = $this->input->post();
+            $attachment = $this->crud->upload('attachment', ['pdf', 'png', 'jpg', 'jpeg'], 'assets/image/change_days/');
+            $post_final = array_merge($post, ["attachment" => $attachment]);
 
-            if ($this->crud->update('change_days', ["id" => $id], $post)) {
+            if ($this->crud->update('change_days', ["id" => $id], $post_final)) {
                 echo json_encode(array("title" => "Good Job", "message" => "Data Updated Successfully", "theme" => "success"));
             } else {
                 echo log_message('error', 'There is an error in your system or data');

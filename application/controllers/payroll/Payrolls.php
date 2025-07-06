@@ -93,11 +93,16 @@ class Payrolls extends CI_Controller
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
 
+            if ($username == "admin") {
+                $privilege = "";
+            } else {
+                $privilege = " and c.status = '1'";
+            }
             $this->db->select('a.*, b.national_id, d.name as source_name, e.employee_id as status_resign, g.number as account_no');
             $this->db->from('payrolls a');
             $this->db->join('employees b', 'a.employee_id = b.id');
             $this->db->join('sources d', 'b.source_id = d.id', 'left');
-            $this->db->join('privilege_groups c', "(b.group_id = c.group_id or b.group_id is null or b.group_id = '') and c.username = '$username' and c.status = '0'", 'left');
+            $this->db->join('privilege_groups c', "(b.group_id = c.group_id or b.group_id is null or b.group_id = '') and c.username = '$username' $privilege", 'left');
             $this->db->join('resignations e', 'e.employee_id = b.id', 'left');
             $this->db->join('account_coa f', 'b.division_id = f.division_id and b.departement_id = f.departement_id and b.position_id = f.position_id and b.contract_id = f.contract_id', 'left');
             $this->db->join('accounts g', "f.account_id = g.id and g.category = 'payroll'", 'left');
@@ -297,8 +302,8 @@ class Payrolls extends CI_Controller
                     n.name as shift_name,
                     l.name as shift_name_2,
                     l.days,
-                    p.amount as salary,
-                    p.bpjs,
+                    coalesce(p.amount, 0) as salary,
+                    coalesce(p.bpjs, 0) as bpjs,
                     q.number as marital,
                     q.ter_type,
                     a.tax_id

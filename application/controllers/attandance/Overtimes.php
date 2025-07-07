@@ -406,21 +406,25 @@ class Overtimes extends CI_Controller
                     $meal = @$setup_cash_carries->total_meal;
                 }
 
-                if (date('w', $start) !== '0' && date('w', $start) !== '6') {
+                $dayOfWeek = date('w', $start); // 0: Minggu, 6: Sabtu
+                $isWeekend = in_array($dayOfWeek, ['0', '6']);
+                $isHoliday = count($calendars) > 0;
 
-                    //Kalo ada tanggal Merah
-                    if (count($calendars) > 0) {
-                        $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
-                    } else {
-                        $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
-                    }
+                if ($isHoliday) {
+                    $rate = @$setup_cash_carries->total_holiday ;
                 } else {
-                    if (date('w', $start) === '0') {
-                        $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
+                    if (!$isWeekend) {
+                        $rate = @$setup_cash_carries->total_weekday;
                     } else {
-                        $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
+                        if ($dayOfWeek === '0') {
+                            $rate = @$setup_cash_carries->total_sunday;
+                        } else {
+                            $rate = @$setup_cash_carries->total_saturday;
+                        }
                     }
                 }
+
+                $total = ($rate * $hour) + $meal;
 
                 $total_duration = $record['break_hour'] + $record['duration_hour'];
                 $amount = ["amount_cash_carry" => $total, "duration_total" => $total_duration];

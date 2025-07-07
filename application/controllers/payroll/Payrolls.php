@@ -102,7 +102,7 @@ class Payrolls extends CI_Controller
             $this->db->from('payrolls a');
             $this->db->join('employees b', 'a.employee_id = b.id');
             $this->db->join('sources d', 'b.source_id = d.id', 'left');
-            $this->db->join('privilege_groups c', "(b.group_id = c.group_id or b.group_id is null or b.group_id = '') and c.username = '$username' $privilege", 'left');
+            $this->db->join('privilege_groups c', "(b.group_id = c.group_id or b.group_id is null or b.group_id = '') and c.username = '$username' $privilege");
             $this->db->join('resignations e', 'e.employee_id = b.id', 'left');
             $this->db->join('account_coa f', 'b.division_id = f.division_id and b.departement_id = f.departement_id and b.position_id = f.position_id and b.contract_id = f.contract_id', 'left');
             $this->db->join('accounts g', "f.account_id = g.id and g.category = 'payroll'", 'left');
@@ -288,6 +288,12 @@ class Payrolls extends CI_Controller
 
             $username = $this->session->username;
 
+            if ($username == "admin") {
+                $privilege = "";
+            } else {
+                $privilege = " and m.status = '1'";
+            }
+
             $query = $this->db->query("SELECT a.*, 
                     b.name as division_name,
                     c.name as departement_name,
@@ -319,8 +325,8 @@ class Payrolls extends CI_Controller
                 LEFT JOIN shift_details l ON n.id = l.shift_id
                 LEFT JOIN setup_salaries p ON p.employee_id = a.id
                 LEFT JOIN maritals q ON a.marital_id = q.id
-                LEFT JOIN privilege_groups m ON (i.id = m.group_id or m.group_id is null or m.group_id = '') 
-                and m.username = '$username' and m.status = '1'
+                JOIN privilege_groups m ON (i.id = m.group_id or m.group_id is null or m.group_id = '') 
+                and m.username = '$username' $privilege
                 WHERE a.deleted = 0 and a.status = 0 and a.date_sign <= '$filter_to'
                 $divisions
                 $department
@@ -588,29 +594,30 @@ class Payrolls extends CI_Controller
                     $meal = @$setup_cash_carries->total_meal;
                 }
 
-                if (date('w', $start) !== '0' && date('w', $start) !== '6') {
+                $dayOfWeek = date('w', $start); // 0: Minggu, 6: Sabtu
+                $isWeekend = ($dayOfWeek === '0' || $dayOfWeek === '6');
+                $isHoliday = count($calendars) > 0;
 
-                    //Kalo ada tanggal Merah
-                    if (count($calendars) > 0) {
-                        $total = ((@$setup_cash_carries->total_holiday * $hour) + $meal);
-                        $overtime_holiday += $hour;
-                        $overtime_amount_holiday += $total;
-                    } else {
-                        $total = ((@$setup_cash_carries->total_weekday * $hour) + $meal);
-                        $overtime_weekday += $hour;
-                        $overtime_amount_weekday += $total;
-                    }
+                if ($isHoliday) {
+                    $rate = @$setup_cash_carries->total_holiday;
+                    $overtime_holiday += $hour;
+                    $overtime_amount_holiday += ($rate * $hour) + $meal;
                 } else {
-                    if (date('w', $start) === '0') {
-                        $total = ((@$setup_cash_carries->total_sunday * $hour) + $meal);
+                    if (!$isWeekend) {
+                        $rate = @$setup_cash_carries->total_weekday;
+                        $overtime_weekday += $hour;
+                        $overtime_amount_weekday += ($rate * $hour) + $meal;
+                    } elseif ($dayOfWeek === '0') {
+                        $rate = @$setup_cash_carries->total_sunday;
                         $overtime_sunday += $hour;
-                        $overtime_amount_sunday += $total;
+                        $overtime_amount_sunday += ($rate * $hour) + $meal;
                     } else {
-                        $total = ((@$setup_cash_carries->total_saturday * $hour) + $meal);
+                        $rate = @$setup_cash_carries->total_saturday;
                         $overtime_saturday += $hour;
-                        $overtime_amount_saturday += $total;
+                        $overtime_amount_saturday += ($rate * $hour) + $meal;
                     }
                 }
+
             }
 
             $total_overtime = $overtime_weekday + $overtime_sunday + $overtime_saturday + $overtime_holiday;

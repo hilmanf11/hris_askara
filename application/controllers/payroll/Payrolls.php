@@ -1170,7 +1170,11 @@ class Payrolls extends CI_Controller
         $period_end = date("Y-m", strtotime($post['filter_to']));
         $username = $this->session->username;
 
-        $privileges = $this->crud->reads('privilege_groups', [], ["username" => $username, "status" => "0"]);
+        if ($username == "admin") {
+            $privileges = $this->crud->reads('privilege_groups', [], ["username" => $username]);
+        } else {
+            $privileges = $this->crud->reads('privilege_groups', [], ["username" => $username, "status" => "1"]);
+        }
 
         foreach ($privileges as $privilege) {
             $group_id = $privilege->group_id;
@@ -1245,10 +1249,16 @@ class Payrolls extends CI_Controller
             $where_status = "";
         }
 
+        if ($username == "admin") {
+            $privileges = "";
+        } else {
+            $privileges = "AND c.status = '1'";
+        }
+
         $query = $this->db->query("SELECT a.*, b.national_id, d.name as source_name, e.employee_id as status_resign, g.number as account_no FROM payrolls a
             JOIN employees b on a.employee_id = b.id
             LEFT JOIN sources d on b.source_id = d.id
-            LEFT JOIN privilege_groups c ON b.group_id = c.group_id and c.username = '$username' and c.status = '1'
+            JOIN privilege_groups c ON b.group_id = c.group_id and c.username = '$username' $privileges
             LEFT JOIN resignations e ON b.id = e.employee_id
             LEFT JOIN account_coa f ON b.division_id = f.division_id and b.departement_id = f.departement_id and b.position_id = f.position_id and b.contract_id = f.contract_id
             LEFT JOIN accounts g ON f.account_id = g.id and g.category = 'payroll'

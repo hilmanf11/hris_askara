@@ -6,7 +6,7 @@
             <th data-options="field:'departement_sub_name',width:200,halign:'center'">Departement Sub</th>
             <th data-options="field:'employee',width:100,halign:'center'">Employee</th>
             <th data-options="field:'print',width:100,halign:'center',formatter:FormatterFile"> Print</th>
-            <th data-options="field:'mail',width:100,halign:'center',formatter:FormatterMail"> Email</th>
+            <th data-options="field:'mail',width:100,halign:'center',formatter:FormatterMail, hidden:true"> Email</th>
         </tr>
     </thead>
 </table>

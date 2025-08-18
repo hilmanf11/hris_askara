@@ -45,6 +45,13 @@ class Summary_payrolls extends CI_Controller
         $period_start = date("Y-m", strtotime($filter_from));
         $period_end = date("Y-m", strtotime($filter_to));
 
+        $username = $this->session->username;
+        if ($username == "admin") {
+            $privilege = "";
+        } else {
+            $privilege = " and f.status = '1'";
+        }
+
         //Select Query
         $this->db->select('
             a.approved,
@@ -64,7 +71,7 @@ class Summary_payrolls extends CI_Controller
         $this->db->join('departements c', "b.departement_id = c.id");
         $this->db->join('departement_subs d', "b.departement_sub_id = d.id");
         $this->db->join('groups e', "b.group_id = e.id");
-        $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' and f.status = '1'");
+        $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' $privilege");
         // $this->db->where("(a.approved_to = '' or a.approved_to is null)");
         $this->db->where('a.deleted', 0);
         $this->db->where('a.period_start =', $period_start);
@@ -106,9 +113,16 @@ class Summary_payrolls extends CI_Controller
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
 
+            $username = $this->session->username;
+            if ($username == "admin") {
+                $privilege = "";
+            } else {
+                $privilege = " and c.status = '1'";
+            }
+
             $query = $this->db->query("SELECT a.*, b.bank_branch, b.bank_no, b.national_id FROM payrolls a
                 JOIN employees b ON a.employee_id = b.id
-                JOIN privilege_groups c ON b.group_id = c.group_id and c.username = '$username' and c.status = '1'
+                JOIN privilege_groups c ON b.group_id = c.group_id and c.username = '$username' $privilege
                 WHERE a.period_start = '$period_start' and a.period_end = '$period_end'
                 AND b.division_id LIKE '%$filter_division%'
                 AND b.departement_id LIKE '%$filter_departement%'
@@ -252,7 +266,7 @@ class Summary_payrolls extends CI_Controller
                 $offset = ($i * 25);
                 $query = $this->db->query("SELECT a.*, b.bank_branch, b.bank_no, b.national_id, b.tax_id as npwp FROM payrolls a
                     JOIN employees b ON a.employee_id = b.id
-                    JOIN privilege_groups c ON b.group_id = c.group_id and c.username = '$username' and c.status = '1'
+                    JOIN privilege_groups c ON b.group_id = c.group_id and c.username = '$username' $privilege
                     WHERE a.period_start = '$period_start' and a.period_end = '$period_end'
                     AND b.division_id LIKE '%$filter_division%'
                     AND b.departement_id LIKE '%$filter_departement%'
@@ -413,6 +427,13 @@ class Summary_payrolls extends CI_Controller
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
 
+            $username = $this->session->username;
+            if ($username == "admin") {
+                $privilege = "";
+            } else {
+                $privilege = " and f.status = '1'";
+            }
+
             //Select Query
             $this->db->select('
                 b.departement_id,
@@ -428,7 +449,7 @@ class Summary_payrolls extends CI_Controller
             $this->db->join('departements c', "b.departement_id = c.id");
             $this->db->join('departement_subs d', "b.departement_sub_id = d.id");
             $this->db->join('groups e', "b.group_id = e.id");
-            $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' and f.status = '1'");
+            $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' $privilege");
             $this->db->where("(a.approved_to = '' or a.approved_to is null)");
             $this->db->where('a.deleted', 0);
             $this->db->where('a.period_start =', $period_start);
@@ -474,7 +495,7 @@ class Summary_payrolls extends CI_Controller
                 $this->db->join('departements c', "b.departement_id = c.id");
                 $this->db->join('departement_subs d', "b.departement_sub_id = d.id");
                 $this->db->join('groups e', "b.group_id = e.id");
-                $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' and f.status = '1'");
+                $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' $privilege");
                 $this->db->where('a.deleted', 0);
                 $this->db->where('a.period_start =', $period_start);
                 $this->db->where('a.period_end =', $period_end);
@@ -698,10 +719,17 @@ class Summary_payrolls extends CI_Controller
                                     <th style="text-align:center;">ABS (AMT)</th>
                                 </tr>';
 
+            $username = $this->session->username;
+            if ($username == "admin") {
+                $privilege = "";
+            } else {
+                $privilege = " and c.status = '1'";
+            }
+
             $this->db->select('a.*, b.bank_branch, b.bank_no, b.national_id, b.tax_id as npwp');
             $this->db->from('payrolls a');
             $this->db->join('employees b', "a.employee_id = b.id");
-            $this->db->join('privilege_groups c', "b.group_id = c.group_id and c.username = '$username' and c.status = '1'");
+            $this->db->join('privilege_groups c', "b.group_id = c.group_id and c.username = '$username' $privilege");
             $this->db->join('groups d', "b.group_id = d.id");
             $this->db->where('a.deleted', 0);
             $this->db->where('a.period_start =', $period_start);

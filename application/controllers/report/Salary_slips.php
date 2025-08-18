@@ -45,6 +45,13 @@ class Salary_slips extends CI_Controller
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
 
+            $username = $this->session->username;
+            if ($username == "admin") {
+                $privilege = "";
+            } else {
+                $privilege = " and f.status = '1'";
+            }
+
             //Select Query
             $this->db->select('
                 a.approved,
@@ -64,7 +71,7 @@ class Salary_slips extends CI_Controller
             $this->db->join('departements c', "b.departement_id = c.id");
             $this->db->join('departement_subs d', "b.departement_sub_id = d.id");
             $this->db->join('groups e', "b.group_id = e.id");
-            $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' and f.status = '1'");
+            $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' $privilege");
             $this->db->where('a.deleted', 0);
             $this->db->where('a.period_start =', $period_start);
             $this->db->where('a.period_end =', $period_end);
@@ -98,10 +105,17 @@ class Salary_slips extends CI_Controller
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
 
+            $username = $this->session->username;
+            if ($username == "admin") {
+                $privilege = "";
+            } else {
+                $privilege = " and e.status = '1'";
+            }
+
             $query = $this->db->query("SELECT a.*, b.bank_branch, b.bank_no, b.national_id, b.tax_id, i.name as marital_name, b.email, d.ter as ter_persentase
             FROM payrolls a
             JOIN employees b ON a.employee_id = b.id
-            JOIN privilege_groups e ON b.group_id = e.group_id and e.username = '$username' and e.status = '1'
+            JOIN privilege_groups e ON b.group_id = e.group_id and e.username = '$username' $privilege
             LEFT JOIN marital_categories d ON a.ter_number = d.number
             LEFT JOIN maritals i ON a.marital = i.number
             WHERE a.period_start = '$period_start'
@@ -474,10 +488,17 @@ class Salary_slips extends CI_Controller
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
 
+            $username = $this->session->username;
+            if ($username == "admin") {
+                $privilege = "";
+            } else {
+                $privilege = " and f.status = '1'";
+            }
+
             $query = $this->db->query("SELECT a.*, b.bank_branch, b.bank_no, b.national_id, b.tax_id, i.name as marital_name, b.email, d.ter as ter_persentase
             FROM payrolls a
             JOIN employees b ON a.employee_id = b.id
-            JOIN privilege_groups e ON b.group_id = e.group_id and e.username = '$username' and e.status = '1'
+            JOIN privilege_groups e ON b.group_id = e.group_id and e.username = '$username' $privilege
             LEFT JOIN marital_categories d ON a.ter_number = d.number
             LEFT JOIN maritals i ON a.marital = i.number
             WHERE a.period_start = '$period_start'
@@ -851,6 +872,12 @@ class Salary_slips extends CI_Controller
 
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
+            $username = $this->session->username;
+            if ($username == "admin") {
+                $privilege = "";
+            } else {
+                $privilege = " and f.status = '1'";
+            }
 
             //Select Query
             $this->db->select('
@@ -867,7 +894,7 @@ class Salary_slips extends CI_Controller
             $this->db->join('departements c', "b.departement_id = c.id");
             $this->db->join('departement_subs d', "b.departement_sub_id = d.id");
             $this->db->join('groups e', "b.group_id = e.id");
-            $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' and f.status = '1'");
+            $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' $privilege");
             $this->db->where('a.deleted', 0);
             $this->db->where('a.period_start =', $period_start);
             $this->db->where('a.period_end =', $period_end);
@@ -910,7 +937,7 @@ class Salary_slips extends CI_Controller
                 $this->db->join('departements c', "b.departement_id = c.id");
                 $this->db->join('departement_subs d', "b.departement_sub_id = d.id");
                 $this->db->join('groups e', "b.group_id = e.id");
-                $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' and f.status = '1'");
+                $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' $privilege");
                 $this->db->where('a.deleted', 0);
                 $this->db->where('a.period_start =', $period_start);
                 $this->db->where('a.period_end =', $period_end);

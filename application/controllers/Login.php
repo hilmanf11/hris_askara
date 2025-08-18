@@ -48,11 +48,15 @@ class Login extends CI_Controller
             if ($this->input->post()) {
                 $post = $this->input->post();
                 //Cek login username dan password
-                $user = $this->crud->read("users", [], [
-                    "deleted" => 0,
-                    "username" => $post['username'],
-                    "password" => $post['password']
-                ]);
+                $this->db->select('*');
+                $this->db->from('users a');
+                $this->db->where('deleted', 0);
+                $this->db->where('password', $post['password']);
+                $this->db->group_start();
+                    $this->db->where('username', $post['username']);
+                    $this->db->or_where('email', $post['username']);
+                $this->db->group_end();
+                $user = $this->db->get()->row();
 
                 //Jika username dan password terdaftar di table users
                 if ($user) {

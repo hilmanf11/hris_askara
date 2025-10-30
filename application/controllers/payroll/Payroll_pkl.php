@@ -105,9 +105,10 @@ class Payroll_pkl extends CI_Controller
             $result = array();
             //Select Query
 
-            $this->db->select('a.*, b.national_id');
+            $this->db->select('a.*, b.national_id, c.name as company_name');
             $this->db->from('payroll_pkl a');
             $this->db->join('employees b', 'a.employee_id = b.id');
+            $this->db->join('divisions c', 'b.division_id = c.id');
             if ($filter_from != "" && $filter_to != "") {
                 $this->db->where('period_start =', $filter_from);
                 // $this->db->where('period_end =', $filter_to);
@@ -140,9 +141,9 @@ class Payroll_pkl extends CI_Controller
             $filter_source = $this->input->get('filter_source');
             $filter_employee = $this->input->get('filter_employee');
 
-            $query = $this->db->query("SELECT a.*, b.name as source_name, b.amount, b.boarding_fee, c.name as departement_name, d.name as departement_sub_name
+            $query = $this->db->query("SELECT a.*, b.name as source_name, COALESCE(b.amount, 0) as amount, COALESCE(b.boarding_fee, 0) as boarding_fee, c.name as departement_name, d.name as departement_sub_name
                 FROM employees a
-                JOIN sources b ON a.source_id = b.id
+                LEFT JOIN sources b ON a.source_id = b.id
                 JOIN departements c ON a.departement_id = c.id
                 JOIN departement_subs d ON a.departement_sub_id = d.id
                 JOIN groups e ON a.group_id = e.id and e.name = 'PKL'
@@ -424,9 +425,10 @@ class Payroll_pkl extends CI_Controller
         $config = $this->db->get()->row();
 
         //Select Query
-        $this->db->select('a.*, b.national_id');
+        $this->db->select('a.*, b.national_id, c.name as company_name');
         $this->db->from('payroll_pkl a');
         $this->db->join('employees b', 'a.employee_id = b.id');
+        $this->db->join('divisions c', 'b.division_id = c.id');
         if ($filter_from != "" && $filter_to != "") {
             $this->db->where('a.period_start =', $filter_from);
             // $this->db->where('period_end =', $filter_to);
@@ -466,6 +468,7 @@ class Payroll_pkl extends CI_Controller
                 <th>Employee ID</th>
                 <th>NIK</th>
                 <th>Employee Name</th>
+                <th>Company</th>
                 <th>Join Date</th>
                 <th>Fit of Services</th>
                 <th>Departement</th>
@@ -484,6 +487,7 @@ class Payroll_pkl extends CI_Controller
                             <td style="mso-number-format:\@;">' . $data['employee_number'] . '</td>
                             <td style="mso-number-format:\@;">' . $data['national_id'] . '</td>
                             <td>' . $data['employee_name'] . '</td>
+                            <td>' . $data['company_name'] . '</td>
                             <td>' . date("d F Y", strtotime($data['date_sign'])) . '</td>
                             <td>' . $data['services'] . '</td>
                             <td>' . $data['departement_name'] . '</td>

@@ -43,7 +43,7 @@
             <th rowspan="2" data-options="field:'bpjs_company_total_2',width:100,align:'center', formatter:numberformat">Total BPJS<br>Company</th>
             <th rowspan="2" data-options="field:'income',width:100,align:'center', formatter:numberformat">Income</th>
             <th colspan="<?= (count($deduction)) ?>">Deduction </th>
-            <th colspan="3">LOAN</th>
+            <th colspan="2">LOAN</th>
             <th colspan="<?= count($bpjs) ?>">BPJS Employee</th>
             <th rowspan="2" data-options="field:'bpjs_employee_total',width:100,align:'center', formatter:numberformat">Total BPJS<br>Employee</th>
             <!-- <th rowspan="2" data-options="field:'netto',width:100,align:'center'">Netto</th> -->

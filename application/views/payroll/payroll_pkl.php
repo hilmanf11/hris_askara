@@ -5,10 +5,7 @@
             <th data-options="field:'employee_number',width:100,halign:'center'">Employee ID</th>
             <th data-options="field:'national_id',width:140,halign:'center'">NIK</th>
             <th data-options="field:'employee_name',width:250,halign:'center'">Employee Name</th>
-        </tr>
-    </thead>
-    <thead>
-        <tr>
+            <th data-options="field:'company_name',width:200,halign:'center'">Company</th>
             <th data-options="field:'departement_name',width:200,halign:'center'">Departement</th>
             <th data-options="field:'departement_sub_name',width:200,halign:'center'">Departement Sub</th>
             <th data-options="field:'source_name',width:200,halign:'center'">Source</th>
@@ -54,7 +51,7 @@
     <?= $button ?>
 </div>
 
-<div id="dlg_generate" class="easyui-dialog" title="Generating Data" data-options="closed: true,modal:true,closable: false" style="width: 500px; padding:10px; top: 20px;">
+<div id="dlg_generate" class="easyui-dialog" title="Generating Data" data-options="closed: true,modal:true" style="width: 500px; padding:10px; top: 20px;">
     <div class="alert alert-warning" role="alert">
         Please wait until the generate process is complete
     </div>

@@ -319,7 +319,7 @@ class Payrolls extends CI_Controller
                 JOIN departement_subs d ON a.departement_sub_id = d.id
                 LEFT JOIN contracts f ON a.contract_id = f.id
                 LEFT JOIN positions g ON a.position_id = g.id
-                LEFT JOIN groups i ON a.group_id = i.id
+                LEFT JOIN groups i ON a.group_id = i.id and i.name != 'PKL'
                 LEFT JOIN shift_employees k ON a.id = k.employee_id
                 LEFT JOIN shifts n ON k.shift_id = n.id
                 LEFT JOIN shift_details l ON n.id = l.shift_id

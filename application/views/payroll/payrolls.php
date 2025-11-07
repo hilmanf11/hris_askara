@@ -29,7 +29,7 @@
             <th rowspan="2" data-options="field:'salary',width:100,align:'center', formatter:numberformat">Salary</th>
             <th colspan="<?= (count($allowance)) ?>">Allowence</th>
             <th colspan="4">Overtime</th>
-            <th colspan="<?= count($bpjs) ?>">BPJS Company</th>
+            <th colspan="3">BPJS Company</th>
             <th rowspan="2" data-options="field:'bpjs_company_total',width:100,align:'center', formatter:numberformat">Total BPJS<br>Company</th>
             <th rowspan="2" data-options="field:'correction_plus',width:100,align:'center', formatter:numberformat">Correction<br>Plus</th>
             <!-- <th colspan="3">OT (Working Day)</th>
@@ -72,8 +72,10 @@
             <?php            
 
             foreach ($bpjs as $bpjs_data) {
-                $bpjs_field = "field:'" . strtolower($bpjs_data->number) . "_company',width:100,align:'center'";
-                echo '<th data-options="' . $bpjs_field . ', formatter:numberformat">' . $bpjs_data->number . '</th>';
+                if (in_array($bpjs_data->number, ["BPJS", "JKK", "JKM"])) {
+                    $bpjs_field = "field:'" . strtolower($bpjs_data->number) . "_company',width:100,align:'center'";
+                    echo '<th data-options="' . $bpjs_field . ', formatter:numberformat">' . $bpjs_data->number . '</th>';
+                }
             }
             ?>
             <!-- <th data-options="field:'overtime_weekday',width:80,align:'center', formatter:numberformat">Hour</th>
@@ -174,6 +176,8 @@
     </div>
 
     <?= $button ?>
+    <a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="pdfReport()"><i class="fa fa-print"></i> Print Report</a>
+    <a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="excelReport()"><i class="fa fa-file"></i> Export Report</a>
 </div>
 
 <div id="dlg_generate" class="easyui-dialog" title="Generating Data" data-options="closed: true,modal:true" style="width: 500px; padding:10px; top: 20px;">
@@ -192,6 +196,8 @@
 
 <!-- PDF -->
 <iframe id="printout" src="<?= base_url('payroll/payrolls/print') ?>" style="width: 100%;" hidden></iframe>
+<iframe id="printoutreport" src="<?= base_url('payroll/payrolls/printReport') ?>" style="width: 100%;" hidden></iframe>
+
 
 <script>
     function formula(){
@@ -499,6 +505,9 @@
 
             $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
             $("#printout").attr('src', '<?= base_url('payroll/payrolls/print') ?>' + url);
+
+            $("#printoutreport").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
+            $("#printoutreport").attr('src', '<?= base_url('payroll/payrolls/printReport') ?>' + url);
         }
     }
 
@@ -756,5 +765,37 @@
         }else{
             return 'background: #FFC41B; color:white;';
         }
+    }
+
+    function excelReport() {
+        var filter_from = $("#filter_from").combogrid('getValue');
+        var filter_to = $("#filter_to").textbox('getValue');
+        var filter_division = $("#filter_division").combobox('getValue');
+        var filter_departement = $("#filter_departement").combobox('getValue');
+        var filter_departement_sub = $("#filter_departement_sub").combobox('getValue');
+        var filter_employee = $("#filter_employee").combogrid('getValue');
+        var filter_employee_type = $("#filter_employee_type").combobox('getValue');
+        var filter_group = $("#filter_group").combobox('getValue');
+        var filter_status = $("#filter_status").combobox('getValue');
+
+        var url = "?filter_from=" + filter_from +
+            "&filter_to=" + filter_to +
+            "&filter_division=" + filter_division +
+            "&filter_departement=" + filter_departement +
+            "&filter_departement_sub=" + filter_departement_sub +
+            "&filter_employee=" + filter_employee +
+            "&filter_employee_type=" + filter_employee_type +
+            "&filter_status=" + filter_status +
+            "&filter_group=" + filter_group;
+
+        if (filter_from == "" || filter_to == "") {
+            toastr.warning("Please Enter Cut Off Period");
+        } else {
+            window.location.assign('<?= base_url('payroll/payrolls/printReport/excel') ?>' + url);
+        }
+    }
+
+    function pdfReport() {
+        $("#printoutreport").get(0).contentWindow.print();
     }
 </script>

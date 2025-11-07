@@ -28,7 +28,7 @@ class Payrolls extends CI_Controller
             $data['allowance'] = $this->crud->reads('allowances', [], [], "", "name", "asc");
             $data['deduction'] = $this->crud->reads('deductions', [], [], "", "name", "asc");
             $data['permit_type_d'] = $this->crud->reads('permit_types', [], ['payroll' => 'DEDUCTION']);
-            $data['bpjs'] = $this->crud->reads('bpjs', ['status' => 0]);
+            $data['bpjs'] = $this->crud->reads('bpjs', ['status' => 0],[], "", "", "", ["number"]);
 
             $this->load->view('template/header', $data);
             $this->load->view('payroll/payrolls');
@@ -312,7 +312,8 @@ class Payrolls extends CI_Controller
                     coalesce(p.bpjs, 0) as bpjs,
                     q.number as marital,
                     q.ter_type,
-                    a.tax_id
+                    a.tax_id,
+                    p.salary_component_id
                 FROM employees a
                 JOIN divisions b ON a.division_id = b.id
                 JOIN departements c ON a.departement_id = c.id
@@ -415,6 +416,11 @@ class Payrolls extends CI_Controller
 
             //Permit yang non deduction atau tidak potong gaji
             $permit_date = "'" . implode("', '", $weekend_day) . "'";
+
+            $permitNonDeduction = $this->getPermitNonDeduction( $record['id'], $filter_from, $filter_to, $permit_date);
+            $arr_permit_combine = $permitNonDeduction['arr_permit_combine'];
+            $arr_total_permit = $permitNonDeduction['arr_total_permit'];
+            
             $calendar_date = "'" . implode("', '", $w_calendars) . "'";
 
             if(count($w_calendars) > 0){
@@ -422,26 +428,8 @@ class Payrolls extends CI_Controller
             }else{
                 $calendar_where = "";
             }
-            $q_permit = $this->db->query("SELECT b.number, b.name, COUNT(a.permit_date) as amount
-                    FROM permit_types b
-                    LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$record[id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and a.permit_date not in ($permit_date)
-                    WHERE b.payroll = 'NON DEDUCTION' and (a.approved_to = '' or a.approved_to is null)
-                    GROUP BY b.id");
-            $r_permit = $q_permit->result_array();
-            $arr_permit_number = "";
-            $arr_permit_amount = "";
-            $arr_total_permit = 0;
-            foreach ($r_permit as $permit_data) {
-                $arr_permit_number .= strtolower($permit_data['number']) . "a,";
-                $arr_permit_amount .= $permit_data['amount'] . ",";
-                $arr_total_permit += $permit_data['amount'];
-            }
 
-            $arr_permit_number_ex = explode(",", substr($arr_permit_number, 0, -1));
-            $arr_permit_amount_ex = explode(",", substr($arr_permit_amount, 0, -1));
-            $arr_permit_combine = array_combine($arr_permit_number_ex, $arr_permit_amount_ex);
-
-            //Permit yang deduction atau potong gaji
+            //Permit yang deduction atau potong gaji (tidak di pakai?)
             $q_permit_deduction = $this->db->query("SELECT b.number, b.name, COUNT(a.permit_date) as amount
                     FROM permit_types b
                     LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$record[id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and a.permit_date not in ($permit_date) $calendar_where
@@ -455,173 +443,51 @@ class Payrolls extends CI_Controller
             }
 
             //Permit atau absen nya YES di anggap masuk kerja
-            $q_permit_absence = $this->db->query("SELECT b.number, b.name, COUNT(a.permit_date) as amount
-                    FROM permit_types b
-                    LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$record[id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and a.permit_date not in ($permit_date) $calendar_where
-                    WHERE b.absence = 'YES' and (a.approved_to = '' or a.approved_to is null)
-                    GROUP BY b.id");
+            $permitAbsenceYes = $this->getPermitAbsence( $record['id'], $filter_from, $filter_to, $permit_date, $calendar_where,'YES');
+            $arr_total_permit_absence = $permitAbsenceYes['arr_total_permit_absence'];
 
-            $r_permit_absence = $q_permit_absence->result_array();
-            $arr_total_permit_absence = 0;
-            foreach ($r_permit_absence as $permit_data_absence) {
-                $arr_total_permit_absence += $permit_data_absence['amount'];
-            }
+            
 
             //Permit atau absen nya NO di anggap tidak kerja
-            $q_permit_absence_no = $this->db->query("SELECT b.number, b.name, COUNT(a.permit_date) as amount
-                    FROM permit_types b
-                    LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$record[id]' and a.permit_date >= '$filter_from' and a.permit_date <= '$filter_to' and a.permit_date not in ($permit_date) $calendar_where
-                    WHERE b.absence = 'NO' and (a.approved_to = '' or a.approved_to is null)
-                    GROUP BY b.id");
-
-            $r_permit_absence_no = $q_permit_absence_no->result_array();
-            $arr_total_permit_absence_no = 0;
-            foreach ($r_permit_absence_no as $permit_data_absence_no) {
-                $arr_total_permit_absence_no += $permit_data_absence_no['amount'];
-            }
+            $permitAbsenceNo = $this->getPermitAbsence( $record['id'], $filter_from, $filter_to, $permit_date, $calendar_where,'NO');
+            $arr_total_permit_absence_no = $permitAbsenceNo['arr_total_permit_absence'];
 
             //Change Days
-            $this->db->select("COUNT(*) as days");
-            $this->db->from('change_days');
-            $this->db->where('employee_id', $record['id']);
-            $this->db->where("(start between '$filter_from' and '$filter_to' or end between '$filter_from' and '$filter_to')");
-            if (count($weekday_day) > 0) {
-                $this->db->where_in('end', $weekday_day);
-            }
-            $changeDays = $this->db->get()->row();
-            $changeDays_amount = empty($changeDays->days) ? 0 : $changeDays->days;
+            $changeDays = $this->getChangeDays( $record['id'], $filter_from, $filter_to, $weekday_day);
+            $changeDays_amount = $changeDays['changeDays_amount'];
 
             //Correction PLUS
-            $this->db->select("SUM(amount) as amount");
-            $this->db->from('corrections');
-            $this->db->where('employee_id', $record['id']);
-            $this->db->where('trans_date >=', $filter_from);
-            $this->db->where('trans_date <=', $filter_to);
-            $this->db->where('correction_type', 'PLUS');
-            $correction_plus = $this->db->get()->row();
-            $correction_plus_amount = empty($correction_plus->amount) ? 0 : $correction_plus->amount;
+            $correctionPlus = $this->getCorrection( $record['id'], $filter_from, $filter_to, 'PLUS');
+            $correction_plus_amount = $correctionPlus['correction_amount'];
 
             //Correction MINUS
-            $this->db->select("SUM(amount) as amount");
-            $this->db->from('corrections');
-            $this->db->where('employee_id', $record['id']);
-            $this->db->where('trans_date >=', $filter_from);
-            $this->db->where('trans_date <=', $filter_to);
-            $this->db->where('correction_type', 'MINUS');
-            $correction_minus = $this->db->get()->row();
-            $correction_minus_amount = empty($correction_minus->amount) ? 0 : $correction_minus->amount;
+            $correctionMinus = $this->getCorrection( $record['id'], $filter_from, $filter_to, 'MINUS');
+            $correction_minus_amount = $correctionMinus['correction_amount'];
 
             //Loan Bank
-            $this->db->select("SUM(amount) as amount");
-            $this->db->from('loans');
-            $this->db->where('employee_id', $record['id']);
-            $this->db->where('trans_date >=', $filter_from);
-            $this->db->where('trans_date <=', $filter_to);
-            $this->db->where('loan_type', 'BANK');
-            $loan_bank = $this->db->get()->row();
-            $loan_bank_amount = empty($loan_bank->amount) ? 0 : $loan_bank->amount;
+            $loanBank = $this->getLoan( $record['id'], $filter_from, $filter_to, 'BANK');
+            $loan_bank_amount = $loanBank['loan_amount'];
 
             //Loan Cooperative
-            $this->db->select("SUM(amount) as amount");
-            $this->db->from('loans');
-            $this->db->where('employee_id', $record['id']);
-            $this->db->where('trans_date >=', $filter_from);
-            $this->db->where('trans_date <=', $filter_to);
-            $this->db->where('loan_type', 'COOPERATIVE');
-            $loan_cooperative = $this->db->get()->row();
-            $loan_cooperative_amount = empty($loan_cooperative->amount) ? 0 : $loan_cooperative->amount;
+            $loanCooperative = $this->getLoan( $record['id'], $filter_from, $filter_to, 'COOPERATIVE');
+            $loan_cooperative_amount = $loanCooperative['loan_amount'];
 
             //Loan Other
-            $this->db->select("SUM(amount) as amount");
-            $this->db->from('loans');
-            $this->db->where('employee_id', $record['id']);
-            $this->db->where('trans_date >=', $filter_from);
-            $this->db->where('trans_date <=', $filter_to);
-            $this->db->where('loan_type', 'OTHER');
-            $loan_other = $this->db->get()->row();
-            $loan_other_amount = empty($loan_other->amount) ? 0 : $loan_other->amount;
+            $loanOther = $this->getLoan( $record['id'], $filter_from, $filter_to, 'OTHER');
+            $loan_other_amount = $loanOther['loan_amount'];
 
             //Overtime
-            $this->db->select("*");
-            $this->db->from('overtimes');
-            $this->db->where('employee_id', $record['id']);
-            $this->db->where('trans_date >=', $filter_from);
-            $this->db->where('trans_date <=', $filter_to);
-            $overtimes = $this->db->get()->result_array();
-
-            $this->db->select('
-                COALESCE(i.weekday, 0) as total_weekday,
-                COALESCE(i.sunday, 0) as total_sunday,
-                COALESCE(i.saturday, 0) as total_saturday,
-                COALESCE(i.holiday, 0) as total_holiday,
-                COALESCE(i.meal, 0) as total_meal
-            ');
-
-            $this->db->from('setup_cash_carries h');
-            $this->db->join('allowance_cash_carries i', 'h.allowance_id = i.id', 'left');
-            $this->db->where('h.employee_id', $record['id']);
-
-            $setup_cash_carries = $this->db->get()->row();
-
-            $this->db->select('c.days');
-            $this->db->from('shift_employees a');
-            $this->db->join('shifts b', 'a.shift_id = b.id', 'left');
-            $this->db->join('shift_details c', 'b.id = c.shift_id', 'left');
-            $this->db->where('a.employee_id', $record['id']);
-            $shift_employee = $this->db->get()->row();
-
-            $overtime_weekday = 0;
-            $overtime_amount_weekday = 0;
-            $overtime_holiday = 0;
-            $overtime_amount_holiday = 0;
-            $overtime_saturday = 0;
-            $overtime_amount_saturday = 0;
-            $overtime_sunday = 0;
-            $overtime_amount_sunday = 0;
-            foreach ($overtimes as $overtime) {
-
-                $this->db->select('trans_date');
-                $this->db->from('calendars');
-                $this->db->where('trans_date', $overtime['trans_date']);
-                $calendars = $this->db->get()->result_array();
-
-                $start = strtotime($overtime['trans_date']);
-                $hour = $overtime['duration_hour'];
-
-                if ($overtime['meal'] == 0) {
-                    $meal = 0;
-                } else {
-                    $meal = @$setup_cash_carries->total_meal;
-                }
-
-                $dayOfWeek = date('w', $start); // 0: Minggu, 6: Sabtu
-                $isWeekend = ($dayOfWeek === '0' || $dayOfWeek === '6');
-                $isHoliday = count($calendars) > 0;
-
-                if ($isHoliday) {
-                    $rate = @$setup_cash_carries->total_holiday;
-                    $overtime_holiday += $hour;
-                    $overtime_amount_holiday += ($rate * $hour) + $meal;
-                } else {
-                    if (!$isWeekend) {
-                        $rate = @$setup_cash_carries->total_weekday;
-                        $overtime_weekday += $hour;
-                        $overtime_amount_weekday += ($rate * $hour) + $meal;
-                    } elseif ($dayOfWeek === '0') {
-                        $rate = @$setup_cash_carries->total_sunday;
-                        $overtime_sunday += $hour;
-                        $overtime_amount_sunday += ($rate * $hour) + $meal;
-                    } else {
-                        $rate = @$setup_cash_carries->total_saturday;
-                        $overtime_saturday += $hour;
-                        $overtime_amount_saturday += ($rate * $hour) + $meal;
-                    }
-                }
-
-            }
-
-            $total_overtime = $overtime_weekday + $overtime_sunday + $overtime_saturday + $overtime_holiday;
-            $total_overtime_amount = $overtime_amount_weekday + $overtime_amount_sunday + $overtime_amount_saturday + $overtime_amount_holiday;
+            $overtime  = $this->computeOvertimes($record['id'], $filter_from, $filter_to);
+            $overtime_weekday           = $overtime['overtime_weekday'];
+            $overtime_amount_weekday    = $overtime['overtime_amount_weekday'];
+            $overtime_holiday           = $overtime['overtime_holiday'];
+            $overtime_amount_holiday    = $overtime['overtime_amount_holiday'];
+            $overtime_saturday          = $overtime['overtime_saturday'];
+            $overtime_amount_saturday   = $overtime['overtime_amount_saturday'];
+            $overtime_sunday            = $overtime['overtime_sunday'];
+            $overtime_amount_sunday     = $overtime['overtime_amount_sunday'];
+            $total_overtime             = $overtime['total_overtime'];
+            $total_overtime_amount      = $overtime['total_overtime_amount'];
             // end overtime
 
             //Attandances
@@ -660,8 +526,9 @@ class Payrolls extends CI_Controller
                 $wd = $working_days;
             }
 
+            $masuk = 0;
             //Total Masuk kerja
-            $masuk = @$wd;
+            $masuk += @$wd;
 
             //Allowances / Tunjangan kerja
             $q_allowance = $this->db->query("SELECT b.number, b.name, coalesce(a.amount, 0) as amount, b.calculate_days, b.type
@@ -716,6 +583,7 @@ class Payrolls extends CI_Controller
                 }
             }
 
+
             $arr_allowance_number_ex = explode(",", substr($arr_allowance_number, 0, -1));
             $arr_allowance_amount_ex = explode(",", substr($arr_allowance_amount, 0, -1));
             $arr_allowance_combine = array_combine($arr_allowance_number_ex, $arr_allowance_amount_ex);
@@ -744,11 +612,27 @@ class Payrolls extends CI_Controller
 
             //BPJS Employee
             //Kalo dia mempunyai BPJS potong gaji BPJS employee
-            $r_bpjs_emp = $this->crud->reads('bpjs', ['status' => 0]);
+            $r_bpjs_emp = $this->crud->reads('bpjs', ['status' => 0], [], "", "", "", ["number"]);
             $arr_bpjs_emp_number = "";
             $arr_bpjs_emp_amount = "";
             $arr_bpjs_emp_amount_total = 0;
             foreach ($r_bpjs_emp as $bpjs_emp_data) {
+                // item bpjs sudah disetting division
+                $bpjs_emp = $this->crud->read('bpjs', [], ['number' => $bpjs_emp_data->number, 'division_id' => $record['division_id']]);
+                
+                if ($bpjs_emp) {
+                    $bpjs_emp_data = $bpjs_emp;
+                } else {
+                    $this->db->select('*');
+                    $this->db->from('bpjs');
+                    $this->db->where('number', $bpjs_emp_data->number);
+                    $this->db->group_start()
+                        ->where('division_id IS NULL', null, false)
+                        ->or_where('division_id', '')
+                        ->group_end();
+                    $bpjs_emp_data = $this->db->get()->row();
+                }
+                
                 $arr_bpjs_emp_number .= strtolower($bpjs_emp_data->number) . "_employee,";
                 if ($record['jamsostek'] == "" && $record['jkn'] == "") {
                     $arr_bpjs_emp_amount .= 0 . ",";
@@ -808,7 +692,8 @@ class Payrolls extends CI_Controller
             //-------------------------------------------------------------------------------------------------------------------------------------------------------
 
             //BPJS Company atau  potongan gaji dari perusahaan
-            $r_bpjs_com = $this->crud->reads('bpjs', ['status' => 0]);
+            $sql_bpjs_com = $this->db->select('*')->from('bpjs')->where('status', 0)->where_in('number', ['BPJS', 'JKK', 'JKM'])->group_by('number')->get();
+            $r_bpjs_com = $sql_bpjs_com->result();
             $arr_bpjs_com_number = "";
             $arr_bpjs_com_amount = "";
             $arr_bpjs_com_amount_total = 0;
@@ -816,6 +701,20 @@ class Payrolls extends CI_Controller
             $arr_bpjs_com_amount_salary_total = 0;
             $arr_bpjs_com_amount_jabatan_total = 0;
             foreach ($r_bpjs_com as $bpjs_com_data) {
+                // item bpjs sudah disetting division
+                $bpjs_com = $this->crud->read('bpjs', [], ['number' => $bpjs_com_data->number, 'division_id' => $record['division_id']]);
+                if ($bpjs_com) {
+                    $bpjs_com_data = $bpjs_com;
+                } else {
+                    $this->db->select('*');
+                    $this->db->from('bpjs');
+                    $this->db->where('number', $bpjs_com_data->number);
+                    $this->db->group_start()
+                        ->where('division_id IS NULL', null, false)
+                        ->or_where('division_id', '')
+                        ->group_end();
+                    $bpjs_com_data = $this->db->get()->row();
+                }
                 $arr_bpjs_com_number .= strtolower($bpjs_com_data->number) . "_company,";
 
                 if ($record['jamsostek'] == "" && $record['jkn'] == "") {
@@ -1090,27 +989,16 @@ class Payrolls extends CI_Controller
             //     "hasil_akhir" => $pph_pasal . " (pph_debt / 12)",
             // )));
 
-            if($record['gender'] == "FEMALE"){
-                $ter_type = "A";
-            }else{
-                $ter_type = $record['ter_type'];
-            }
+            // Hitung Tax Allowance
+            $calc_tax_allowance = $this->calcTaxAllowance($total_all_allowance, $record['ter_type'], $record['salary_component_id']);
+            $tax_allowance = $calc_tax_allowance['tax_allowance'];
+            $total_bruto_tax = $calc_tax_allowance['total_bruto_tax'];
 
-            //Rumus TER
-            $this->db->select("number, ter");
-            $this->db->from('marital_categories');
-            $this->db->where('ter_from <', $total_all_allowance_ter);
-            $this->db->where('ter_to >', $total_all_allowance_ter);
-            $this->db->where('type', $ter_type);
-            $marital_category = $this->db->get()->row();
-            
-            if(empty($marital_category)){
-                $ter_number = "-";
-                $ter = 0;
-            }else{
-                $ter_number = $marital_category->number;
-                $ter = (($total_all_allowance_ter * $marital_category->ter) / 100);
-            }
+            //Hitung TER
+            $terCalc = $this->computeTER($total_bruto_tax, $record['ter_type']);
+            $ter_number = $terCalc['ter_number'];
+            $ter        = $terCalc['ter'];
+
 
             //Kalo gaji per tahun nya lebih dari master ptkp
             if ($netto_year >= @$r_ptkp->amount) {
@@ -1126,7 +1014,7 @@ class Payrolls extends CI_Controller
             }
 
             //Total keseluruhan
-            $netincome = ($income - $arr_deduction_amount_total - $arr_bpjs_emp_amount_total - @$loan_cooperative->amount - @$loan_bank->amount - @$loan_other->amount);
+            $netincome = ($income - $arr_deduction_amount_total - $arr_bpjs_emp_amount_total - @$loan_cooperative_amount - @$loan_bank_amount - @$loan_other_amount);
             $roundup = 500; // digit pembulatan, dalam hal ini ratusan
             $roundupIncome = ceil($netincome / $roundup) * $roundup;
             //-------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1151,7 +1039,7 @@ class Payrolls extends CI_Controller
                 "tax_id" => $record['tax_id'],
                 "shift_name" => $record['shift_name_2'],
                 "attandance" => json_encode($arr_permit_combine),
-                "attandance_wd" => ($masuk),
+                "attandance_wd" => $wd,
                 "working_day" => @count($weekday_day) - @$calendar_amount,
                 "salary" => $record['salary'],
                 "allowence" => json_encode($arr_allowance_combine),
@@ -1190,7 +1078,9 @@ class Payrolls extends CI_Controller
                 "bpjs_employee_total" => $arr_bpjs_emp_amount_total,
                 "pph" => ($pph_final),
                 "ter" => $ter,
-                "net_income" => ($roundupIncome)
+                "net_income" => ($roundupIncome),
+                "tax_allowance" => $tax_allowance,
+                "total_bruto_tax" => $total_bruto_tax,
             );
 
             if (@$arr == null) {
@@ -1199,12 +1089,20 @@ class Payrolls extends CI_Controller
                 $result = @$arr;
             }
 
+            $arr_pph = [
+                "employee_id" => $record['id'],
+                "period_start" => $period_start,
+                "period_end" => $period_end,
+                "pph" => $ter,
+            ];
+
             $checkPayroll = $this->crud->read("payrolls", [], ["employee_id" => $record['id'], "period_start" => $period_start]);
             if (!empty($checkPayroll->employee_id)) {
                 echo json_encode(array("title" => "Duplicate", "message" => "Duplicate Employee", "theme" => "error"));
             } else {
                 $send = $this->crud->create('payrolls', $result);
                 if ($send) {
+                    $this->crud->create('payrolls_pph', $arr_pph);
                     echo json_encode(array("title" => "Saved", "message" => $record['name'] . " Data has been created", "theme" => "success"));
                 } else {
                     echo json_encode(array("title" => "Error", "message" => $record['name'] . " Failed to created", "theme" => "error"));
@@ -1280,6 +1178,7 @@ class Payrolls extends CI_Controller
 
             foreach ($payrolls as $payroll) {
                 $this->db->delete("payrolls", ['id' => $payroll->id]);
+                $this->db->delete("payrolls_pph", ['employee_id' => $payroll->employee_id, 'period_start' => $period_start]);
             }
         }
     }
@@ -1297,7 +1196,7 @@ class Payrolls extends CI_Controller
         $allowance = $this->crud->reads('allowances', [], [], "", "name", "asc");
         $deduction = $this->crud->reads('deductions', [], [], "", "name", "asc");
         $permit_type_d = $this->crud->reads('permit_types', [], ['payroll' => 'DEDUCTION']);
-        $bpjs = $this->crud->reads('bpjs', ['status' => 0]);
+        $bpjs = $this->crud->reads('bpjs', ['status' => 0], [], "", "", "", ["number"]);
 
         $filter_from = $this->input->get('filter_from');
         $filter_to = $this->input->get('filter_to');
@@ -1404,12 +1303,14 @@ class Payrolls extends CI_Controller
                 <th rowspan="2">Working Calendar</th>
                 <th rowspan="2">Salary</th>
                 <th colspan="' . (count($allowance)) . '">Allowence</th>
-                <th colspan="' . (count($bpjs)) . '">BPJS Company</th>
+                <th colspan="3">BPJS Company</th>
                 <th rowspan="2">Total BPJS Company</th>
                 <th rowspan="2">Correction Plus</th>
-                <th colspan="3">Overtime (Weekday)</th>
-                <th colspan="3">Overtime (Weekend)</th>
-                <th colspan="3">Total Overtime</th>
+                <th colspan="2">Overtime (Weekday)</th>
+                <th colspan="2">Overtime (Saturday)</th>
+                <th colspan="2">Overtime (Sunday)</th>
+                <th colspan="2">Overtime (Holiday)</th>
+                <th colspan="2">Total Overtime</th>
                 <th rowspan="2">Bruto Income</th>
                 <th colspan="' . (count($permit_type_d) + count($permit_type_d) + 2) . '">Deduction</th>
                 <th rowspan="2">Correction Minus</th>
@@ -1432,15 +1333,19 @@ class Payrolls extends CI_Controller
             $html .= '<th>' . $allowance_data->number . '</th>';
         }
         foreach ($bpjs as $bpjs_data) {
-            $html .= '<th>' . $bpjs_data->number . '</th>';
+            if (in_array($bpjs_data->number, ["BPJS", "JKK", "JKM"])) {
+                $html .= '<th>' . $bpjs_data->number . '</th>';
+            }
         }
-        $html .= '  <th>Day</th>
+        $html .= ' 
                     <th>Hour</th>
                     <th>Amount</th>
-                    <th>Day</th>
                     <th>Hour</th>
                     <th>Amount</th>
-                    <th>Day</th>
+                    <th>Hour</th>
+                    <th>Amount</th>
+                    <th>Hour</th>
+                    <th>Amount</th>
                     <th>Hour</th>
                     <th>Amount</th>';
         foreach ($permit_type_d as $permit_type_d_data) {
@@ -1503,13 +1408,14 @@ class Payrolls extends CI_Controller
             $html .= '<td>' . $record['bpjs_company_total'] . '</td>';
             $html .= '<td>' . $record['correction_plus'] . '</td>';
             $html .= '<td>' . $record['overtime_weekday'] . '</td>';
-            $html .= '<td>' . $record['overtime_convert_weekday'] . '</td>';
             $html .= '<td>' . $record['overtime_amount_weekday'] . '</td>';
+            $html .= '<td>' . $record['overtime_saturday'] . '</td>';
+            $html .= '<td>' . $record['overtime_amount_saturday'] . '</td>';
+            $html .= '<td>' . $record['overtime_sunday'] . '</td>';
+            $html .= '<td>' . $record['overtime_amount_sunday'] . '</td>';
             $html .= '<td>' . $record['overtime_holiday'] . '</td>';
-            $html .= '<td>' . $record['overtime_convert_holiday'] . '</td>';
             $html .= '<td>' . $record['overtime_amount_holiday'] . '</td>';
             $html .= '<td>' . $record['total_overtime'] . '</td>';
-            $html .= '<td>' . $record['total_overtime_convert'] . '</td>';
             $html .= '<td>' . $record['total_overtime_amount'] . '</td>';
             $html .= '<td>' . $record['total_all_allowance'] . '</td>';
             $deduction_amount = json_decode($record['deduction_amount'], true);
@@ -1548,5 +1454,417 @@ class Payrolls extends CI_Controller
 
         $html .= '</table></body></html>';
         echo $html;
+    }
+
+    public function printReport($option = "")
+    {
+        if ($option == "excel") {
+            $format  = date("Ymd");
+            header("Content-type: application/vnd-ms-excel");
+            header("Content-Disposition: attachment; filename=payrolls_$format.xls");
+        }
+
+        $permit_type = $this->crud->reads('permit_types', [], ['payroll' => 'NON DEDUCTION']);
+        $allowance = $this->crud->reads('allowances', [], [], "", "name", "asc");
+        $deduction = $this->crud->reads('deductions', [], [], "", "name", "asc");
+        $permit_type_d = $this->crud->reads('permit_types', [], ['payroll' => 'DEDUCTION']);
+        $bpjs = $this->crud->reads('bpjs', ['status' => 0], [], "", "", "", ["number"]);
+
+        $filter_from = $this->input->get('filter_from');
+        $filter_to = $this->input->get('filter_to');
+        $filter_division = $this->input->get('filter_division');
+        $filter_departement = $this->input->get('filter_departement');
+        $filter_departement_sub = $this->input->get('filter_departement_sub');
+        $filter_employee = $this->input->get('filter_employee');
+        $filter_employee_type = $this->input->get('filter_employee_type');
+        $filter_group = $this->input->get('filter_group');
+        $filter_status = $this->input->get('filter_status');
+        $username = $this->session->username;
+
+        $period_start = date("Y-m", strtotime($filter_from));
+        $period_end = date("Y-m", strtotime($filter_to));
+
+        if($filter_status == "0"){
+            $where_status = "AND e.employee_id IS NULL";
+        }elseif($filter_status == "1"){
+            $where_status = "AND e.employee_id IS NOT NULL";
+        }else{
+            $where_status = "";
+        }
+
+        if ($username == "admin") {
+            $privileges = "";
+        } else {
+            $privileges = "AND c.status = '1'";
+        }
+
+        $query = $this->db->query("SELECT a.*, b.national_id, d.name as source_name, e.employee_id as status_resign, g.number as account_no,
+        coalesce(p.bpjs, 0) as bpjs_rate
+        FROM payrolls a
+            JOIN employees b on a.employee_id = b.id
+            LEFT JOIN sources d on b.source_id = d.id
+            JOIN privilege_groups c ON b.group_id = c.group_id and c.username = '$username' $privileges
+            LEFT JOIN resignations e ON b.id = e.employee_id
+            LEFT JOIN account_coa f ON b.division_id = f.division_id and b.departement_id = f.departement_id and b.position_id = f.position_id and b.contract_id = f.contract_id
+            LEFT JOIN accounts g ON f.account_id = g.id and g.category = 'payroll'
+            LEFT JOIN setup_salaries p ON p.employee_id = b.id
+            WHERE a.period_start = '$period_start' $where_status
+            AND a.period_end = '$period_end'
+            AND b.division_id LIKE '%$filter_division%'
+            AND b.departement_id LIKE '%$filter_departement%'
+            AND b.departement_sub_id LIKE '%$filter_departement_sub%'
+            AND a.employee_id LIKE '%$filter_employee%'
+            AND b.contract_id LIKE '%$filter_employee_type%'
+            AND b.group_id LIKE '%$filter_group%'
+            GROUP BY a.employee_id
+            ORDER BY a.name ASC");
+        $records = $query->result_array();
+
+        //Config
+        $this->db->select('*');
+        $this->db->from('config');
+        $config = $this->db->get()->row();
+
+        $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
+                <style> .str{ mso-number-format:\@; } </style>
+                <div style="page-break-after:always;"><center>
+                    <div style="float: left; font-size: 12px; text-align: left;">
+                        <table style="width: 100%;">
+                            <tr>
+                                <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
+                                    <img src="' . $config->favicon . '" width="30">
+                                </td>
+                                <td style="font-size: 14px; text-align: left; margin:2px;">
+                                    <b>' . $config->name . '</b><br>
+                                    <small>' . $config->description . '</small>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div style="float: right; font-size: 12px; text-align: right;">
+                        Print Date ' . date("d M Y H:i:s") . ' <br>
+                        Print By ' . $this->session->username . '  
+                    </div>
+                </center><br><br>
+                <center>
+                    <h3 style="margin:0;">Generate Payroll</h3>
+                    Period : ' . $filter_from . ' to ' . $filter_to . '
+                    <br>
+                </center>
+                <br>
+        
+        <table id="customers" border="1">
+            <tr>
+                <th width="20">No</th>
+                <th>Employee ID</th>
+                <th>Full Name</th>
+                <th>Job Position</th>
+                <th>Organization</th>
+                <th>Basic Salary</th>
+                <th>Tunjangan Tetap</th>
+                <th>Tunjangan Jabatan</th>
+                <th>Tunjangan Kinerja</th>
+                <th>Tax Allowance</th>
+                <th>Total Allowance</th>
+                <th>Potongan Absen</th>
+                <th>Jaminan Pensiun Employee</th>
+                <th>BPJSK Employee</th>
+                <th>JHT Employee</th>
+                <th>PPH 21</th>
+                <th>Total Deduction</th>
+                <th>PPH 21 Payment</th>
+                <th>Take Home Pay</th>
+                <th>BPJS TK Rate</th>
+                <th>BPJS Kes Rate</th>
+            </tr>';
+
+        $no = 1;
+        foreach ($records as $record) {
+            $arr_allowance = json_decode($record['allowence'], true);
+            $tunjangan_tetap = $arr_allowance['tt'] ?? 0;
+            $tunjangan_jabatan = $arr_allowance['tj'] ?? 0;
+            $tunjangan_kinerja = $arr_allowance['tk'] ?? 0;
+            $total_all_allowance = $record['ter'] + $tunjangan_tetap + $tunjangan_jabatan + $tunjangan_kinerja;
+
+            $bpjs_employee = json_decode($record['bpjs_employee'], true);
+            $jp_emp = $bpjs_employee['jp_employee'] ?? 0;
+            $bpjs_emp = $bpjs_employee['bpjs_employee'] ?? 0;
+            $jht_emp = $bpjs_employee['jht_employee'] ?? 0;
+
+            $total_all_deduction = $record['deduction_absence'] + $jp_emp + $bpjs_emp + $jht_emp + $record['ter'];
+
+
+            $html .= '<tr>
+                    <td>' . $no . '</td>
+                    <td class="str">' . $record['number'] . '</td>
+                    <td>' . $record['name'] . '</td>
+                    <td>' . $record['position_name'] . '</td>
+                    <td>' . $record['departement_sub_name'] . '</td>
+                    <td>' . $record['salary'] . '</td>
+                    <td>' . $tunjangan_tetap . '</td>
+                    <td>' . $tunjangan_jabatan . '</td>
+                    <td>' . $tunjangan_kinerja . '</td>
+                    <td>' . $record['ter'] . '</td>
+                    <td>' . $total_all_allowance . '</td>
+                    <td>' . $record['deduction_absence'] . '</td>
+                    <td>' . $jp_emp . '</td>
+                    <td>' . $bpjs_emp . '</td>
+                    <td>' . $jht_emp . '</td>
+                    <td>' . $record['ter'] . '</td>
+                    <td>' . $total_all_deduction . '</td>
+                    <td>' . $record['ter'] . '</td>
+                    <td>' . $record['net_income'] . '</td>
+                    <td>' . $record['bpjs_rate'] . '</td>
+                    <td>' . $record['bpjs_rate'] . '</td>
+                    </tr>
+                    ';
+            $no++;
+        }
+
+        $html .= '</table></body></html>';
+        echo $html;
+    }
+
+    private function computeTER(int $total_all_allowance_ter, ?string $r_ter_type)
+    {
+        $ter_type = $r_ter_type;
+
+        $this->db->select("number, ter");
+        $this->db->from('marital_categories');
+        $this->db->where('ter_from <', $total_all_allowance_ter);
+        $this->db->where('ter_to >', $total_all_allowance_ter);
+        $this->db->where('type', $ter_type);
+        $marital_category = $this->db->get()->row();
+        
+        if(empty($marital_category)){
+            $ter_number = "-";
+            $ter = 0;
+        }else{
+            $ter_number = $marital_category->number;
+            $ter = (($total_all_allowance_ter * $marital_category->ter) / 100);
+        }
+        return [
+            'ter_number' => $ter_number,
+            'ter'  => $ter,
+        ];
+    }
+
+    private function getPermitNonDeduction($employeeId, $from, $to, $permit_date): array
+    {
+        $q_permit = $this->db->query("SELECT b.number, b.name, COUNT(a.permit_date) as amount
+                FROM permit_types b
+                LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$employeeId' and a.permit_date >= '$from' and a.permit_date <= '$to' and a.permit_date not in ($permit_date)
+                WHERE b.payroll = 'NON DEDUCTION' and (a.approved_to = '' or a.approved_to is null)
+                GROUP BY b.id");
+        $r_permit = $q_permit->result_array();
+        $arr_permit_number = "";
+        $arr_permit_amount = "";
+        $arr_total_permit = 0;
+        foreach ($r_permit as $permit_data) {
+            $arr_permit_number .= strtolower($permit_data['number']) . "a,";
+            $arr_permit_amount .= $permit_data['amount'] . ",";
+            $arr_total_permit += $permit_data['amount'];
+        }
+
+        $arr_permit_number_ex = explode(",", substr($arr_permit_number, 0, -1));
+        $arr_permit_amount_ex = explode(",", substr($arr_permit_amount, 0, -1));
+        $arr_permit_combine = array_combine($arr_permit_number_ex, $arr_permit_amount_ex);
+
+        return [
+            'arr_permit_combine' => $arr_permit_combine,
+            'arr_total_permit' => $arr_total_permit
+        ];
+    }
+
+    private function getPermitAbsence($employeeId, $from, $to, $permit_date, $calendar_where, $absence): array
+    {
+        $q_permit_absence = $this->db->query("SELECT b.number, b.name, COUNT(a.permit_date) as amount
+                FROM permit_types b
+                LEFT JOIN permits a ON a.permit_type_id = b.id and a.employee_id = '$employeeId' and a.permit_date >= '$from' and a.permit_date <= '$to' and a.permit_date not in ($permit_date) $calendar_where
+                WHERE b.absence = '$absence' and (a.approved_to = '' or a.approved_to is null)
+                GROUP BY b.id");
+
+        $r_permit_absence = $q_permit_absence->result_array();
+        $arr_total_permit_absence = 0;
+        foreach ($r_permit_absence as $permit_data_absence) {
+            $arr_total_permit_absence += $permit_data_absence['amount'];
+        }
+        return [
+            'arr_total_permit_absence' => $arr_total_permit_absence
+        ];
+    }
+
+    private function getChangeDays($employeeId, $from, $to, $weekday_day): array
+    {
+        $this->db->select("COUNT(*) as days");
+        $this->db->from('change_days');
+        $this->db->where('employee_id', $employeeId);
+        $this->db->where("(start between '$from' and '$to' or end between '$from' and '$to')");
+        if (count($weekday_day) > 0) {
+            $this->db->where_in('end', $weekday_day);
+        }
+        $changeDays = $this->db->get()->row();
+        $changeDays_amount = empty($changeDays->days) ? 0 : $changeDays->days;
+
+        return [
+            'changeDays_amount' => $changeDays_amount
+        ];
+    }
+
+    private function getCorrection($employeeId, $from, $to, $type): array
+    {
+        $this->db->select("SUM(amount) as amount");
+        $this->db->from('corrections');
+        $this->db->where('employee_id', $employeeId);
+        $this->db->where('trans_date >=', $from);
+        $this->db->where('trans_date <=', $to);
+        $this->db->where('correction_type', $type);
+        $correction = $this->db->get()->row();
+        $correction_amount = empty($correction->amount) ? 0 : $correction->amount;
+
+        return [
+            'correction_amount' => $correction_amount
+        ];
+    }
+
+    private function getLoan($employeeId, $from, $to, $type): array
+    {
+        $this->db->select("SUM(amount) as amount");
+        $this->db->from('loans');
+        $this->db->where('employee_id', $employeeId);
+        $this->db->where('trans_date >=', $from);
+        $this->db->where('trans_date <=', $to);
+        $this->db->where('loan_type', $type);
+        $loan = $this->db->get()->row();
+        $loan_amount = empty($loan->amount) ? 0 : $loan->amount;
+
+        return [
+            'loan_amount' => $loan_amount
+        ];
+    }
+
+    private function computeOvertimes($employeeId, $from, $to): array
+    {
+        $this->db->select("*");
+        $this->db->from('overtimes');
+        $this->db->where('employee_id', $employeeId);
+        $this->db->where('trans_date >=', $from);
+        $this->db->where('trans_date <=', $to);
+        $overtimes = $this->db->get()->result_array();
+
+        $this->db->select('
+            COALESCE(i.weekday, 0) as total_weekday,
+            COALESCE(i.sunday, 0) as total_sunday,
+            COALESCE(i.saturday, 0) as total_saturday,
+            COALESCE(i.holiday, 0) as total_holiday,
+            COALESCE(i.meal, 0) as total_meal
+        ');
+
+        $this->db->from('setup_cash_carries h');
+        $this->db->join('allowance_cash_carries i', 'h.allowance_id = i.id', 'left');
+        $this->db->where('h.employee_id', $employeeId);
+
+        $setup_cash_carries = $this->db->get()->row();
+
+        $this->db->select('c.days');
+        $this->db->from('shift_employees a');
+        $this->db->join('shifts b', 'a.shift_id = b.id', 'left');
+        $this->db->join('shift_details c', 'b.id = c.shift_id', 'left');
+        $this->db->where('a.employee_id', $employeeId);
+        $shift_employee = $this->db->get()->row();
+
+        $overtime_weekday = 0;
+        $overtime_amount_weekday = 0;
+        $overtime_holiday = 0;
+        $overtime_amount_holiday = 0;
+        $overtime_saturday = 0;
+        $overtime_amount_saturday = 0;
+        $overtime_sunday = 0;
+        $overtime_amount_sunday = 0;
+        foreach ($overtimes as $overtime) {
+
+            $this->db->select('trans_date');
+            $this->db->from('calendars');
+            $this->db->where('trans_date', $overtime['trans_date']);
+            $calendars = $this->db->get()->result_array();
+
+            $start = strtotime($overtime['trans_date']);
+            $hour = $overtime['duration_hour'];
+
+            if ($overtime['meal'] == 0) {
+                $meal = 0;
+            } else {
+                $meal = @$setup_cash_carries->total_meal;
+            }
+
+            $dayOfWeek = date('w', $start); // 0: Minggu, 6: Sabtu
+            $isWeekend = ($dayOfWeek === '0' || $dayOfWeek === '6');
+            $isHoliday = count($calendars) > 0;
+
+            if ($isHoliday) {
+                $rate = @$setup_cash_carries->total_holiday;
+                $overtime_holiday += $hour;
+                $overtime_amount_holiday += ($rate * $hour) + $meal;
+            } else {
+                if (!$isWeekend) {
+                    $rate = @$setup_cash_carries->total_weekday;
+                    $overtime_weekday += $hour;
+                    $overtime_amount_weekday += ($rate * $hour) + $meal;
+                } elseif ($dayOfWeek === '0') {
+                    $rate = @$setup_cash_carries->total_sunday;
+                    $overtime_sunday += $hour;
+                    $overtime_amount_sunday += ($rate * $hour) + $meal;
+                } else {
+                    $rate = @$setup_cash_carries->total_saturday;
+                    $overtime_saturday += $hour;
+                    $overtime_amount_saturday += ($rate * $hour) + $meal;
+                }
+            }
+
+        }
+
+        $total_overtime = $overtime_weekday + $overtime_sunday + $overtime_saturday + $overtime_holiday;
+        $total_overtime_amount = $overtime_amount_weekday + $overtime_amount_sunday + $overtime_amount_saturday + $overtime_amount_holiday;
+
+        return [
+            'overtime_weekday' => $overtime_weekday,
+            'overtime_amount_weekday' => $overtime_amount_weekday,
+            'overtime_holiday' => $overtime_holiday,
+            'overtime_amount_holiday' => $overtime_amount_holiday,
+            'overtime_saturday' => $overtime_saturday,
+            'overtime_amount_saturday' => $overtime_amount_saturday,
+            'overtime_sunday' => $overtime_sunday,
+            'overtime_amount_sunday' => $overtime_amount_sunday,
+            'total_overtime' => $total_overtime,
+            'total_overtime_amount' => $total_overtime_amount,
+        ];
+    }
+
+    private function calcTaxAllowance($total_all_allowance, $r_ter_type, $type_salary): array
+    {
+        // Jika gross up
+        if ($type_salary == '20241230000001') {
+            $this->db->select("number, ter");
+            $this->db->from('marital_categories');
+            $this->db->where('ter_from <', $total_all_allowance);
+            $this->db->where('ter_to >', $total_all_allowance);
+            $this->db->where('type', $r_ter_type);
+            $marital_category = $this->db->get()->row();
+            
+            if(empty($marital_category)){
+                $tax_allowance = 0;
+            }else{
+                $tax_allowance = (($total_all_allowance * $marital_category->ter) / 100);
+            }
+        } else {
+            $tax_allowance = 0;
+        }
+
+        $total_bruto_tax = $total_all_allowance + $tax_allowance;
+
+        return [
+            'tax_allowance' => $tax_allowance,
+            'total_bruto_tax' => $total_bruto_tax
+        ];
     }
 }

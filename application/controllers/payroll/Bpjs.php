@@ -14,7 +14,7 @@ class Bpjs extends CI_Controller
         $this->load->model('crud');
 
         //VALIDASI FORM
-        $this->form_validation->set_rules('number', 'Code', 'required|min_length[1]|max_length[20]|is_unique[bpjs.number]');
+        // $this->form_validation->set_rules('number', 'Code', 'required|min_length[1]|max_length[20]|is_unique[bpjs.number]');
     }
 
     //HALAMAN UTAMA
@@ -36,7 +36,7 @@ class Bpjs extends CI_Controller
     public function reads()
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
-        $send = $this->crud->reads('bpjs', ["name" => $post]);
+        $send = $this->crud->reads('bpjs', ["name" => $post], [], "", "", "", ["number"]);
         echo json_encode($send);
     }
 
@@ -61,6 +61,7 @@ class Bpjs extends CI_Controller
                     $this->db->like($filter->field, $filter->value);
                 }
             }
+            $this->db->group_by('bpjs.number');
             $this->db->order_by('name', 'ASC');
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
@@ -79,13 +80,9 @@ class Bpjs extends CI_Controller
     public function create()
     {
         if ($this->input->post()) {
-            if ($this->form_validation->run() == TRUE) {
-                $post   = $this->input->post();
-                $send   = $this->crud->create('bpjs', $post);
-                echo $send;
-            } else {
-                show_error(validation_errors());
-            }
+            $post   = $this->input->post();
+            $send   = $this->crud->create('bpjs', $post);
+            echo $send;
         } else {
             show_error("Cannot Process your request");
         }
@@ -95,9 +92,14 @@ class Bpjs extends CI_Controller
     public function update()
     {
         if ($this->input->post()) {
-            $id   = base64_decode($this->input->get('id'));
+            $id   = base64_decode($this->input->post('id')); 
             $post = $this->input->post();
-            $send = $this->crud->update('bpjs', ["id" => $id], $post);
+            unset($post['id']);
+            if ($id) {
+                $send = $this->crud->update('bpjs', ["id" => $id], $post);
+            } else {
+                $send   = $this->crud->create('bpjs', $post);
+            }
             echo $send;
         } else {
             show_error("Cannot Process your request");
@@ -178,5 +180,24 @@ class Bpjs extends CI_Controller
 
         $html .= '</table></body></html>';
         echo $html;
+    }
+
+    public function datatableUpdates()
+    {
+        if ($this->input->get()) {
+            $number = base64_decode($this->input->get('number'));
+
+            //Select Query
+            $this->db->select('bpjs.*, divisions.name as division_name');
+            $this->db->from('bpjs');
+            $this->db->join('divisions', 'divisions.id = bpjs.division_id', 'left');
+            $this->db->where('bpjs.number', $number);
+            
+            $this->db->order_by('divisions.name', 'ASC');
+            //Total Data
+            $records = $this->db->get()->result_array();
+
+            echo json_encode($records);
+        }
     }
 }

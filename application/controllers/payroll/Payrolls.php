@@ -360,6 +360,21 @@ class Payrolls extends CI_Controller
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
 
+            $resign = $this->crud->read('resignations', [], ['employee_id' => $record['id']]);
+            $is_resign = false;
+            $resign_date = null;
+            if (@$resign->id) {
+                // cek resign dalam periode gaji
+                $rstart = new DateTime($period_start . '-01');
+                $rend   = (new DateTime($period_end . '-01'))->modify('last day of this month');
+                $rdate = new DateTime($resign->resign_date);
+
+                if ($rdate >= $rstart && $rdate <= $rend) {
+                    $is_resign = true;
+                    $resign_date = $resign->resign_date;
+                }
+            }
+
             //Convert tanggal ke time supaya hitungan tanggal nya mudah
             $start = strtotime($filter_from);
             $finish = strtotime($filter_to);
@@ -514,7 +529,12 @@ class Payrolls extends CI_Controller
             $hkw = (@count($weekday_day) - @$calendar_amount);
 
             //Hitung bereapa hari dia ga ada absen
-            $absen = (@count($weekday_day) - @$calendar_amount - @$attandance_amount - @$changeDays_amount - @$arr_total_permit_absence_no - $arr_total_permit_absence);
+            if ($is_resign) {
+                $hkw_before_resign = $this->countDayResign($resign_date, $filter_from, $record['days']);
+                $absen = ($hkw_before_resign - @$attandance_amount - @$changeDays_amount - @$arr_total_permit_absence_no - $arr_total_permit_absence);
+            } else {
+                $absen = (@count($weekday_day) - @$calendar_amount - @$attandance_amount - @$changeDays_amount - @$arr_total_permit_absence_no - $arr_total_permit_absence);
+            }
 
             //Hitung Hari dia masuk kerja
             $working_days = ($attandance_amount + $arr_total_permit_absence + $changeDays_amount);
@@ -530,6 +550,10 @@ class Payrolls extends CI_Controller
             //Total Masuk kerja
             $masuk += @$wd;
 
+            if ($is_resign) {
+                $record['salary'] = ($record['salary'] / $hkw) * $masuk;
+            }
+
             //Allowances / Tunjangan kerja
             $q_allowance = $this->db->query("SELECT b.number, b.name, coalesce(a.amount, 0) as amount, b.calculate_days, b.type
                     FROM allowances b
@@ -544,6 +568,9 @@ class Payrolls extends CI_Controller
             $arr_allowance_amount_number = 0;
             $count_allowance_number = 0;
             foreach ($r_allowance as $allowance_data) {
+                if ($is_resign) {
+                    $allowance_data['amount'] = ($allowance_data['amount'] / $hkw) * $masuk;
+                }
                 if ($allowance_data['calculate_days'] == "1") {
                     $arr_allowance_number .= strtolower($allowance_data['number']) . ",";
                     $arr_allowance_amount .= ($allowance_data['amount'] * $masuk) . ",";
@@ -892,6 +919,11 @@ class Payrolls extends CI_Controller
             $arr_permit_type_amount_b = "";
             $arr_permit_type_amount_b_total = 0;
             foreach ($r_permit_type as $permit_type_data) {
+                if ($is_resign) {
+                    $jumlah_hari = $masuk;
+                } else {
+                    $jumlah_hari = $hkw;
+                }
                 if ($permit_type_data['cutoff'] == "YES") {
                     $arr_permit_type_number_b .= strtolower($permit_type_data['number']) . "b,";
                     $arr_permit_type_amount_b .= ($permit_type_data['amount'] / 2) . ",";
@@ -912,14 +944,14 @@ class Payrolls extends CI_Controller
                 if ($record["group_id"] == '20221213000002' || $record["group_id"] == '20221213000003') {
                     // $arr_permit_type_amount .= round((($record['salary'] - $arr_deduction_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
                     // @$arr_permit_type_amount_b_total += round((($record['salary'] - $arr_deduction_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
-                    $arr_permit_type_amount .= round(($record['salary'] / $hkw) * $arr_permit_type_amount_qty) . ",";
-                    @$arr_permit_type_amount_b_total += round(($record['salary'] / $hkw) * $arr_permit_type_amount_qty) . ",";
+                    $arr_permit_type_amount .= round(($record['salary'] / $jumlah_hari) * $arr_permit_type_amount_qty) . ",";
+                    @$arr_permit_type_amount_b_total += round(($record['salary'] / $jumlah_hari) * $arr_permit_type_amount_qty) . ",";
                 } elseif ($count_allowance_number > 0) {
-                    $arr_permit_type_amount .= round(($arr_allowance_amount_number / $hkw) * $arr_permit_type_amount_qty) . ",";
-                    @$arr_permit_type_amount_b_total += round(($arr_allowance_amount_number / $hkw) * $arr_permit_type_amount_qty) . ",";
+                    $arr_permit_type_amount .= round(($arr_allowance_amount_number / $jumlah_hari) * $arr_permit_type_amount_qty) . ",";
+                    @$arr_permit_type_amount_b_total += round(($arr_allowance_amount_number / $jumlah_hari) * $arr_permit_type_amount_qty) . ",";
                 } else {
-                    $arr_permit_type_amount .= round((($record['salary'] + $arr_allowance_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
-                    @$arr_permit_type_amount_b_total += round((($record['salary'] + $arr_allowance_amount_total) / $hkw) * $arr_permit_type_amount_qty) . ",";
+                    $arr_permit_type_amount .= round((($record['salary'] + $arr_allowance_amount_total) / $jumlah_hari) * $arr_permit_type_amount_qty) . ",";
+                    @$arr_permit_type_amount_b_total += round((($record['salary'] + $arr_allowance_amount_total) / $jumlah_hari) * $arr_permit_type_amount_qty) . ",";
                 }
             }
 
@@ -999,6 +1031,18 @@ class Payrolls extends CI_Controller
             $ter_number = $terCalc['ter_number'];
             $ter        = $terCalc['ter'];
 
+            if ($is_resign) {
+                $year = date('Y', strtotime($resign_date));
+                $this->db->select('SUM(pph) AS total_pph', FALSE);
+                $this->db->from('payrolls_pph');
+                $this->db->where('employee_id', $record['id']);
+                $this->db->where('deleted', 0);
+                $this->db->like('period_start', $year, 'after');
+
+                $result = $this->db->get()->row();
+                $ter = $result ? -(float) $result->total_pph : 0;
+            }
+
 
             //Kalo gaji per tahun nya lebih dari master ptkp
             if ($netto_year >= @$r_ptkp->amount) {
@@ -1015,6 +1059,9 @@ class Payrolls extends CI_Controller
 
             //Total keseluruhan
             $netincome = ($income - $arr_deduction_amount_total - $arr_bpjs_emp_amount_total - @$loan_cooperative_amount - @$loan_bank_amount - @$loan_other_amount);
+            if ($is_resign) {
+                $netincome -= $ter;
+            }
             $roundup = 500; // digit pembulatan, dalam hal ini ratusan
             $roundupIncome = ceil($netincome / $roundup) * $roundup;
             //-------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1584,14 +1631,19 @@ class Payrolls extends CI_Controller
             $tunjangan_tetap = $arr_allowance['tt'] ?? 0;
             $tunjangan_jabatan = $arr_allowance['tj'] ?? 0;
             $tunjangan_kinerja = $arr_allowance['tk'] ?? 0;
-            $total_all_allowance = $record['ter'] + $tunjangan_tetap + $tunjangan_jabatan + $tunjangan_kinerja;
+            if ($record['ter'] < 0) {
+                $tax_allowance = 0;
+            } else {
+                $tax_allowance = $record['ter'];
+            }
+            $total_all_allowance = $tax_allowance + $tunjangan_tetap + $tunjangan_jabatan + $tunjangan_kinerja;
 
             $bpjs_employee = json_decode($record['bpjs_employee'], true);
             $jp_emp = $bpjs_employee['jp_employee'] ?? 0;
             $bpjs_emp = $bpjs_employee['bpjs_employee'] ?? 0;
             $jht_emp = $bpjs_employee['jht_employee'] ?? 0;
 
-            $total_all_deduction = $record['deduction_absence'] + $jp_emp + $bpjs_emp + $jht_emp + $record['ter'];
+            $total_all_deduction = $record['total_all_deduction'] + $jp_emp + $bpjs_emp + $jht_emp + $record['ter'];
 
 
             $html .= '<tr>
@@ -1600,22 +1652,22 @@ class Payrolls extends CI_Controller
                     <td>' . $record['name'] . '</td>
                     <td>' . $record['position_name'] . '</td>
                     <td>' . $record['departement_sub_name'] . '</td>
-                    <td>' . $record['salary'] . '</td>
-                    <td>' . $tunjangan_tetap . '</td>
-                    <td>' . $tunjangan_jabatan . '</td>
-                    <td>' . $tunjangan_kinerja . '</td>
-                    <td>' . $record['ter'] . '</td>
-                    <td>' . $total_all_allowance . '</td>
-                    <td>' . $record['deduction_absence'] . '</td>
-                    <td>' . $jp_emp . '</td>
-                    <td>' . $bpjs_emp . '</td>
-                    <td>' . $jht_emp . '</td>
-                    <td>' . $record['ter'] . '</td>
-                    <td>' . $total_all_deduction . '</td>
-                    <td>' . $record['ter'] . '</td>
-                    <td>' . $record['net_income'] . '</td>
-                    <td>' . $record['bpjs_rate'] . '</td>
-                    <td>' . $record['bpjs_rate'] . '</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['salary'], 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tunjangan_tetap, 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tunjangan_jabatan, 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tunjangan_kinerja, 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tax_allowance, 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($total_all_allowance, 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['deduction_absence'], 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($jp_emp, 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($bpjs_emp, 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($jht_emp, 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['ter'], 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($total_all_deduction, 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['ter'], 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['net_income'], 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['bpjs_rate'], 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['bpjs_rate'], 2) .'</td>
                     </tr>
                     ';
             $no++;
@@ -1866,5 +1918,57 @@ class Payrolls extends CI_Controller
             'tax_allowance' => $tax_allowance,
             'total_bruto_tax' => $total_bruto_tax
         ];
+    }
+
+    private function countDayResign($date_resign, $from, $days) 
+    {
+        $start = strtotime($from);
+        $finish = strtotime($date_resign);
+
+        $weekday = [];
+        $weekday2 = [];
+        $weekend = [];
+        $weekend2 = [];
+
+        for ($i = $start; $i <= $finish; $i += (60 * 60 * 24)) {
+            //Jika tanggal yg di looping bukan hari sabtu dan minggu
+            if (date('w', $i) !== '0' && date('w', $i) !== '6') {
+                //Hari kerja
+                $weekday[] = date('Y-m-d', $i);
+            } else {
+                //Hari libur
+                $weekend[] = date('Y-m-d', $i);
+            }
+
+            if (date('w', $i) !== '0') {
+                //Hari kerja
+                $weekday2[] = date('Y-m-d', $i);
+            } else {
+                //Hari libur
+                $weekend2[] = date('Y-m-d', $i);
+            }
+        }
+
+        if ($days == "6") {
+            $weekend_day = $weekend2;
+            $weekday_day = $weekday2;
+        } else {
+            $weekend_day = $weekend;
+            $weekday_day = $weekday;
+        }
+
+
+        //Tanggal merah di master calendar
+        $this->db->select('trans_date');
+        $this->db->from('calendars');
+        $this->db->where('trans_date >=', $from);
+        $this->db->where('trans_date <=', $date_resign);
+        $this->db->where_not_in('trans_date', $weekend_day);
+        $calendar = $this->db->get()->result_array();
+        $calendar_amount = empty($calendar) ? 0 : count($calendar);
+
+        $total_day_resign = (@count($weekday_day) - @$calendar_amount);
+
+        return $total_day_resign;
     }
 }

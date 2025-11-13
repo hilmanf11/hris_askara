@@ -115,6 +115,7 @@ class Assign_Time_Off extends CI_Controller
                     $data_detail = [
                         'assign_time_off_id' => $master_id,
                         'employee_id' => $d['employee_id'],
+                        'type_balance' => $d['type_balance'],
                         'balance' => $d['balance'],
                         'start_date' => $d['start_date'],
                         'end_date' => $d['end_date']
@@ -171,6 +172,7 @@ class Assign_Time_Off extends CI_Controller
                     $data_detail = [
                         'assign_time_off_id' => $id,
                         'employee_id' => $d['employee_id'],
+                        'type_balance' => $d['type_balance'],
                         'balance' => $d['balance'],
                         'start_date' => $d['start_date'],
                         'end_date' => $d['end_date']

@@ -70,6 +70,10 @@ class Permits extends CI_Controller
         $permit_type_id = $this->input->post('permit_type_id');
 
         $year = date("Y");
+        $current_date = new DateTime(); // Tanggal saat ini
+        $month = $current_date->format('m');
+        $previous_year = $year - 1;
+
         $this->db->select('c.name, c.days');
         $this->db->from('shift_employees a');
         $this->db->join('shifts b', 'a.shift_id = b.id');
@@ -81,21 +85,64 @@ class Permits extends CI_Controller
         $calendar = $this->crud->reads("calendars", ["trans_date" => $year], ["permit" => 1]);
 
         $permitType = $this->crud->read('permit_types', [], ["id" => $permit_type_id, "cutoff" => "YES"]);
-        $permits = $this->crud->reads('permits', ["employee_id" => $employee_id, "DATE_FORMAT(permit_date, '%Y')" => $year], ["permit_type_id" => @$permitType->id]);
-        $totalPermit = 0;
-        foreach ($permits as $permit) {
-            $totalPermit += $permit->duration;
-        }
 
         $employee = $this->crud->read("employees", ["id" => $employee_id]);
 
         $sign_date = $employee->date_sign;
 
+        $response = $records;
+        $response['total_current'] = 0; // Sisa cuti tahun ini
+        $response['total_previous'] = 0; // Sisa cuti tahun sebelumnya
+
         if (strtotime('+1 year', strtotime($sign_date)) <= time()) {
-            echo json_encode(@array_merge($records, ["total" => (12 - $totalPermit - count($calendar))]));
+            $permits = $this->crud->reads('permits', ["employee_id" => $employee_id, "DATE_FORMAT(permit_date, '%Y')" => $year], ["permit_type_id" => @$permitType->id]);
+            $totalPermit = 0;
+            foreach ($permits as $permit) {
+                $totalPermit += $permit->duration;
+            }
+
+            $expiry_date = new DateTime("$year-03-31");
+
+            $totalPermit_previous = 0;
+
+            if ($current_date <= $expiry_date) {
+                // Ambil data cuti untuk tahun sebelumnya (untuk akumulasi)
+                $permits_previous = $this->crud->reads('permits', [
+                    "employee_id" => $employee_id,
+                    "DATE_FORMAT(permit_date, '%Y')" => $previous_year
+                ], ["permit_type_id" => $permitType->id]);
+                foreach ($permits_previous as $permit) {
+                    $totalPermit_previous += $permit->duration;
+                }
+                // Hitung sisa cuti tahun sebelumnya
+                $calendar_previous = $this->crud->reads("calendars", ["trans_date" => $previous_year], ["permit" => 1]);
+                $total_leave_previous = 12 - $totalPermit_previous - count($calendar_previous);
+                $response['total_previous'] = max(0, $total_leave_previous);
+            }
+
+            $total_leave_current = 12 - $totalPermit - count($calendar);
+            $response['total_current'] = max(0, $total_leave_current);
         } else {
-            echo json_encode(@array_merge($records, ["total" => 0]));
+            if (strtotime(date("Y-m-d", strtotime($sign_date . " +1 month"))) <= strtotime(date("Y-m-d"))) {
+                // Karyawan baru (< 1 tahun)
+                $permits = $this->crud->reads('permits', ["employee_id" => $employee_id, "DATE_FORMAT(permit_date, '%Y-%m')" => "$year-$month"], ["permit_type_id" => @$permitType->id]);
+                $totalPermit = 0;
+                foreach ($permits as $permit) {
+                    $totalPermit += $permit->duration;
+                }
+    
+                if ($totalPermit==0) {
+                    $response['total_current'] = 1;
+                }
+            } else {
+                $response['total_current'] = 0;
+            }
+
         }
+
+        // Total sisa cuti (tahun ini + tahun sebelumnya yang masih berlaku)
+        $response['total'] = $response['total_current'] + $response['total_previous'];
+        echo json_encode($response);
 
     }
 
@@ -108,16 +155,24 @@ class Permits extends CI_Controller
         $reason_id = $this->input->post('reason_id');
         $employee_id = $this->input->post('employee_id');
 
-        $this->db->select("b.balance");
+        $this->db->select("b.balance, b.type_balance");
         $this->db->from('assign_time_off_master a');
         $this->db->join('assign_time_off_detail b', 'a.id = b.assign_time_off_id');
         $this->db->join('employees c', 'b.employee_id = c.number');
-        $this->db->where("(b.start_date <= '$date_to' and b.end_date >= '$date_from')");
+        $this->db->group_start();
+            $this->db->where('b.start_date <=', $date_to);
+            $this->db->group_start();
+                $this->db->where('b.end_date IS NULL', null, false);
+                $this->db->or_where("b.end_date = '0000-00-00'", null, false);
+                $this->db->or_where('b.end_date >=', $date_from);
+            $this->db->group_end();
+        $this->db->group_end();
+
         $this->db->like('a.permit_type_id', $permit_type_id);
         $this->db->like('a.reason_id', $reason_id);
         $this->db->like('c.id', $employee_id);
         $this->db->order_by("b.id", "desc");
-        $assign_time_off = $this->db->get()->row();   
+        $assign_time_off = $this->db->get()->row();
 
         $date_from = strtotime($date_from);
         $date_to = strtotime($date_to);
@@ -138,22 +193,53 @@ class Permits extends CI_Controller
             }
         }
 
+        $permitType = $this->crud->read('permit_types', [], ["id" => $permit_type_id, "cutoff" => "YES"]);
         if (!empty($assign_time_off)) {
             $year = date("Y");
             $calendar = $this->crud->reads("calendars", ["trans_date" => $year], ["permit" => 1]);
 
-            $permitType = $this->crud->read('permit_types', [], ["id" => $permit_type_id, "cutoff" => "YES"]);
             $permits = $this->crud->reads('permits', ["employee_id" => $employee_id, "DATE_FORMAT(permit_date, '%Y')" => $year], ["permit_type_id" => @$permitType->id]);
             $totalPermit = 0;
             foreach ($permits as $permit) {
                 $totalPermit += $permit->duration;
             }
 
-            $balance = $assign_time_off->balance - $totalPermit - count($calendar);
+            if ($assign_time_off->type_balance == 'add') {
+                $balance = $assign_time_off->balance;
+            } else {
+                $balance = 12 + $assign_time_off->balance - $totalPermit - count($calendar);
+            }
+
             $is_time_off = 1;
         } else {
-            $balance = 0;
-            $is_time_off = 0;
+            $employee = $this->crud->read("employees", ["id" => $employee_id]);
+            $sign_date = $employee->date_sign;
+
+            if (strtotime('+1 year', strtotime($sign_date)) <= time()) { // sudah 1 tahun
+                $is_time_off = 0;
+                $balance = 0;
+            } else {
+                $is_time_off = 1;
+                if (strtotime('+1 month', strtotime($sign_date)) <= time()) {
+                    $from_date = new DateTime($this->input->post('date_from'));
+                    $tahun = $from_date->format('Y');
+                    $bulan = $from_date->format('m');
+                    $permits = $this->crud->reads('permits', ["employee_id" => $employee_id, "DATE_FORMAT(permit_date, '%Y-%m')" => "$tahun-$bulan"], ["permit_type_id" => @$permitType->id]);
+                    $totalPermit = 0;
+                    foreach ($permits as $permit) {
+                        $totalPermit += $permit->duration;
+                    }
+        
+                    if ($totalPermit==0) {
+                        $balance = 1;
+                    } else {
+                        $balance = 0;
+                    }
+                } else {
+                    $balance = 0;
+                }
+
+            }
         }
 
         echo json_encode(@array_merge(['is_time_off' => $is_time_off, 'balance' => $balance], ["total_days" => @count($weekdays)]));

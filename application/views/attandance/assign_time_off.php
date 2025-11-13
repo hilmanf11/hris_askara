@@ -626,7 +626,33 @@
                         width: 200,
                         halign: 'center',
                         title: "Full Name",
-                    }, {
+                    },
+                    {
+                        field: 'type_balance',
+                        width: 120,
+                        halign: 'center',
+                        title: "Type",
+                        formatter: function (value) {
+                            if (value === 'adjust') return 'Adjust Balance';
+                            if (value === 'add') return 'Add Balance';
+                            return value || ''; 
+                        },
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                valueField: 'value',
+                                textField: 'text',
+                                data: [
+                                    { value: 'adjust', text: 'Adjust Balance' },
+                                    { value: 'add', text: 'Add Balance' },
+                                ],
+                                editable: false,
+                                panelHeight: 'auto',
+                                required: true
+                            }
+                        }
+                    }, 
+                    {
                         field: 'balance',
                         width: 100,
                         halign: 'center',
@@ -658,7 +684,6 @@
                         editor: {
                             type: 'datebox',
                             options: {
-                                required: true,
                                 formatter: myformatter,
                                 parser: myparser
                             }

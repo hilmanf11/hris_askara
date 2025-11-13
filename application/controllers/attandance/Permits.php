@@ -205,9 +205,9 @@ class Permits extends CI_Controller
             }
 
             if ($assign_time_off->type_balance == 'add') {
-                $balance = $assign_time_off->balance;
-            } else {
                 $balance = 12 + $assign_time_off->balance - $totalPermit - count($calendar);
+            } else {
+                $balance = $assign_time_off->balance;
             }
 
             $is_time_off = 1;

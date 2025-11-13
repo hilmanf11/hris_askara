@@ -224,23 +224,17 @@ class Assign_Time_Off extends CI_Controller
 
             $master_id = $this->crud->autoid('assign_time_off_master');
             for ($i = 2; $i <= $total_row; $i++) {
+                $employee_id = trim($data->val($i, 2));
+                $employee = $this->crud->read("employees", [], ["number" => $employee_id]);
                 if (!empty($employee->number)) {
-                    $employee_id = trim($data->val($i, 2));
-
-                    $this->db->select('*');
-                    $this->db->from('employees');
-                    $this->db->where('number', $employee_id);
-                    $employee = $this->db->get()->row();
-
-                    if (!empty($employee->number)) {
-                        $datas[] = array(
-                            'employee_id' => trim($data->val($i, 2)),
-                            'balance' => $data->val($i, 4),
-                            'start_date' => $data->val($i, 5),
-                            'end_date' => $data->val($i, 6),
-                            'assign_time_off_id' => $master_id,
-                        );
-                    }
+                    $datas[] = array(
+                        'employee_id' => $employee->number,
+                        'type_balance' => $data->val($i, 4),
+                        'balance' => $data->val($i, 5),
+                        'start_date' => $data->val($i, 6),
+                        'end_date' => $data->val($i, 7),
+                        'assign_time_off_id' => $master_id,
+                    );
                 }
             }
 
@@ -294,6 +288,7 @@ class Assign_Time_Off extends CI_Controller
 
             $data_update = [
                 'employee_id' => $data['employee_id'],
+                'type_balance' => $data['type_balance'],
                 'balance' => $data['balance'],
                 'start_date' => $data['start_date'],
                 'end_date' => $data['end_date'],
@@ -362,6 +357,7 @@ class Assign_Time_Off extends CI_Controller
                 <th>Description</th>
                 <th>ID Employee</th>
                 <th>Full Name</th>
+                <th>Type Balance</th>
                 <th>Balance</th>
                 <th>Start Date</th>
                 <th>End Date</th>
@@ -383,6 +379,7 @@ class Assign_Time_Off extends CI_Controller
                     <td>' . $data['description'] . '</td>
                     <td>' . $data['employee_number'] . '</td>
                     <td>' . $data['employee_name'] . '</td>
+                    <td>' . $data['type_balance'] . '</td>
                     <td>' . $data['balance'] . '</td>
                     <td>' . $data['start_date'] . '</td>
                     <td>' . $data['end_date'] . '</td>

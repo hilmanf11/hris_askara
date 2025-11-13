@@ -589,7 +589,7 @@
                 });
             }
         });
-
+        var sisa_cuti = 0;
         $("#permit_type_id").combobox({
             url: '<?= base_url('attandance/permit_types/reads') ?>',
             valueField: 'id',
@@ -603,8 +603,10 @@
                     data: 'employee_id=' + employee_id + '&permit_type_id=' + permit.id,
                     success: function(row) {
                         var result = eval('(' + row + ')');
+                        sisa_cuti = result.total
                         if (result.total == 0) {
                             $("#leave").numberbox('clear');
+                            $("#leave").numberbox('setValue', (result.total));
                             if (permit.cutoff == "YES") {
                                 $("#duration").numberbox('setValue', 1);
                             } else {
@@ -630,36 +632,37 @@
                 });
 
                 $("#date_from").datebox({
-                    onChange: function(index) {
+                    onChange: function(index) {                        
                         var date_to = $("#date_to").datebox('getValue');
                         var working_day = $("#working_day").numberbox('getValue');
                         var permit_type = $("#permit_type_id").combobox('getValue');
                         var reason = $("#reason_id").combobox('getValue');
                         var employee_id = $('#employee_id').combogrid('getValue');
 
-                        if (date_from == "" || date_from > index) {
-                            toastr.warning("Please Select Permit Date From < Date To");
-                        } else {
-                            $.ajax({
-                                url: '<?= base_url('attandance/permits/getDays') ?>',
-                                type: 'post',
-                                data: 'date_from=' + index + '&date_to=' + date_to + '&working_day=' + working_day + '&permit_type_id=' + permit_type + '&reason_id=' + reason + '&employee_id=' + employee_id,
-                                success: function(row) {
-                                    var result = eval('(' + row + ')');
-                                    if (result.is_time_off == 1) {
-                                        $("#leave").numberbox('setValue', result.balance);
-                                        var leave = result.balance;
-                                    } else {
-                                        var leave = $("#leave").numberbox('getValue');
-                                    }
+                        $("#date_to").datebox('clear');
+                        // if (date_from == "" || date_from > index) {
+                        //     toastr.warning("Please Select Permit Date From < Date To");
+                        // } else {
+                        //     $.ajax({
+                        //         url: '<?= base_url('attandance/permits/getDays') ?>',
+                        //         type: 'post',
+                        //         data: 'date_from=' + index + '&date_to=' + date_to + '&working_day=' + working_day + '&permit_type_id=' + permit_type + '&reason_id=' + reason + '&employee_id=' + employee_id,
+                        //         success: function(row) {
+                        //             var result = eval('(' + row + ')');
+                        //             if (result.is_time_off == 1) {
+                        //                 $("#leave").numberbox('setValue', result.balance);
+                        //                 var leave = result.balance;
+                        //             } else {                                        
+                        //                 var leave = $("#leave").numberbox('getValue');
+                        //             }
 
-                                    if (parseInt(leave - result.total_days) < 0) {
-                                        toastr.error("the Leave is over", "Leave 0");
-                                        $("#date_from").datebox('clear');
-                                    }
-                                }
-                            });
-                        }
+                        //             if (parseInt(leave - result.total_days) < 0) {
+                        //                 toastr.error("the Leave is over", "Leave 0");
+                        //                 $("#date_from").datebox('clear');
+                        //             }
+                        //         }
+                        //     });
+                        // }
                     }
                 });
 
@@ -684,7 +687,8 @@
                                         $("#leave").numberbox('setValue', result.balance);
                                         var leave = result.balance;
                                     } else {
-                                        var leave = $("#leave").numberbox('getValue');
+                                        $("#leave").numberbox('setValue', sisa_cuti);
+                                        var leave = sisa_cuti;
                                     }
 
                                     if (parseInt(leave - result.total_days) < 0) {

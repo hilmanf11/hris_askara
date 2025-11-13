@@ -91,6 +91,39 @@ class Employees extends CI_Controller
         echo json_encode($records);
     }
 
+    public function readEmployeeNotPkl($status = 0)
+    {
+        $post = isset($_POST['q']) ? $_POST['q'] : "";
+        $get = $this->input->get();
+        $aprvDepartement = $this->checkApprovalAccess('employees');
+
+        $session_id = $this->session->id;
+        $session_dept = $this->session->departement_id;
+
+        $user = $this->crud->read("users", [], ["id" => $session_id]);
+        if ($user->access == "0") {
+            $departement_id = "";
+        } else {
+            $departement_id = $session_dept;
+        }
+
+        $this->db->select('*');
+        $this->db->from('employees');
+        $this->db->where('status', $status);
+        $this->db->where('group_id !=','20221213000006');
+        if ($get) {
+            $this->db->like($get);
+        }
+        $this->db->like('departement_id', $departement_id);
+        $this->db->group_start();
+        $this->db->like('number', $post);
+        $this->db->or_like('name', $post);
+        $this->db->group_end();
+        $this->db->order_by('name', 'asc');
+        $records = $this->db->get()->result_array();
+        echo json_encode($records);
+    }
+
     public function readFulls()
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";

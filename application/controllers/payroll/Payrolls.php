@@ -1447,7 +1447,7 @@ class Payrolls extends CI_Controller
             $html .= '<td>' . $record['working_day'] . '</td>';
             $html .= '<td>' . $record['salary'] . '</td>';
             foreach (json_decode($record['allowence'], true) as $allowence => $val_allowence) {
-                $html .= '<td>' . $val_allowence . '</td>';
+                $html .= '<td>' . round($val_allowence,0) . '</td>';
             }
             foreach (json_decode($record['bpjs_company'], true) as $bpjs_company => $val_bpjs_company) {
                 $html .= '<td>' . $val_bpjs_company . '</td>';
@@ -1652,22 +1652,22 @@ class Payrolls extends CI_Controller
                     <td>' . $record['name'] . '</td>
                     <td>' . $record['position_name'] . '</td>
                     <td>' . $record['departement_sub_name'] . '</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['salary'], 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tunjangan_tetap, 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tunjangan_jabatan, 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tunjangan_kinerja, 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tax_allowance, 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($total_all_allowance, 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['deduction_absence'], 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($jp_emp, 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($bpjs_emp, 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($jht_emp, 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['ter'], 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($total_all_deduction, 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['ter'], 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['net_income'], 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['bpjs_rate'], 2) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['bpjs_rate'], 2) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['salary'], 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tunjangan_tetap, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tunjangan_jabatan, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tunjangan_kinerja, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tax_allowance, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($total_all_allowance, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['deduction_absence'], 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($jp_emp, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($bpjs_emp, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($jht_emp, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['ter'], 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($total_all_deduction, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['ter'], 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['net_income'], 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['bpjs_rate'], 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['bpjs_rate'], 0) .'</td>
                     </tr>
                     ';
             $no++;

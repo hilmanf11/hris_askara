@@ -731,9 +731,19 @@
     }
 
     function numberformat(value, row) {
-        const formatter = new Intl.NumberFormat('id-ID');
+        if (value == null || value === '') return '';
 
-        return "<b>" + formatter.format(value) + "</b>";
+        const num = Number(String(value).replace(/[^0-9.-]/g, ''));
+        if (isNaN(num)) return value;
+
+        const rounded = Math.round(num);
+
+        const formatter = new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        });
+
+        return '<b>' + formatter.format(rounded) + '</b>';
     }
 
     // function numberformatDecimal(value, row) {

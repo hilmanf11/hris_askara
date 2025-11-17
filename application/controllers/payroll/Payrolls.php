@@ -1022,7 +1022,7 @@ class Payrolls extends CI_Controller
             // )));
 
             // Hitung Tax Allowance
-            $calc_tax_allowance = $this->calcTaxAllowance($total_all_allowance, $record['ter_type'], $record['salary_component_id']);
+            $calc_tax_allowance = $this->calcTaxAllowance(($total_all_allowance-$total_all_deduction), $record['ter_type'], $record['salary_component_id']);
             $tax_allowance = $calc_tax_allowance['tax_allowance'];
             $total_bruto_tax = $calc_tax_allowance['total_bruto_tax'];
 
@@ -1059,7 +1059,8 @@ class Payrolls extends CI_Controller
 
             //Total keseluruhan
             $netincome = ($income - $arr_deduction_amount_total - $arr_bpjs_emp_amount_total - @$loan_cooperative_amount - @$loan_bank_amount - @$loan_other_amount);
-            if ($is_resign) {
+            // Jika resign dan gross up, karena gross up tax allowancenya 0
+            if ($is_resign || $tax_allowance == 0) {
                 $netincome -= $ter;
             }
             $roundup = 500; // digit pembulatan, dalam hal ini ratusan
@@ -1631,7 +1632,7 @@ class Payrolls extends CI_Controller
             $tunjangan_tetap = $arr_allowance['tt'] ?? 0;
             $tunjangan_jabatan = $arr_allowance['tj'] ?? 0;
             $tunjangan_kinerja = $arr_allowance['tk'] ?? 0;
-            if ($record['ter'] < 0) {
+            if ($record['ter'] < 0 || $record['tax_allowance'] == 0) {
                 $tax_allowance = 0;
             } else {
                 $tax_allowance = $record['ter'];

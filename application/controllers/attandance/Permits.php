@@ -464,8 +464,8 @@ class Permits extends CI_Controller
             $date_to = strtotime($post['date_to']);
 
             $employee = $this->crud->read('employees', ["number" => $post['number'], "status" => 0]);
-            $permittype = $this->crud->read('permit_types', ["number" => $post['permit_type_number']]);
-            $reason = $this->crud->read('reasons', ["number" => $post['reason_number']]);
+            $permittype = $this->crud->read('permit_types', [], ["number" => $post['permit_type_number']]);
+            $reason = $this->crud->read('reasons',[], ["number" => $post['reason_number']]);
 
             if (!empty($employee)) {
                 if (!empty($permittype)) {

@@ -1547,7 +1547,7 @@ class Payrolls extends CI_Controller
         }
 
         $query = $this->db->query("SELECT a.*, b.national_id, d.name as source_name, e.employee_id as status_resign, g.number as account_no,
-        coalesce(p.bpjs, 0) as bpjs_rate
+        coalesce(p.bpjs, 0) as bpjs_rate, b.group_id
         FROM payrolls a
             JOIN employees b on a.employee_id = b.id
             LEFT JOIN sources d on b.source_id = d.id
@@ -1572,6 +1572,26 @@ class Payrolls extends CI_Controller
         $this->db->select('*');
         $this->db->from('config');
         $config = $this->db->get()->row();
+        $group_id = null;
+        $hlGroups = ['20221213000002', '20221213000003'];
+        if ($filter_employee) {
+            $femployee = $this->crud->read('employees', [], ['id' => $filter_employee]);
+            $group_id  = $femployee->group_id ?? null;
+        }
+
+        $is_hl = in_array($filter_group, $hlGroups, true) || in_array($group_id, $hlGroups, true);
+
+        if ($is_hl) {
+            $th = " <th>Gaji Harian</th>
+                    <th>Uang Makan</th>";
+        } else {
+            $th = "
+                <th>Basic Salary</th>
+                <th>Tunjangan Tetap</th>
+                <th>Tunjangan Jabatan</th>
+                <th>Tunjangan Kinerja</th>
+            ";
+        }
 
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
                 <style> .str{ mso-number-format:\@; } </style>
@@ -1608,10 +1628,8 @@ class Payrolls extends CI_Controller
                 <th>Full Name</th>
                 <th>Job Position</th>
                 <th>Organization</th>
-                <th>Basic Salary</th>
-                <th>Tunjangan Tetap</th>
-                <th>Tunjangan Jabatan</th>
-                <th>Tunjangan Kinerja</th>
+                '.$th.'
+                <th>Total Overtime</th>
                 <th>Tax Allowance</th>
                 <th>Total Allowance</th>
                 <th>Potongan Absen</th>
@@ -1629,15 +1647,45 @@ class Payrolls extends CI_Controller
         $no = 1;
         foreach ($records as $record) {
             $arr_allowance = json_decode($record['allowence'], true);
-            $tunjangan_tetap = $arr_allowance['tt'] ?? 0;
-            $tunjangan_jabatan = $arr_allowance['tj'] ?? 0;
-            $tunjangan_kinerja = $arr_allowance['tk'] ?? 0;
+            if ($is_hl) {
+                $gaji_harian = 0;
+                // ambil nilai uang makan
+                $uang_makan = isset($arr_allowance['um']) ? (float) $arr_allowance['um'] : 0;
+
+                // hitung total selain uang makan
+                foreach ($arr_allowance as $key => $value) {
+                    if ($key === 'um') continue; // skip uang makan
+                    $gaji_harian += (float) $value;
+                }
+                $th2 = '
+                    <td style="mso-number-format:"0.00";">'. round($gaji_harian, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($uang_makan, 0) .'</td>
+                ';
+            } else {
+                $tunjangan_tetap = $arr_allowance['tt'] ?? 0;
+                $tunjangan_jabatan = $arr_allowance['tj'] ?? 0;
+                $tunjangan_kinerja = $arr_allowance['tk'] ?? 0;
+
+                $th2 = '
+                    <td style="mso-number-format:"0.00";">'. round($record['salary'], 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tunjangan_tetap, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tunjangan_jabatan, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tunjangan_kinerja, 0) .'</td>
+                ';
+
+            }
             if ($record['ter'] < 0 || $record['tax_allowance'] == 0) {
                 $tax_allowance = 0;
             } else {
                 $tax_allowance = $record['ter'];
             }
-            $total_all_allowance = $tax_allowance + $tunjangan_tetap + $tunjangan_jabatan + $tunjangan_kinerja;
+            $total_overtime = $record['overtime_amount_weekday'] + $record['overtime_amount_saturday'] + $record['overtime_amount_sunday'] + $record['overtime_amount_holiday'];
+
+            if ($is_hl) {
+                $total_all_allowance = $tax_allowance + $total_overtime + $gaji_harian;
+            } else {
+                $total_all_allowance = $tax_allowance + $tunjangan_tetap + $tunjangan_jabatan + $tunjangan_kinerja + $total_overtime;
+            }
 
             $bpjs_employee = json_decode($record['bpjs_employee'], true);
             $jp_emp = $bpjs_employee['jp_employee'] ?? 0;
@@ -1653,13 +1701,11 @@ class Payrolls extends CI_Controller
                     <td>' . $record['name'] . '</td>
                     <td>' . $record['position_name'] . '</td>
                     <td>' . $record['departement_sub_name'] . '</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['salary'], 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tunjangan_tetap, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tunjangan_jabatan, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tunjangan_kinerja, 0) .'</td>
+                    '.$th2.'
+                    <td style="mso-number-format:"0.00";">'. round($total_overtime, 0) .'</td>
                     <td style="mso-number-format:"0.00";">'. round($tax_allowance, 0) .'</td>
                     <td style="mso-number-format:"0.00";">'. round($total_all_allowance, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['deduction_absence'], 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['deduction_absence_amount'], 0) .'</td>
                     <td style="mso-number-format:"0.00";">'. round($jp_emp, 0) .'</td>
                     <td style="mso-number-format:"0.00";">'. round($bpjs_emp, 0) .'</td>
                     <td style="mso-number-format:"0.00";">'. round($jht_emp, 0) .'</td>

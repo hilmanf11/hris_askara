@@ -70,6 +70,43 @@ class Setup_salaries extends CI_Controller
     //     echo json_encode($records);
     // }
 
+    public function readGroups()
+    {
+        $post = isset($_POST['q']) ? $_POST['q'] : "";
+        $username = $this->session->username;
+        $where = ($username == "admin") ? "" : " and a.status = '1'";
+        $send = $this->crud->query("SELECT b.id, b.name FROM privilege_groups a JOIN groups b ON a.group_id = b.id WHERE b.id != '20221213000006' AND a.username = '$username' $where");
+        echo json_encode($send);
+    }
+
+    public function readEmployees($status = 0)
+    {
+        $post = isset($_POST['q']) ? $_POST['q'] : "";
+        $get = $this->input->get();
+        $aprvDepartement = $this->checkApprovalAccess('employees');
+
+        $session_id = $this->session->id;
+        $session_dept = $this->session->departement_id;
+
+        $user = $this->crud->read("users", [], ["id" => $session_id]);
+        if ($user->access == "0") {
+            $departement_id = "";
+        } else {
+            $departement_id = $session_dept;
+        }
+
+        $this->db->select('*')->from('employees')->where('status', $status)
+            ->where('group_id !=', '20221213000006')
+            ->like('departement_id', $departement_id)
+            ->group_start()
+                ->like('number', $post)
+                ->or_like('name', $post)
+            ->group_end();
+        if ($get) { $this->db->like($get); }
+        $this->db->order_by('name', 'asc');
+        $records = $this->db->get()->result_array();
+        echo json_encode($records);
+    }
 
     //GET DATATABLES
     public function datatables()
@@ -107,8 +144,12 @@ class Setup_salaries extends CI_Controller
                 ((a.amount * 25) / 100) as allowance_fix,
                 ((a.amount * 25) / 100) as other,
                 ((((a.amount * 25) / 100) * 40) / 100) as position,
-                ((((a.amount * 25) / 100) * 60) / 100) as skill
-            ');
+                ((((a.amount * 25) / 100) * 60) / 100) as skill,
+                CASE 
+                    WHEN a.bpjs_kes = 0 THEN a.bpjs
+                    ELSE a.bpjs_kes
+                END AS bpjs_kes
+            ', FALSE);
             $this->db->from('employees c');
             $this->db->join('setup_salaries a', 'a.employee_id = c.id', 'left');
             $this->db->join('divisions d', 'c.division_id = d.id');
@@ -116,9 +157,9 @@ class Setup_salaries extends CI_Controller
             $this->db->join('departement_subs f', 'c.departement_sub_id = f.id');
             $this->db->join('salary_components g', 'a.salary_component_id = g.id', 'left');
             $this->db->join('privilege_groups h', "c.group_id = h.group_id and h.username = '$username' and h.status = '1'", 'left');
+            $this->db->where('c.group_id !=', '20221213000006');
             $this->db->where('c.deleted', 0);
             $this->db->where('c.status', 0);
-
             if($filter_employee != ""){
                 $this->db->where('c.id', $filter_employee);
             }
@@ -137,7 +178,6 @@ class Setup_salaries extends CI_Controller
             if($filter_group != ""){
                 $this->db->where('h.group_id', $filter_group);
             }
-            
             $this->db->not_like('c.number', 'P');
             $this->db->not_like('c.number', 'HL');
             if ($filter_component_salary != "") {
@@ -194,6 +234,7 @@ class Setup_salaries extends CI_Controller
             $post = $this->input->post();
             $component_name = $post['salary_component_name'];
             $bpjs = $post['bpjs'];
+            $bpjs_kes = $post['bpjs_kes'];
 
 
             $setup_salaries = $this->crud->read("setup_salaries", [], ["employee_id" => $post['employee_id']]);
@@ -216,6 +257,7 @@ class Setup_salaries extends CI_Controller
                     "salary_component_id" => @$component->id,
                     "amount" => $amount,
                     "bpjs" => $bpjs,
+                    "bpjs_kes" => $bpjs_kes,
                 );
 
 
@@ -234,6 +276,7 @@ class Setup_salaries extends CI_Controller
                     "salary_component_id" => @$component->id,
                     "amount" => $amount,
                     "bpjs" => $bpjs,
+                    "bpjs_kes" => $bpjs_kes,
                 );
 
 
@@ -342,11 +385,10 @@ class Setup_salaries extends CI_Controller
 
             if (!empty($salary_component->id)) {
                 $salary_component_id = $salary_component->id;
-                $amount = $salary_component->salary;
             } else {
                 $salary_component_id = "";
-                $amount = $data['amount'];
             }
+            $amount = $data['amount'];
 
 
             if (!empty($employees)) {

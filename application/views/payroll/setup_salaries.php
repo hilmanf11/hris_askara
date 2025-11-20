@@ -19,7 +19,8 @@
                 }
             }">Component Salary</th>
             <th rowspan="2" data-options="field:'amount',width:150,halign:'center', align:'right',editor:'numberbox', formatter:numberformat">Salary</th>
-            <th rowspan="2" data-options="field:'bpjs',width:150,halign:'center', align:'right',editor:'numberbox', formatter:numberformat">Salary BPJS</th>
+             <th rowspan="2" data-options="field:'bpjs',width:150,halign:'center', align:'right',editor:'numberbox', formatter:numberformat">Salary BPJS <br> Ketenagakerjaan</th>
+            <th rowspan="2" data-options="field:'bpjs_kes',width:150,halign:'center', align:'right',editor:'numberbox', formatter:numberformat">Salary BPJS <br> Kesehatan</th>
             <!-- <th colspan="2" data-options="field:'',width:150,halign:'center'"> Salary</th>
             <th rowspan="2" data-options="field:'other',width:150,halign:'center', align:'right', formatter:numberformat">Other (25%)</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Allowance</th> -->
@@ -120,8 +121,12 @@
                 <input style="width:60%;" name="amount" id="amount" required="" data-options="buttonText:'Rp', buttonAlign:'left'" class="easyui-numberbox">
             </div>
             <div class="fitem">
-                <span style="width:35%; display:inline-block;">BPJS Fee</span>
+                <span style="width:35%; display:inline-block;">BPJS Ketenagakerjaan</span>
                 <input style="width:60%;" name="bpjs" id="bpjs" required="" data-options="buttonText:'Rp', buttonAlign:'left'" class="easyui-numberbox">
+            </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">BPJS Kesehatan</span>
+                <input style="width:60%;" name="bpjs_kes" id="bpjs_kes" required="" data-options="buttonText:'Rp', buttonAlign:'left'" class="easyui-numberbox">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Description</span>
@@ -295,11 +300,12 @@
                 var salary_component_name = row.component_salary_name;
                 var amount = row.amount;
                 var bpjs = row.bpjs;
+                var bpjs_kes = row.bpjs_kes;
 
                 $.ajax({
                     type: "post",
                     url: "<?= base_url('payroll/setup_salaries/createOrUpdate') ?>",
-                    data: "employee_id=" + employee_id + "&salary_component_name=" + salary_component_name + "&amount=" + amount + "&bpjs=" + bpjs,
+                    data: "employee_id=" + employee_id + "&salary_component_name=" + salary_component_name + "&amount=" + amount + "&bpjs=" + bpjs + "&bpjs_kes=" + bpjs_kes,
                     dataType: "json",
                     success: function(json) {
                         if (json.theme == "success") {
@@ -491,7 +497,7 @@
                             }],
                             onSelect: function(departement_sub) {
                                 $('#filter_employee').combogrid({
-                                    url: '<?= base_url('employee/employees/reads?departement_sub_id=') ?>' + departement_sub.id,
+                                    url: '<?= base_url('payroll/setup_salaries/readEmployees?departement_sub_id=') ?>' + departement_sub.id,
                                     panelWidth: 450,
                                     idField: 'id',
                                     textField: 'name',
@@ -524,7 +530,7 @@
         });
 
         $('#filter_employee').combogrid({
-            url: '<?= base_url('employee/employees/reads') ?>',
+            url: '<?= base_url('payroll/setup_salaries/readEmployees') ?>',
             panelWidth: 450,
             idField: 'id',
             textField: 'name',
@@ -577,7 +583,7 @@
         });
 
         $('#filter_group').combobox({
-            url: '<?= base_url('admin/privilege_groups/reads') ?>',
+            url: '<?= base_url('payroll/setup_salaries/readGroups') ?>',
             valueField: 'id',
             textField: 'name',
             prompt: "Choose All",
@@ -590,7 +596,7 @@
         });
 
         $('#employee_id').combogrid({
-            url: '<?= base_url('employee/employees/reads') ?>',
+            url: '<?= base_url('payroll/setup_salaries/readEmployees') ?>',
             panelWidth: 450,
             idField: 'id',
             textField: 'name',

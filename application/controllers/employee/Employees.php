@@ -812,11 +812,11 @@ class Employees extends CI_Controller
         if ($this->input->post()) {
             $data = $this->input->post('data');
             $employees = $this->crud->read('employees', ["number" => $data['number']]);
-            $divisions = $this->crud->read('divisions', ["number" => $data['division_number']]);
+            $divisions = $this->crud->read('divisions', [], ["number" => $data['division_number']]);
             $departements = $this->crud->read('departements', [], ["number" => $data['departement_number']]);
-            $departement_subs = $this->crud->read('departement_subs', ["number" => $data['departement_sub_number'], "division_id" => @$divisions->id, "departement_id" => @$departements->id]);
-            $positions = $this->crud->read('positions', ["number" => $data['position_number']]);
-            $contracts = $this->crud->read('contracts', ["number" => $data['contract_number']]);
+            $departement_subs = $this->crud->read('departement_subs', [], ["number" => $data['departement_sub_number'], "division_id" => @$divisions->id, "departement_id" => @$departements->id]);
+            $positions = $this->crud->read('positions', [], ["number" => $data['position_number']]);
+            $contracts = $this->crud->read('contracts', [], ["number" => $data['contract_number']]);
             $groups = $this->crud->read('groups', ["number" => $data['group_number']]);
             $sources = $this->crud->read('sources', ["number" => $data['source_number'], "group_id" => $groups->id]);
             $religions = $this->crud->read('religions', ["number" => $data['religion_number']]);

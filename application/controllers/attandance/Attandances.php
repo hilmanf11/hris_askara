@@ -347,17 +347,47 @@ class Attandances extends CI_Controller
                     }
 
                     if (!empty($attandance_in->number)) {
-                        if ((substr(@$time_in, 0, 2) <= "12")) {
+                        $data_time_in = $attandance_in->time_in;
+                        $data_time_out = $attandance_in->time_out;
+                        $arr_time = ['time_in' => $time_in];
+                        $mode = 'create';
+                        if ($data_time_in) {
+                            if ((substr(@$time_in, 0, 2) >= substr(@$data_time_in, 0, 2) )) {
+                                //time out
+                                $time_in = $time_in;
+                                $arr_time = ['time_out' => $time_in];
+                                $mode = 'create';
+                            } else {
+                                //time in
+                                $time_in = $data_time_in;
+                                $arr_time = ['time_in' => $time_in];
+                                $mode = 'update';
+                            }
+                        }
+                        else if ($data_time_out) {
+                            if ((substr(@$time_in, 0, 2) <= substr(@$data_time_out, 0, 2) )) {
+                                //time in
+                                $time_in = $time_in;
+                                $arr_time = ['time_in' => $time_in];
+                                $mode = 'create';
+                            } else {
+                                //time out
+                                $time_in = $data_time_out;
+                                $arr_time = ['time_out' => $time_in];
+                                $mode = 'update';
+                            }
+                        }
+                        if ($mode == 'update') {
                             $data_attandance = array(
                                 'number' => $employee->number,
                                 'date_in' => $date_in,
-                                'time_in' => $time_in,
                                 'shift_start' => @$shift->start,
                                 'shift_name' => @$shift->name,
                                 'shift_detail' => @$shift->shift_name,
                                 'shift_days' => @$shift->days,
                                 'status' => "UPLOAD",
                             );
+                            $data_attandance = array_merge($data_attandance, $arr_time);
 
                             $this->crud->update('attandances', ["id" => $attandance_in->id], $data_attandance);
                             echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check In", "theme" => "success"));
@@ -365,43 +395,43 @@ class Attandances extends CI_Controller
                             $data_attandance = array(
                                 'number' => $employee->number,
                                 'date_out' => $date_in,
-                                'time_out' => $time_in,
                                 'shift_start' => @$shift->start,
                                 'shift_name' => @$shift->name,
                                 'shift_detail' => @$shift->shift_name,
                                 'shift_days' => @$shift->days,
                                 'status' => "UPLOAD",
                             );
+                            $data_attandance = array_merge($data_attandance, $arr_time);
 
                             $this->crud->update('attandances', ["id" => $attandance_in->id], $data_attandance);
                             echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check Out", "theme" => "success"));
                         }
                     } else {
-                        if ((substr(@$time_in, 0, 2) <= "12")) {
-                            $data_attandance = array(
-                                'number' => $employee->number,
-                                'date_in' => $date_in,
-                                'time_in' => $time_in,
-                                'shift_start' => @$shift->start,
-                                'shift_name' => @$shift->name,
-                                'shift_detail' => @$shift->shift_name,
-                                'shift_days' => @$shift->days,
-                                // 'time_out' => @$shift->end,
-                                'status' => "UPLOAD",
-                            );
-                        } else {
-                            $data_attandance = array(
-                                'number' => $employee->number,
-                                'time_out' => $time_in,
-                                'date_out' => $date_in,
-                                'shift_start' => @$shift->start,
-                                'shift_name' => @$shift->name,
-                                'shift_detail' => @$shift->shift_name,
-                                'shift_days' => @$shift->days,
-                                // 'time_out' => @$shift->end,
-                                'status' => "UPLOAD",
-                            );
-                        }
+                        $data_attandance = array(
+                            'number' => $employee->number,
+                            'date_in' => $date_in,
+                            'time_in' => $time_in,
+                            'shift_start' => @$shift->start,
+                            'shift_name' => @$shift->name,
+                            'shift_detail' => @$shift->shift_name,
+                            'shift_days' => @$shift->days,
+                            // 'time_out' => @$shift->end,
+                            'status' => "UPLOAD",
+                        );
+                        // if ((substr(@$time_in, 0, 2) <= "12")) {
+                        // } else {
+                        //     $data_attandance = array(
+                        //         'number' => $employee->number,
+                        //         'time_out' => $time_in,
+                        //         'date_out' => $date_in,
+                        //         'shift_start' => @$shift->start,
+                        //         'shift_name' => @$shift->name,
+                        //         'shift_detail' => @$shift->shift_name,
+                        //         'shift_days' => @$shift->days,
+                        //         // 'time_out' => @$shift->end,
+                        //         'status' => "UPLOAD",
+                        //     );
+                        // }
 
                         $this->crud->create('attandances', $data_attandance);
                         echo json_encode(array("title" => "Created", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create data Check In", "theme" => "success"));

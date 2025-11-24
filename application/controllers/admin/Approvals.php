@@ -223,4 +223,111 @@ class Approvals extends CI_Controller
         $html .= '</table></body></html>';
         echo $html;
     }
+
+    //UPLOAD DATA
+    public function upload()
+    {
+        error_reporting(0);
+        require_once 'assets/vendors/excel_reader2.php';
+        $target = basename($_FILES['file_upload']['name']);
+        move_uploaded_file($_FILES['file_upload']['tmp_name'], $target);
+        chmod($_FILES['file_upload']['name'], 0777);
+        $file = $_FILES['file_upload']['name'];
+        $data = new Spreadsheet_Excel_Reader($file, false);
+        $total_row = $data->rowcount($sheet_index = 0);
+
+        for ($i = 3; $i <= $total_row; $i++) {
+            $datas[] = array(
+                'number' => $data->val($i, 2),
+                'table_name' => $data->val($i, 3),
+                'user_approval_1' => $data->val($i, 4),
+                'user_approval_2' => $data->val($i, 5),
+                'user_approval_3' => $data->val($i, 6),
+                'user_approval_4' => $data->val($i, 7),
+                'user_approval_5' => $data->val($i, 8),
+            );
+        }
+
+        $datas['total'] = count($datas);
+        echo json_encode($datas);
+
+        unlink($_FILES['file_upload']['name']);
+    }
+
+    public function uploadclearFailed()
+    {
+        @unlink('failed/approvals.txt');
+    }
+
+    public function uploadcreateFailed()
+    {
+        if ($this->input->post()) {
+            $message = $this->input->post('message');
+            $textFailed = fopen('failed/approvals.txt', 'a');
+            fwrite($textFailed, $message . "\n");
+            fclose($textFailed);
+        }
+    }
+
+    public function uploadDownloadFailed()
+    {
+        $file = "failed/approvals.txt";
+
+        header('Content-Description: File Failed');
+        header('Content-Disposition: attachment; filename=' . basename($file));
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . @filesize($file));
+        header("Content-Type: text/plain");
+        @readfile($file);
+    }
+
+    public function uploadcreate()
+    {
+        if ($this->input->post()) {
+            $data = $this->input->post('data');
+            //Cek Process Number
+            $employee = $this->crud->read('employees', [], ["number" => $data['number']]);
+
+            $arrTableName = [
+                "users",
+                "employees",
+                "warning_letters",
+                "resignations",
+                "agreements",
+                "mutations",
+                "cash_carries",
+                "permits",
+                "change_days",
+                "setup_salaries",
+                "payrolls",
+            ];
+
+            $table_name = $data['table_name'];
+
+            if (empty($employee)) {
+                echo json_encode(array("title" => "Not Found", "message" => "Employee ID " . $data['number'] . " Not Found", "theme" => "error"));
+            } else if (!(in_array($table_name, $arrTableName))) {
+                echo json_encode(array("title" => "Not Found", "message" => "Module Code " . $data['table_name'] . " Not Found", "theme" => "error"));
+            } else {
+                $approvals = $this->crud->read('approvals', [], ["table_name" => $table_name, "employee_id" => $employee->id]);
+                if (!$approvals) {
+                    $post = array(
+                        "employee_id" => $employee->id,
+                        "table_name" => $table_name,
+                        "user_approval_1" => $data['user_approval_1'],
+                        "user_approval_2" => $data['user_approval_2'],
+                        "user_approval_3" => $data['user_approval_3'],
+                        "user_approval_4" => $data['user_approval_4'],
+                        "user_approval_5" => $data['user_approval_5'],
+                    );
+                    $send = $this->crud->create('approvals', $post);
+                    echo $send;
+                } else {
+                    echo json_encode(array("title" => "Duplicate", "message" => "Module Code " . $data['table_name'] . " Duplicate", "theme" => "error"));
+                }
+            }
+        }
+    }
 }

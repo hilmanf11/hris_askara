@@ -313,14 +313,54 @@ class Approvals extends CI_Controller
             } else {
                 $approvals = $this->crud->read('approvals', [], ["table_name" => $table_name, "employee_id" => $employee->id]);
                 if (!$approvals) {
+                    $username1 = '';
+                    if ($data['user_approval_1']) {
+                        $user1 = $this->crud->read('users', [], ["number" => $data['user_approval_1']]);
+                        if ($user1) {
+                            $username1 = $user1->username;
+                        }
+                    }
+
+                    $username2 = '';
+                    if ($data['user_approval_2']) {
+                        $user2 = $this->crud->read('users', [], ["number" => $data['user_approval_2']]);
+                        if ($user2) {
+                            $username2 = $user2->username;
+                        }
+                    }
+
+                    $username3 = '';
+                    if ($data['user_approval_3']) {
+                        $user3 = $this->crud->read('users', [], ["number" => $data['user_approval_3']]);
+                        if ($user3) {
+                            $username3 = $user3->username;
+                        }
+                    }
+
+                    $username4 = '';
+                    if ($data['user_approval_4']) {
+                        $user4 = $this->crud->read('users', [], ["number" => $data['user_approval_4']]);
+                        if ($user4) {
+                            $username4 = $user4->username;
+                        }
+                    }
+
+                    $username5 = '';
+                    if ($data['user_approval_5']) {
+                        $user5 = $this->crud->read('users', [], ["number" => $data['user_approval_5']]);
+                        if ($user5) {
+                            $username5 = $user5->username;
+                        }
+                    }
+
                     $post = array(
                         "employee_id" => $employee->id,
                         "table_name" => $table_name,
-                        "user_approval_1" => $data['user_approval_1'],
-                        "user_approval_2" => $data['user_approval_2'],
-                        "user_approval_3" => $data['user_approval_3'],
-                        "user_approval_4" => $data['user_approval_4'],
-                        "user_approval_5" => $data['user_approval_5'],
+                        "user_approval_1" => $username1,
+                        "user_approval_2" => $username2,
+                        "user_approval_3" => $username3,
+                        "user_approval_4" => $username4,
+                        "user_approval_5" => $username5
                     );
                     $send = $this->crud->create('approvals', $post);
                     echo $send;

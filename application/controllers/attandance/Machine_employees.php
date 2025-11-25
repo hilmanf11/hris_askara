@@ -253,9 +253,9 @@ class Machine_employees extends CI_Controller
         foreach ($records as $data) {
             $html .= '  <tr>
                             <td>' . $no . '</td>
-                            <td>' . $data['number'] . '</td>
+                            <td style="mso-number-format:\'@\';">' . $data['number'] . '</td>
                             <td>' . $data['name'] . '</td>
-                            <td>' . $data['machine_code'] . '</td>
+                            <td style="mso-number-format:\'@\';">' . $data['machine_code'] . '</td>
                         </tr>';
             $no++;
         }

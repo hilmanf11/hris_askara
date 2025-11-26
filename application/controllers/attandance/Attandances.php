@@ -285,7 +285,7 @@ class Attandances extends CI_Controller
                     } else {
                         $this->db->where('scan_raw', $rawDateTime);
                     }
-                    $this->db->update('attandance_logs', ['batch_id' => $batchId]);
+                    $this->db->update('attandance_logs', $logsInsert);
                 }
             }
 
@@ -777,9 +777,106 @@ class Attandances extends CI_Controller
         if ($option == "excel") {
             $format  = date("Ymd");
             header("Content-type: application/vnd-ms-excel");
-            header("Content-Disposition: attachment; filename=attandances_$format.xls");
+            header("Content-Disposition: attachment; filename= Attendance Recap_$format.xls");
         }
-        echo "<center><h4>Not Available Report Attandance in this module</h4></center>";
+
+        $filter_from = $this->input->get('filter_from');
+        $filter_to = $this->input->get('filter_to');
+        $filter_division = $this->input->get('filter_division');
+        $filter_departement = $this->input->get('filter_departement');
+        $filter_departement_sub = $this->input->get('filter_departement_sub');
+        $filter_employee = $this->input->get('filter_employee');
+        $filter_status = $this->input->get('filter_status');
+
+        //Config
+        $this->db->select('*');
+        $this->db->from('config');
+        $config = $this->db->get()->row();
+
+        $this->db->select("a.id, b.id as attandance_id, a.number, a.name, a.division_id, a.departement_id, a.departement_sub_id,
+            DAYNAME(b.date_in) as dayname,
+            b.date_in,
+            b.date_out,
+            b.time_in,
+            b.time_out,
+            c.name as division_name, 
+            d.name as departement_name, 
+            e.name as departement_sub_name, 
+            g.name as contract_name");
+        $this->db->from('employees a');
+        $this->db->join('attandances b', 'a.number = b.number');
+        $this->db->join('divisions c', 'a.division_id = c.id');
+        $this->db->join('departements d', 'a.departement_id = d.id');
+        $this->db->join('departement_subs e', 'a.departement_sub_id = e.id');
+        $this->db->join('contracts g', 'g.id = a.contract_id', 'left');
+        if ($filter_from != "" && $filter_to != "") {
+            $this->db->where("(b.date_in >= '$filter_from' and b.date_in <= '$filter_to' or b.date_out >= '$filter_from' and b.date_out <= '$filter_to')");
+        }
+        $this->db->like('a.division_id', $filter_division);
+        $this->db->like('a.departement_id', $filter_departement);
+        $this->db->like('a.departement_sub_id', $filter_departement_sub);
+        $this->db->like('a.id', $filter_employee);
+        $this->db->group_by("a.number");
+        $this->db->group_by("b.date_in");
+        $this->db->order_by("d.name", "asc");
+        $this->db->order_by("a.name", "asc");
+        $this->db->order_by("b.date_in", "asc");
+        $records = $this->db->get()->result_array();
+
+        $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
+        <center>
+            <div style="float: left; font-size: 12px; text-align: left;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
+                            <img src="' . $config->favicon . '" width="30">
+                        </td>
+                        <td style="font-size: 14px; text-align: left; margin:2px;">
+                            <b>' . $config->name . '</b><br>
+                            <small>ATTANDANCE RECAP</small>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div style="float: right; font-size: 12px; text-align: right;">
+                Print Date ' . date("d M Y H:m:s") . ' <br>
+                Print By ' . $this->session->username . '  
+            </div>
+        </center>
+        <br><br><br>
+        
+        <table id="customers" border="1">
+            <tr>
+                <th width="20">No</th>
+                <th>Day</th>
+                <th>Date In</th>
+                <th>Date Out</th>
+                <th>Departement</th>
+                <th>Employee ID</th>
+                <th>Employee Name</th>
+                <th>Type</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+            </tr>';
+        $no = 1;
+        foreach ($records as $data) {
+            $html .= '<tr>
+                        <td>' . $no . '</td>
+                        <td>' . $data['dayname'] . '</td>
+                        <td>' . $data['date_in'] . '</td>
+                        <td>' . $data['date_out'] . '</td>
+                        <td>' . $data['departement_name'] . '</td>
+                        <td>' . $data['number'] . '</td>
+                        <td>' . $data['name'] . '</td>
+                        <td>' . $data['contract_name'] . '</td>
+                        <td>' . $data['time_in'] . '</td>
+                        <td>' . $data['time_out'] . '</td>
+                    </tr>';
+            $no++;
+        }
+
+        $html .= '</table></body></html>';
+        echo $html;
     }
 
     private function normalizeScanDatetime($rawDateTime)
@@ -789,14 +886,30 @@ class Attandances extends CI_Controller
         if (!empty($rawDateTime)) {
             // Normalisasi: ubah "7.56" di bagian jam jadi "7:56"
             // Contoh: "04/11/2025 7.56" -> "04/11/2025 7:56"
-            $normalized = preg_replace('/(\d{1,2})\.(\d{2})$/', '$1:$2', $rawDateTime);
+            $parts = preg_split('/\s+/', $rawDateTime, 2);
+
+            if (count($parts) == 2) {
+                $datePart = $parts[0];       // 24/11/2025
+                $timePart = $parts[1];       // 07.35.18 atau 07.35 atau 07:35
+
+                // Normalisasi: semua titik di bagian jam jadi titik dua
+                // 07.35.18 -> 07:35:18
+                // 07.35    -> 07:35
+                // 07:35    -> 07:35 (nggak berubah)
+                $timePartNorm = str_replace('.', ':', $timePart);
+
+                $normalized = $datePart . ' ' . $timePartNorm;
+            } else {
+                // fallback kalau formatnya aneh
+                $normalized = str_replace('.', ':', $rawDateTime);
+            }
 
             // Daftar format yang mungkin dipakai di file
             $formats = [
+                'd/m/Y H:i:s',
                 'd/m/Y H:i',
-                'd/m/Y H.i',
+                'd/m/y H:i:s',
                 'd/m/y H:i',
-                'd/m/y H.i',
             ];
 
             foreach ($formats as $fmt) {

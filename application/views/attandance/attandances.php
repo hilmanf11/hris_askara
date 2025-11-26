@@ -270,11 +270,7 @@
         var Difference_In_Days = Difference_In_Time / (1000 * 3600 * 24);
 
         if (Difference_In_Days <= 31) {
-            if ((filter_division != "" && filter_departement != "" && filter_departement_sub != "") || filter_employee != "") {
-                window.location.assign('<?= base_url('attandance/attandances/print/excel') ?>' + url);
-            } else {
-                toastr.info("Please Select Division, Departement, Departement Sub or Employee");
-            }
+            window.location.assign('<?= base_url('attandance/attandances/print/excel') ?>' + url);
         } else {
             toastr.error("Max Duration Period Date is 31 Days");
         }
@@ -298,7 +294,6 @@
                         },
                         success: function(result) {
                             var result = eval('(' + result + ')');
-
                             if (result.theme == "success") {
                                 toastr.success(result.message, result.title);
                             } else {

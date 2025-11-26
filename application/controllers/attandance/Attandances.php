@@ -222,38 +222,78 @@ class Attandances extends CI_Controller
             $data = new Spreadsheet_Excel_Reader($file, false);
             $total_row = $data->rowcount($sheet_index = 0);
 
+            $datas      = [];
+            $logsInsert = [];
+
+            $batchId = 'UPLOAD-' . date('YmdHis');
+
             for ($i = 2; $i <= $total_row; $i++) {
-                $datein = explode(";", $data->val($i, 4));
+                // kolom 4 berisi tanggal & jam
+                $col4 = trim($data->val($i, 4)); // contoh: "04/11/2025 08.00" atau "04/11/2025;08.00"
+
+                if (strpos($col4, ';') !== false) {
+                    $dateinParts = explode(";", $col4);
+                    $rawDateTime = trim($dateinParts[0] . " " . $dateinParts[1]);
+                } else {
+                    $rawDateTime = $col4;
+                }
+
+                $machineCode = trim($data->val($i, 3));
+                $lokasi      = trim($data->val($i, 5));
+                $pin         = trim($data->val($i, 6));
+
+                $scanDatetime = $this->normalizeScanDatetime($rawDateTime);
+
                 $datas[] = array(
-                    'machine_code' => $data->val($i, 3),
-                    'lokasi' => $data->val($i, 5),
-                    'number' => trim($data->val($i, 6)),
-                    'date_in' => $datein[0] . " " . $datein[1],
-                    'date_out' => $datein[0] . " " . $datein[1],
-                    'pin' => $data->val($i, 6)
+                    'machine_code' => $machineCode,
+                    'lokasi'       => $lokasi,
+                    'number'       => $pin,
+                    'date_in'      => $rawDateTime,
+                    'date_out'     => $rawDateTime,
+                    'pin'          => $pin,
+                    'scan_datetime' => $scanDatetime,
                 );
-                //$this->create_temp(trim($data->val($i, 6)), trim(date('Y-m-d', strtotime($data->val($i, 4)))), trim(date('H:i:s', strtotime($data->val($i, 4)))));
+
+                $logsInsert = array(
+                    'machine_code'  => $machineCode,
+                    'lokasi_id'     => $lokasi,
+                    'pin'           => $pin,
+                    'scan_raw'      => $rawDateTime,
+                    'scan_datetime' => $scanDatetime,
+                    'batch_id'      => $batchId,
+                    'is_processed'  => 0,
+                );
+                $this->db->from('attandance_logs');
+                $this->db->where('pin', $pin);
+                $this->db->where('lokasi_id', $lokasi);
+
+                if (!empty($scanDatetime)) {
+                    $this->db->where('scan_datetime', $scanDatetime);
+                } else {
+                    // fallback: kalau parsing gagal, cek pakai raw string
+                    $this->db->where('scan_raw', $rawDateTime);
+                }
+
+                $exists = $this->db->get()->num_rows() > 0;
+                if (!$exists) {
+                    $this->crud->create('attandance_logs', $logsInsert);
+                } else {
+                    $this->db->where('pin', $pin);
+                    $this->db->where('lokasi_id', $lokasi);
+                    if (!empty($scanDatetime)) {
+                        $this->db->where('scan_datetime', $scanDatetime);
+                    } else {
+                        $this->db->where('scan_raw', $rawDateTime);
+                    }
+                    $this->db->update('attandance_logs', ['batch_id' => $batchId]);
+                }
             }
 
-            // $this->db->select('*');
-            // $this->db->from('attandance_temp');
-            // $this->db->order_by('number', 'asc');
-            // $this->db->order_by('attandance_date', 'asc');
-            // $attandance = $this->db->get()->result_object();
-
-            // foreach ($attandance as $data) {
-            //     $datas[] = array(
-            //         'number' => $data->number,
-            //         'date_in' => date('d/m/Y H:i:s', strtotime($data->attandance_date)),
-            //         'date_out' => date('d/m/Y H:i:s', strtotime($data->attandance_date))
-            //     );
-            // }
-
             $datas['total'] = count($datas);
+            $datas['batchId'] = $batchId;
             echo json_encode($datas);
 
             unlink($_FILES['file_upload']['name']);
-            //$this->db->truncate('attandance_temp');
         } else {
             echo json_encode("Format File Error");
         }
@@ -292,150 +332,228 @@ class Attandances extends CI_Controller
     {
         if ($this->input->post()) {
             $data = $this->input->post('data');
-            $explode = explode(" ", $data['date_in']);
-            $date_in = $this->formatTanggal($explode[0]);
-            $time_in = str_replace('.', ':', $explode[1]);
+            $scanDatetime = isset($data['scan_datetime']) ? trim($data['scan_datetime']) : null;
+            $date_in = null; // Y-m-d
+            $time_in = null; // H:i:s
 
-            // $time_in = substr($explode[1], 0, 6) . '00';
+            if (!empty($scanDatetime)) {
+                $dt = DateTime::createFromFormat('Y-m-d H:i:s', $scanDatetime);
+                if ($dt !== false) {
+                    $date_in = $dt->format('Y-m-d');
+                    $time_in = $dt->format('H:i:s');
+                }
+            }
+
+            if (empty($date_in) || empty($time_in)) {
+                echo json_encode([
+                    "title"   => "Error",
+                    "message" => $data['scan_datetime']." Failed to read date/time.",
+                    "theme"   => "error",
+                ]);
+                return;
+            }
+            
+            $machine_code = isset($data['machine_code']) ? trim($data['machine_code']) : '';
+            $lokasi       = isset($data['lokasi']) ? trim($data['lokasi']) : '';
+            $number_emp       = isset($data['number']) ? trim($data['number']) : '';
+            $pin          = isset($data['pin']) ? trim($data['pin']) : '';
+            $batchId          = isset($data['batchId']) ? trim($data['batchId']) : '';
 
             //Employee
             $this->db->select('*');
             $this->db->from('employees');
 
-            if ($data['machine_code'] != '') {
-                $this->db->where('machine_code', $data['machine_code']);
-            } else if ($data['number'] != '') {
-                $this->db->where('number', $data['number']);
+            if ($machine_code != '') {
+                $this->db->where('machine_code', $machine_code);
+            } else if ($number_emp != '') {
+                $this->db->where('number', $number_emp);
             } else {
-                $this->db->where('number IS NOT NULL');
+                 $this->db->where('id', 0);
             }
             $employee = $this->db->get()->row();
 
             //Jika Terdaftar di master employee
             if (!empty($employee->number)) {
-                if ($data['lokasi'] == 1) {
+                if ($lokasi == 1) {
+                    // Kondisi Normal
+                    $work_date = $date_in;
 
-                    //Attandance
-                    $this->db->select('*');
-                    $this->db->from('attandances');
-                    $this->db->where('number', $employee->number);
-                    $this->db->where("(date_in = '$date_in' or date_out = '$date_in')");
-                    $attandance_in = $this->db->get()->row();
+                    if (!empty($scanDatetime)) {
+                        $scanDt  = DateTime::createFromFormat('Y-m-d H:i:s', $scanDatetime);
+                        if ($scanDt) {
+                            $scanHour = (int) $scanDt->format('H');
 
-                    $tolerance_hour_min = date("H:i:s", strtotime('-2 Hour', strtotime(@$time_in)));
-                    $tolerance_hour_plus = date("H:i:s", strtotime('+2 Hour', strtotime(@$time_in)));
+                            // aturan: scan jam 00:00 - 02:59 dianggap milik hari sebelumnya
+                            if ($scanHour < 3) {
+                                $work_date = $scanDt->modify('-1 day')->format('Y-m-d');
+                            } else {
+                                $work_date = $scanDt->format('Y-m-d');
+                            }
+                        }
+                    }
+
+                    $adjustedDateExpr = "(
+                        CASE 
+                            WHEN TIME(scan_datetime) < '03:00:00' 
+                                THEN DATE(DATE_SUB(scan_datetime, INTERVAL 1 DAY))
+                            ELSE DATE(scan_datetime)
+                        END
+                    )";
+
+                    $this->db->select('
+                        MIN(scan_datetime) AS first_scan,
+                        MAX(scan_datetime) AS last_scan,
+                        COUNT(*) AS total_scan
+                    ');
+                    $this->db->from('attandance_logs');
+                    $this->db->where('pin', $pin);
+                    $this->db->where("$adjustedDateExpr =", $work_date);
+
+                    if (!empty($lokasi)) {
+                        $this->db->where('lokasi_id', $lokasi);
+                    }
+
+                    if (!empty($batchId)) {
+                        $this->db->where('batch_id', $batchId);
+                    }
+
+                    $logSummary = $this->db->get()->row();
+
+                    $firstScanDt = DateTime::createFromFormat('Y-m-d H:i:s', $logSummary->first_scan);
+                    $lastScanDt  = DateTime::createFromFormat('Y-m-d H:i:s', $logSummary->last_scan);
+
+                    $time_in_from_logs  = $firstScanDt ? $firstScanDt->format('H:i:s') : null;
+                    $time_out_from_logs = $lastScanDt  ? $lastScanDt->format('H:i:s') : null;
+                    $total_scan         = (int) $logSummary->total_scan;
+
+                    $final_time_in  = null;
+                    $final_time_out = null;
+
+                    if ($total_scan >= 2) {
+                        $final_time_in  = $time_in_from_logs;
+                        $final_time_out = $time_out_from_logs;
+                    } else {
+                        // cuma satu log di hari itu
+                        $scanHour = (int) $firstScanDt->format('H');
+
+                        if ($scanHour <= 12) {
+                            $final_time_in  = $time_in_from_logs;
+                            $final_time_out = null; // IN_ONLY
+                        } else {
+                            $final_time_in  = null; // OUT_ONLY
+                            $final_time_out = $time_out_from_logs;
+                        }
+                    }
+
+                    // 3.4. Ambil data shift
+                    $baseTimeForShift = $time_in;
+                    if ($firstScanDt) {
+                        $baseTimeForShift = $firstScanDt->format('H:i:s');
+                    }
+
+                    $isSecurity = false;
+
+                    $this->db->select('c.name');
+                    $this->db->from('shift_employees b');
+                    $this->db->join('shifts c', 'c.id = b.shift_id');
+                    $this->db->where('b.employee_id', $employee->id);
+                    $this->db->where('c.number', 'SECURITY');
+                    $rowShiftGroup = $this->db->get()->row();
+
+                    if ($rowShiftGroup) {
+                        $isSecurity = true;
+                    }
+
+                    if ($isSecurity) {
+                        // proses khusus security,
+                        $this->processSecurityAttendance($employee, $scanDatetime, $pin, $batchId, $lokasi);
+                        return;
+                    }
+
+                    $dayOfWeek = date('N', strtotime($work_date)); // 1 (Mon) to 7 (Sun)
+                    $tolerance_hour_min  = date("H:i:s", strtotime('-2 hour', strtotime($baseTimeForShift)));
+                    $tolerance_hour_plus = date("H:i:s", strtotime('+2 hour', strtotime($baseTimeForShift)));
+
                     $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
                     $this->db->from('shift_employees b');
                     $this->db->join('shifts c', 'c.id = b.shift_id');
                     $this->db->join('shift_details d', 'd.shift_id = c.id');
                     $this->db->where('b.employee_id', $employee->id);
-                    $this->db->where("TIME(d.start) >=  TIME('$tolerance_hour_min') && TIME(d.start) <= TIME('$tolerance_hour_plus')");
+                    $this->db->where('d.days >=', $dayOfWeek);
+                    $this->db->where("TIME(d.start) >= TIME('$tolerance_hour_min') AND TIME(d.start) <= TIME('$tolerance_hour_plus')");
                     $shift = $this->db->get()->row();
 
-                    $time_begin = strtotime($date_in . " " . $time_in);
-                    $time_end = strtotime($date_in . " " . @$shift->end);
-                    $tomorrow = date("Y-m-d", strtotime('+1 days', strtotime($date_in)));
+                    $baseShiftData = [
+                        'shift_start'  => $shift->start      ?? null,
+                        'shift_end'    => $shift->end        ?? null,
+                        'shift_name'   => $shift->name       ?? null,
+                        'shift_detail' => $shift->shift_name ?? null,
+                        'shift_days'   => $shift->days       ?? null,
+                    ];
 
-                    $diff = $time_begin - $time_end;
-                    $hour = floor($diff / (60 * 60));
+                    $date_out = $work_date; // default: tidak nyebrang hari
 
-                    //die($date_in . " " . $tolerance_hour_plus . " - " . $date_in . " " . @$shift->end . " | " . $hour);
-                    if ($hour < 0) {
-                        $date_out = $date_in;
-                    } else {
-                        $date_out = $tomorrow;
+                    if (!empty($final_time_in) && !empty($final_time_out)) {
+                        // kalau jam out secara "angka" lebih kecil dari jam in (contoh 00:30 < 08:00)
+                        // artinya dia pulang di hari berikutnya
+                        if (strtotime($final_time_out) < strtotime($final_time_in)) {
+                            $date_out = date('Y-m-d', strtotime($work_date . ' +1 day'));
+                        }
                     }
 
-                    if (!empty($attandance_in->number)) {
-                        $data_time_in = $attandance_in->time_in;
-                        $data_time_out = $attandance_in->time_out;
-                        $arr_time = ['time_in' => $time_in];
-                        $mode = 'create';
-                        if ($data_time_in) {
-                            if ((substr(@$time_in, 0, 2) >= substr(@$data_time_in, 0, 2) )) {
-                                //time out
-                                $time_in = $time_in;
-                                $arr_time = ['time_out' => $time_in];
-                                $mode = 'create';
-                            } else {
-                                //time in
-                                $time_in = $data_time_in;
-                                $arr_time = ['time_in' => $time_in];
-                                $mode = 'update';
-                            }
+                    // untuk kasus IN_ONLY / OUT_ONLY, bisa diperlakukan seperti ini:
+                    if (empty($final_time_in) && !empty($final_time_out)) {
+                        // cuma out_only
+                        // kalau out di jam kecil (lewat tengah malam), anggap date_out = work_date + 1
+                        if (strtotime($final_time_out) < strtotime('03:00:00')) {
+                            $date_out = date('Y-m-d', strtotime($work_date . ' +1 day'));
                         }
-                        else if ($data_time_out) {
-                            if ((substr(@$time_in, 0, 2) <= substr(@$data_time_out, 0, 2) )) {
-                                //time in
-                                $time_in = $time_in;
-                                $arr_time = ['time_in' => $time_in];
-                                $mode = 'create';
-                            } else {
-                                //time out
-                                $time_in = $data_time_out;
-                                $arr_time = ['time_out' => $time_in];
-                                $mode = 'update';
-                            }
-                        }
-                        if ($mode == 'update') {
-                            $data_attandance = array(
-                                'number' => $employee->number,
-                                'date_in' => $date_in,
-                                'shift_start' => @$shift->start,
-                                'shift_name' => @$shift->name,
-                                'shift_detail' => @$shift->shift_name,
-                                'shift_days' => @$shift->days,
-                                'status' => "UPLOAD",
-                            );
-                            $data_attandance = array_merge($data_attandance, $arr_time);
-
-                            $this->crud->update('attandances', ["id" => $attandance_in->id], $data_attandance);
-                            echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check In", "theme" => "success"));
-                        } else {
-                            $data_attandance = array(
-                                'number' => $employee->number,
-                                'date_out' => $date_in,
-                                'shift_start' => @$shift->start,
-                                'shift_name' => @$shift->name,
-                                'shift_detail' => @$shift->shift_name,
-                                'shift_days' => @$shift->days,
-                                'status' => "UPLOAD",
-                            );
-                            $data_attandance = array_merge($data_attandance, $arr_time);
-
-                            $this->crud->update('attandances', ["id" => $attandance_in->id], $data_attandance);
-                            echo json_encode(array("title" => "Updated", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Update data Check Out", "theme" => "success"));
-                        }
-                    } else {
-                        $data_attandance = array(
-                            'number' => $employee->number,
-                            'date_in' => $date_in,
-                            'time_in' => $time_in,
-                            'shift_start' => @$shift->start,
-                            'shift_name' => @$shift->name,
-                            'shift_detail' => @$shift->shift_name,
-                            'shift_days' => @$shift->days,
-                            // 'time_out' => @$shift->end,
-                            'status' => "UPLOAD",
-                        );
-                        // if ((substr(@$time_in, 0, 2) <= "12")) {
-                        // } else {
-                        //     $data_attandance = array(
-                        //         'number' => $employee->number,
-                        //         'time_out' => $time_in,
-                        //         'date_out' => $date_in,
-                        //         'shift_start' => @$shift->start,
-                        //         'shift_name' => @$shift->name,
-                        //         'shift_detail' => @$shift->shift_name,
-                        //         'shift_days' => @$shift->days,
-                        //         // 'time_out' => @$shift->end,
-                        //         'status' => "UPLOAD",
-                        //     );
-                        // }
-
-                        $this->crud->create('attandances', $data_attandance);
-                        echo json_encode(array("title" => "Created", "message" => $employee->name . " | " . $date_in . " " . $time_in . " Create data Check In", "theme" => "success"));
                     }
+
+                    // siapkan payload dasar
+                    $data_att = array_merge($baseShiftData, [
+                        'number'   => $employee->number,
+                        'date_in'  => $work_date,
+                        'date_out' => $date_out, 
+                        'status'   => 'UPLOAD',
+                    ]);
+
+                    // isi time_in / time_out sesuai hasil summary logs
+                    if (!empty($final_time_in)) {
+                        $data_att['time_in'] = $final_time_in;
+                    } else {
+                        // date in dikosongkan juga kalau gak ada time in
+                        $data_att['date_in'] = null;
+                    }
+                    if (!empty($final_time_out)) {
+                        $data_att['time_out'] = $final_time_out;
+                    } else {
+                        // date out dikosongkan juga kalau gak ada time out
+                        $data_att['date_out'] = null;
+                    }
+
+                    $this->db->from('attandances');
+                    $this->db->where('number', $employee->number);
+                    $this->db->where('date_in', $work_date);
+                    $attendance = $this->db->get()->row();
+
+                    // Create / Update
+                    if (empty($attendance)) {
+                        $this->crud->create('attandances', $data_att);
+                        echo json_encode([
+                            "title"   => "Created",
+                            "message" => $employee->name . " | " . $work_date . " IN " . ($final_time_in ?? '-') . " OUT " . ($final_time_out ?? '-'),
+                            "theme"   => "success",
+                        ]);
+                    } else {
+                        $this->crud->update('attandances', ['id' => $attendance->id], $data_att);
+                        echo json_encode([
+                            "title"   => "Updated",
+                            "message" => $employee->name . " | " . $work_date . " IN " . ($final_time_in ?? '-') . " OUT " . ($final_time_out ?? '-'),
+                            "theme"   => "success",
+                        ]);
+                    }
+
                     //echo json_encode(array("title" => "Warning", "message" => $data['number'] . " Next", "theme" => "error"));
                 } else {
                     $yesterday = date("Y-m-d", strtotime('-1 days', strtotime($date_in)));
@@ -662,5 +780,254 @@ class Attandances extends CI_Controller
             header("Content-Disposition: attachment; filename=attandances_$format.xls");
         }
         echo "<center><h4>Not Available Report Attandance in this module</h4></center>";
+    }
+
+    private function normalizeScanDatetime($rawDateTime)
+    {
+        $scanDatetime = null;
+
+        if (!empty($rawDateTime)) {
+            // Normalisasi: ubah "7.56" di bagian jam jadi "7:56"
+            // Contoh: "04/11/2025 7.56" -> "04/11/2025 7:56"
+            $normalized = preg_replace('/(\d{1,2})\.(\d{2})$/', '$1:$2', $rawDateTime);
+
+            // Daftar format yang mungkin dipakai di file
+            $formats = [
+                'd/m/Y H:i',
+                'd/m/Y H.i',
+                'd/m/y H:i',
+                'd/m/y H.i',
+            ];
+
+            foreach ($formats as $fmt) {
+                $dt = DateTime::createFromFormat($fmt, $normalized);
+                if ($dt !== false) {
+                    $scanDatetime = $dt->format('Y-m-d H:i:s');
+                    break;
+                }
+            }
+        }
+
+        return $scanDatetime;
+    }
+
+    protected function processSecurityAttendance($employee, $scanDatetime, $pin, $batchId = null, $lokasi = null)
+    {
+        // --- 1. Persiapan tanggal & range waktu (D dan D+1) ---
+        $baseDt   = DateTime::createFromFormat('Y-m-d H:i:s', $scanDatetime);
+
+        $dateToday = $baseDt->format('Y-m-d');                      // D
+        $dateNext  = $baseDt->modify('+1 day')->format('Y-m-d');    // D+1
+
+        $startRange = $dateToday . ' 00:00:00';
+        $endRange   = $dateNext  . ' 23:59:59';
+
+        // --- 2. Ambil semua log antara D 00:00 s/d D+1 23:59 ---
+
+        $this->db->select('scan_datetime, lokasi_id');
+        $this->db->from('attandance_logs');
+        $this->db->where('pin', $pin);
+        $this->db->where('scan_datetime >=', $startRange);
+        $this->db->where('scan_datetime <=', $endRange);
+
+        if (!empty($batchId)) {
+            $this->db->where('batch_id', $batchId);
+        }
+        if (!empty($lokasi)) {
+            $this->db->where('lokasi_id', $lokasi);
+        }
+
+        $this->db->order_by('scan_datetime', 'ASC');
+        $logs = $this->db->get()->result();
+
+        if (empty($logs)) {
+            echo json_encode([
+                "title"   => "Warning",
+                "message" => $employee->name. " | ". $scanDatetime." No attendance logs found for processing. ",
+                "theme"   => "error",
+            ]);
+            return;
+        }
+
+        // --- 3. Kelompokkan log: pagi/sore hari ini & pagi besok ---
+
+        $morningToday = [];   // D 05:00–11:59
+        $eveningToday = [];   // D 15:00–23:59
+        $morningNext  = [];   // D+1 00:00–09:59
+
+        foreach ($logs as $row) {
+            $dt = DateTime::createFromFormat('Y-m-d H:i:s', $row->scan_datetime);
+            if (!$dt) continue;
+
+            $d = $dt->format('Y-m-d');
+            $t = $dt->format('H:i:s');
+
+            if ($d == $dateToday) {
+                if ($t >= '05:00:00' && $t <= '11:59:59') {
+                    $morningToday[] = $t;
+                } elseif ($t >= '15:00:00' && $t <= '23:59:59') {
+                    $eveningToday[] = $t;
+                }
+            } elseif ($d == $dateNext) {
+                if ($t >= '00:00:00' && $t <= '09:59:59') {
+                    $morningNext[] = $t;
+                }
+            }
+        }
+
+        // --- 4. Tentukan ini SHIFT PAGI atau SHIFT MALAM ---
+
+        $shiftDetailName = null;  // "SHIFT PAGI" atau "SHIFT MALAM"
+        $date_in  = null;
+        $time_in  = null;
+        $date_out = null;
+        $time_out = null;
+
+        // CASE A: SHIFT PAGI (pagi & sore di hari yang sama)
+        if (!empty($morningToday) && !empty($eveningToday)) {
+            sort($morningToday);
+            sort($eveningToday);
+
+            $shiftDetailName = 'SHIFT PAGI';
+            $date_in         = $dateToday;
+            $time_in         = $morningToday[0];          // scan pagi paling awal
+            $date_out        = $dateToday;
+            $time_out        = end($eveningToday);        // scan sore paling akhir
+
+        // CASE B: SHIFT MALAM (sore hari ini + pagi besok)
+        } elseif (!empty($eveningToday) && !empty($morningNext)) {
+            sort($eveningToday);
+            sort($morningNext);
+
+            $shiftDetailName = 'SHIFT MALAM';
+            $date_in         = $dateToday;
+            $time_in         = $eveningToday[0];          // sore pertama
+            $date_out        = $dateNext;
+            $time_out        = end($morningNext);         // pagi terakhir
+
+        } else {
+            // === Fallback: kemungkinan ini checkout shift malam hari sebelumnya ===
+            // Kasus: hanya ada scan pagi di hari ini (contoh: 12/11 07:10),
+            // tapi ada scan sore di hari sebelumnya (11/11 18:10).
+
+            if (!empty($morningToday) && empty($eveningToday)) {
+                $prevDate       = date('Y-m-d', strtotime($dateToday . ' -1 day'));
+                $prevStartRange = $prevDate . ' 00:00:00';
+                $prevEndRange   = $prevDate . ' 23:59:59';
+
+                $eveningPrev = [];
+
+                // cari sore kemarin
+                $this->db->select('scan_datetime');
+                $this->db->from('attandance_logs');
+                $this->db->where('pin', $pin);
+                $this->db->where('scan_datetime >=', $prevStartRange);
+                $this->db->where('scan_datetime <=', $prevEndRange);
+                if (!empty($batchId)) {
+                    $this->db->where('batch_id', $batchId);
+                }
+                if (!empty($lokasi)) {
+                    $this->db->where('lokasi_id', $lokasi);
+                }
+                $this->db->order_by('scan_datetime', 'ASC');
+                $prevLogs = $this->db->get()->result();
+
+                foreach ($prevLogs as $rowPrev) {
+                    $dtPrev = DateTime::createFromFormat('Y-m-d H:i:s', $rowPrev->scan_datetime);
+                    if (!$dtPrev) continue;
+                    $tPrev = $dtPrev->format('H:i:s');
+
+                    // sore: 15:00–23:59
+                    if ($tPrev >= '15:00:00' && $tPrev <= '23:59:59') {
+                        $eveningPrev[] = $tPrev;
+                    }
+                }
+
+                if (!empty($eveningPrev)) {
+                    // -------------------------
+                    // SHIFT MALAM (prevDate -> dateToday)
+                    // -------------------------
+                    sort($eveningPrev);
+                    sort($morningToday);
+
+                    $shiftDetailName = 'SHIFT MALAM';
+                    $date_in         = $prevDate;
+                    $time_in         = $eveningPrev[0];
+                    $date_out        = $dateToday;
+                    $time_out        = end($morningToday);
+
+                } else {
+                    // -------------------------
+                    // Tidak ada sore kemarin -> anggap SHIFT PAGI IN_ONLY
+                    // -------------------------
+                    sort($morningToday);
+
+                    $shiftDetailName = 'SHIFT PAGI';
+                    $date_in         = $dateToday;
+                    $time_in         = $morningToday[0];   // cuma punya jam masuk
+                    $date_out        = null;
+                    $time_out        = null;               // lupa checkout
+                }
+
+            } else {
+                // pola lain yang belum dihandle → tetap warning
+                echo json_encode([
+                    "title"   => "Warning",
+                    "message" => $employee->name. " | ". $scanDatetime. "The security log around " . $dateToday . " is incomplete to determine PAGI/MALAM SHIFT.",
+                    "theme"   => "error",
+                ]);
+                return;
+            }
+        }
+
+
+        // --- 5. Ambil data shift detail untuk employee ini (SHIFT SECURITY + detail yang dipilih) ---
+
+        $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name as group_name, d.name as detail_name");
+        $this->db->from('shift_employees b');
+        $this->db->join('shifts c', 'c.id = b.shift_id');
+        $this->db->join('shift_details d', 'd.shift_id = c.id');
+        $this->db->where('b.employee_id', $employee->id);
+        $this->db->where('c.name', 'SHIFT SECURITY');     // nama grup shift
+        $this->db->where('d.name', $shiftDetailName);     // "SHIFT PAGI" / "SHIFT MALAM"
+        $shiftRow = $this->db->get()->row();
+
+        $baseShiftData = [
+            'shift_start'  => $shiftRow->start       ?? null,
+            'shift_end'    => $shiftRow->end         ?? null,
+            'shift_name'   => $shiftRow->group_name  ?? null,   // "SHIFT SECURITY"
+            'shift_detail' => $shiftRow->detail_name ?? null,   // "SHIFT PAGI"/"SHIFT MALAM"
+            'shift_days'   => $shiftRow->days        ?? null,
+        ];
+
+        // --- 6. Upsert ke attandances: 1 row per (employee, date_in) ---
+
+        $this->db->from('attandances');
+        $this->db->where('number', $employee->number);
+        $this->db->where('date_in', $date_in);
+        $attendance = $this->db->get()->row();
+
+        $data_att = array_merge($baseShiftData, [
+            'number'   => $employee->number,
+            'date_in'  => $date_in,
+            'time_in'  => $time_in,
+            'date_out' => $date_out,
+            'time_out' => $time_out,
+            'status'   => 'UPLOAD',
+        ]);
+
+        if (empty($attendance)) {
+            $this->crud->create('attandances', $data_att);
+            $action = 'Created';
+        } else {
+            $this->crud->update('attandances', ['id' => $attendance->id], $data_att);
+            $action = 'Updated';
+        }
+
+        echo json_encode([
+            "title"   => $action,
+            "message" => $employee->name . " | " . $date_in . " IN $time_in OUT $time_out ($shiftDetailName)",
+            "theme"   => "success",
+        ]);
     }
 }

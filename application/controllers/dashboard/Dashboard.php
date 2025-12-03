@@ -25,6 +25,7 @@ class Dashboard extends CI_Controller
             $data['contracts'] = $this->contracts();
             $data['chartServices'] = $this->chartServices();
             $data['chartEmployee'] = $this->chartEmployee();
+            $data['latestNews'] = $this->latestNews();
 
             if (date("H:i:s") >= "05:00:00" and date("H:i:s") <= "11:00:00") {
                 $data['day'] = "Good Morning";
@@ -485,5 +486,54 @@ class Dashboard extends CI_Controller
     {
         $query = $this->crud->query("SELECT b.name, COUNT(a.number) as employee FROM employees a JOIN contracts b  ON a.contract_id = b.id GROUP BY b.name");
         return $query;
+    }
+
+    public function latestNews()
+    {
+        $employee = $this->crud->read("employees", [], ["number" => $this->session->number]);
+        $division_id = @$employee->division_id;
+
+        $this->db->select('*');
+        $this->db->from('news');
+        $this->db->like("division_id", $division_id);
+        $this->db->where("finish_date >= ", date("Y-m-d"));
+        $newss = $this->db->get()->result_object();
+        
+        if (count($newss) > 0) {
+            $html = '<table class="user-header" style="width: 100%;">';
+            foreach ($newss as $news) {
+                $user = $this->crud->read("users", [], ["username" => $news->created_by]);
+                
+                if ($user->avatar == "") {
+                    $avatar = base_url('assets/image/users/default.png');
+                } else {
+                    $avatar = $user->avatar;
+                }
+                $attc = $news->attachment;
+                $attc_link = base_url('assets/document/news/') . $attc;
+                $html .= '	<tr>
+                                <td width="50">
+                                    <div class="icon-container">
+                                        <img src="' . $avatar . '" class="user-online" />
+                                        <div class="status-circle"></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a target="_blank" href="'.$attc_link.'" style="text-decoration:none;">
+                                        <b style="font-size:12px; color:black;">' . $news->name . '</b><br>
+                                        <small style="color:orange;">' . date('l, d F Y H:i', strtotime($news->created_date)) . '</small>
+                                    </a>
+                                </td>
+                            </tr>';
+            }
+
+            $html .= "</table>";
+        } else {
+            $html = '<div class="alert alert-danger" role="alert">
+                        No Announcement
+                    </div>';
+        }
+
+        return $html;
     }
 }

@@ -95,9 +95,7 @@
                             Announcement
                         </div>
                         <div class="card-body" style="height: 250px; overflow: auto;">
-                            <div class="alert alert-danger" role="alert">
-                                No Announcement
-                            </div>
+                            <?= $latestNews ?>
                         </div>
                     </div>
                 </div>

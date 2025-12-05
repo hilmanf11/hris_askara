@@ -234,7 +234,7 @@ class Permits extends CI_Controller
 
                 $permitType = $this->mobile->read('permit_types', [], ["id" => $permit_type_id, "cutoff" => "YES"]);
                 if (empty($permitType)) {
-                    echo json_encode(["total" => 0]);
+                    echo json_encode(["total" => 1]);
                     return;
                 }
                 $sign_date = $employee->date_sign;
@@ -322,55 +322,78 @@ class Permits extends CI_Controller
                     $date_from = strtotime($post['date_from']);
                     $date_to = strtotime($post['date_to']);
 
+                    $permitType = $this->mobile->read('permit_types', [], ["id" => $post['permit_type_id'], "cutoff" => "YES"]);
+
                     $send = "";
-                    $leave = $post['leave'];
+                    // untuk menangani leave tidak sesuai karena permit available akan bernilai 1 jika bukan cuti
+                    if (!empty($permitType)) {
+                        $leave = $post['leave'];
+                        $diff = abs($date_to - $date_from);
+                        $days = floor($diff / (60 * 60 * 24)) + 1;
+
+                        // kembalikan pesan tidak boleh mengajukan cuti melebihi hitungan hari
+                        if ($days > $leave) {
+                            show_error("Your permit has exceeded the limit. You are only allowed to submit a request for $leave days.");
+                            return;
+                        }
+                    } else {
+                        $leave = $this->calculatePermitAvailable($api_key, $post['permit_type_id'], $post['reason_id'], $post['date_from'], $post['date_to']);
+                    }
+
+                    // $leave = $this->readFunction($api_key, $permit_type_id, $reason_id, $date_from, $date_to);
                     for ($i = $date_from; $i <= $date_to; $i += (60 * 60 * 24)) {
                         $permit_date = date('Y-m-d', $i);
 
-                        if (($leave - 1) >= 0) {
-                            $post_final = array(
-                                "approved" => 1,
-                                "approved_to" => $approval->user_approval_1,
-                                "approved_by" => $user->username,
-                                "employee_id" => $employee->id,
-                                "permit_type_id" => $post['permit_type_id'],
-                                "reason_id" => $post['reason_id'],
-                                "trans_date" => date("Y-m-d"),
-                                "permit_date" => $permit_date,
-                                "duration" => "1",
-                                "leave" => ($leave - 1),
-                                "note" => $post['remarks'],
-                                "attachment" => $attachment
-                            );
-
-                            $permits = $this->mobile->reads('permits', [], ["employee_id" => $employee->id, "permit_date" => $permit_date]);
-
-                            if (count($permits) > 0) {
-                                show_error("Your Permit application has been sent, please change to another date");
-                            } else {
-                                if ($this->mobile->create('permits', $post_final, $user->username)) {
-                                    if (!empty($approvalUser->api_key)) {
-                                        $this->apps->where('api_key', @$approvalUser->api_key);
-                                        $userAp = $this->apps->get('users')->row();
-
-                                        $message = "Sent a request to approve data Permit";
-
-                                        $this->mobile->pushNotification(@$userAp->token, $user->name, $message);
-                                    }
-                                    $send = json_encode(array(
-                                        "title" => "Success",
-                                        "message" => "Permit Success Send",
-                                        "theme" => "success"
-                                    ));
-                                } else {
-                                    show_error("Permit Failed To Send");
-                                }
+                        if (!empty($permitType)) {
+                            if (($leave - 1) < 0) {
+                                show_error("Your permit has exceeded the limit");
+                                return;
                             }
-                        } else {
-                            show_error("Your permit has exceeded the limit");
                         }
 
-                        $leave = ($leave - 1);
+                        $post_final = array(
+                            "approved" => 1,
+                            "approved_to" => $approval->user_approval_1,
+                            "approved_by" => $user->username,
+                            "employee_id" => $employee->id,
+                            "permit_type_id" => $post['permit_type_id'],
+                            "reason_id" => $post['reason_id'],
+                            "trans_date" => date("Y-m-d"),
+                            "permit_date" => $permit_date,
+                            "duration" => "1",
+                            "leave" => (!empty($permitType) ? ($leave - 1) : $leave),
+                            "note" => $post['remarks'],
+                            "attachment" => $attachment
+                        );
+
+                        $permits = $this->mobile->reads('permits', [], ["employee_id" => $employee->id, "permit_date" => $permit_date]);
+
+                        if (count($permits) > 0) {
+                            show_error("Your Permit application has been sent, please change to another date");
+                        } else {
+                            if ($this->mobile->create('permits', $post_final, $user->username)) {
+                                if (!empty($approvalUser->api_key)) {
+                                    $this->apps->where('api_key', @$approvalUser->api_key);
+                                    $userAp = $this->apps->get('users')->row();
+
+                                    $message = "Sent a request to approve data Permit";
+
+                                    $this->mobile->pushNotification(@$userAp->token, $user->name, $message);
+                                }
+                                $send = json_encode(array(
+                                    "title" => "Success",
+                                    "message" => "Permit Success Send",
+                                    "theme" => "success"
+                                ));
+                            } else {
+                                show_error("Permit Failed To Send");
+                            }
+                        }
+
+
+                        if (!empty($permitType)) {
+                            $leave = ($leave - 1);
+                        }
                     }
 
                     echo $send;
@@ -405,6 +428,221 @@ class Permits extends CI_Controller
             show_error("Cannot Process your request");
         }
     }
+
+    // TEST
+    public function createDataTest($api_key = "")
+    {
+
+        $this->apps = $this->load->database('apps', TRUE);
+
+        if ($api_key != "") {
+            $user = $this->mobile->read("users", [], ["api_key" => $api_key]);
+
+            if ($user) {
+                if ($this->input->post()) {
+                    $post = $this->input->post();
+
+                    $employee = $this->mobile->read("employees", [], ["number" => $user->number]);
+                    $attachment = $this->mobile->upload('attachment', ['png', 'jpg', 'jpeg'], 'assets/image/attandance/');
+
+                    //approvalUser
+                    $approval = $this->mobile->read("approvals", [], ["employee_id" => $employee->id, "table_name" => "permits"]);
+                    $approvalUser = $this->mobile->read("users", [], ["username" => $approval->user_approval_1]);
+
+                    $date_from = strtotime($post['date_from']);
+                    $date_to = strtotime($post['date_to']);
+
+                    $permitType = $this->mobile->read('permit_types', [], ["id" => $post['permit_type_id'], "cutoff" => "YES"]);
+
+                    $send = "";
+
+                    // untuk menangani leave tidak sesuai karena permit available akan bernilai 1 jika bukan cuti
+                    if (!empty($permitType)) {
+                        $leave = $post['leave'];
+                        $diff = abs($date_to - $date_from);
+                        $days = floor($diff / (60 * 60 * 24)) + 1;
+
+                        // kembalikan pesan tidak boleh mengajukan cuti melebihi hitungan hari
+                        if ($days > $leave) {
+                            show_error("Your permit has exceeded the limit. You are only allowed to submit a request for $leave days.");
+                            return;
+                        }
+                    } else {
+                        $leave = $this->calculatePermitAvailable($api_key, $post['permit_type_id'], $post['reason_id'], $post['date_from'], $post['date_to']);
+                    }
+
+                    for ($i = $date_from; $i <= $date_to; $i += (60 * 60 * 24)) {
+                        $permit_date = date('Y-m-d', $i);
+
+                        if (!empty($permitType)) {
+                            if (($leave - 1) < 0) {
+                                show_error("Your permit has exceeded the limit");
+                                return;
+                            }
+                        }
+
+                        $post_final = array(
+                            "approved" => 1,
+                            "approved_to" => $approval->user_approval_1,
+                            "approved_by" => $user->username,
+                            "employee_id" => $employee->id,
+                            "permit_type_id" => $post['permit_type_id'],
+                            "reason_id" => $post['reason_id'],
+                            "trans_date" => date("Y-m-d"),
+                            "permit_date" => $permit_date,
+                            "duration" => "1",
+                            "leave" => (!empty($permitType) ? ($leave - 1) : $leave),
+                            "note" => $post['remarks'],
+                            "attachment" => $attachment
+                        );
+
+                        $permits = $this->mobile->reads('permits', [], ["employee_id" => $employee->id, "permit_date" => $permit_date]);
+
+                        if (count($permits) > 0) {
+                            show_error("Your Permit application has been sent, please change to another date");
+                        } else {
+                            // if ($this->mobile->create('permits', $post_final, $user->username)) {
+                            // if (!empty($approvalUser->api_key)) {
+                            //     $this->apps->where('api_key', @$approvalUser->api_key);
+                            //     $userAp = $this->apps->get('users')->row();
+
+                            //     $message = "Sent a request to approve data Permit";
+
+                            //     $this->mobile->pushNotification(@$userAp->token, $user->name, $message);
+                            // }
+                            $send = json_encode(array(
+                                "title" => "Success",
+                                "message" => "Permit Success Send",
+                                "theme" => "success",
+                                "leave" => $post_final,
+                            ));
+                            // } else {
+                            // show_error("Permit Failed To Send");
+                            // }
+                        }
+
+
+                        if (!empty($permitType)) {
+                            $leave = ($leave - 1);
+                        }
+                    }
+
+                    echo $send;
+                } else {
+                    show_error("Cannot Process your request");
+                }
+            } else {
+                show_error("Api Key Invalid");
+            }
+        } else {
+            show_error("Cannot Process your request");
+        }
+    }
+
+    private function calculatePermitAvailable($api_key, $permit_type_id, $reason_id, $date_from, $date_to)
+    {
+        // if ($api_key != "") {
+        $user = $this->mobile->read("users", [], ["api_key" => $api_key]);
+
+        if ($user) {
+            $employee = $this->mobile->read("employees", [], ["number" => $user->number]);
+
+            $this->db->select("b.balance, b.type_balance");
+            $this->db->from('assign_time_off_master a');
+            $this->db->join('assign_time_off_detail b', 'a.id = b.assign_time_off_id');
+            $this->db->join('employees c', 'b.employee_id = c.number');
+            $this->db->group_start();
+            $this->db->where('b.start_date <=', $date_to);
+            $this->db->group_start();
+            $this->db->where('b.end_date IS NULL', null, false);
+            $this->db->or_where("b.end_date = '0000-00-00'", null, false);
+            $this->db->or_where('b.end_date >=', $date_from);
+            $this->db->group_end();
+            $this->db->group_end();
+
+            $this->db->like('a.permit_type_id', $permit_type_id);
+            $this->db->like('a.reason_id', $reason_id);
+            $this->db->like('c.id', $employee->id);
+            $this->db->order_by("b.id", "desc");
+            $assign_time_off = $this->db->get()->row();
+
+            $date_from = new DateTime($date_from);
+            $year = $date_from->format('Y');
+            $month = $date_from->format('m');
+            $previous_year = $year - 1;
+
+            $calendar = $this->mobile->reads("calendars", ["trans_date" => $year], ["permit" => 1]);
+
+            $permitType = $this->mobile->read('permit_types', [], ["id" => $permit_type_id, "cutoff" => "YES"]);
+            if (empty($permitType)) {
+                // echo json_encode(["total" => 0]);
+                return 0;
+            }
+
+            $sign_date = $employee->date_sign;
+
+            $total_current = 0;
+            $total_previous = 0;
+            $balance = 0;
+            if (strtotime('+1 year', strtotime($sign_date)) <= time()) {
+                $permits = $this->mobile->reads('permits', ["employee_id" => $employee->id, "DATE_FORMAT(permit_date, '%Y')" => $year], ["permit_type_id" => @$permitType->id]);
+                $totalPermit = 0;
+                foreach ($permits as $permit) {
+                    $totalPermit += $permit->duration;
+                }
+
+                $expiry_date = new DateTime("$year-03-31");
+
+                $totalPermit_previous = 0;
+
+                if ($date_from <= $expiry_date) {
+                    // Ambil data cuti untuk tahun sebelumnya (untuk akumulasi)
+                    $permits_previous = $this->mobile->reads('permits', [
+                        "employee_id" => $employee->id,
+                        "DATE_FORMAT(permit_date, '%Y')" => $previous_year
+                    ], ["permit_type_id" => @$permitType->id]);
+                    foreach ($permits_previous as $permit) {
+                        $totalPermit_previous += $permit->duration;
+                    }
+                    // Hitung sisa cuti tahun sebelumnya
+                    $calendar_previous = $this->mobile->reads("calendars", ["trans_date" => $previous_year], ["permit" => 1]);
+                    $total_leave_previous = 12 - $totalPermit_previous - count($calendar_previous);
+                    $total_previous = max(0, $total_leave_previous);
+                }
+
+                $total_leave_current = 12 - $totalPermit - count($calendar);
+                $total_current = max(0, $total_leave_current);
+                $balance = $total_previous + $total_current;
+            } else {
+                if (strtotime('+1 month', strtotime($sign_date)) <= time()) {
+                    $permits = $this->mobile->read('permits', ["employee_id" => $employee->id, "DATE_FORMAT(permit_date, '%Y-%m')" => "$year-$month"], ["permit_type_id" => @$permitType->id]);
+
+                    if ($permits) {
+                        $balance = 0;
+                    } else {
+                        $balance = 1;
+                    }
+                }
+            }
+
+            if (!empty($assign_time_off)) {
+                if ($assign_time_off->type_balance == 'add') {
+                    $balance = $balance + $assign_time_off->balance;
+                } else {
+                    $balance = $assign_time_off->balance;
+                }
+            }
+
+            return $balance;
+        } else {
+            show_error("User Not Found");
+        }
+    }
+    // else {
+    //     show_error("Cannot Process your request");
+    // }
+}
+    
 
     // NOTIF
     // function getAccessToken()
@@ -482,4 +720,4 @@ class Permits extends CI_Controller
     //     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     //     curl_close($ch);
     // }
-}
+// }

@@ -310,6 +310,7 @@ class Payrolls extends CI_Controller
                     l.days,
                     coalesce(p.amount, 0) as salary,
                     coalesce(p.bpjs, 0) as bpjs,
+                    coalesce(NULLIF(p.bpjs_kes, 0), p.bpjs) as bpjs_kes,
                     q.number as marital,
                     q.ter_type,
                     a.tax_id,
@@ -351,6 +352,9 @@ class Payrolls extends CI_Controller
     {
         if ($this->input->post()) {
             $record   = $this->input->post();
+            $bpjs_tk = $record['bpjs'];
+            $bpjs_kes = $record['bpjs_kes'];
+            $rate_jp_2025 = 10547400;
 
             //ambil data dari variabel filter
             $filter_from = $this->input->get('filter_from');
@@ -666,12 +670,12 @@ class Payrolls extends CI_Controller
                     $arr_bpjs_emp_amount_total += 0;
                 } elseif ($record['jamsostek'] == "" && $record['jkn'] != "") {
                     if ($bpjs_emp_data->number == "BPJS") {
-                        if ($record['bpjs'] == "0") {
+                        if ($bpjs_kes == "0") {
                             $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
                             $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
                         } else {
-                            $arr_bpjs_emp_amount .= round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
-                            $arr_bpjs_emp_amount_total += round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
+                            $arr_bpjs_emp_amount .= round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
+                            $arr_bpjs_emp_amount_total += round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
                         }
                     } else {
                         $arr_bpjs_emp_amount .= 0 . ",";
@@ -679,12 +683,12 @@ class Payrolls extends CI_Controller
                     }
                 } elseif ($record['jamsostek'] != "" && $record['jkn'] == "") {
                     if ($bpjs_emp_data->number != "BPJS") {
-                        if ($record['bpjs'] == "0") {
+                        if ($bpjs_tk == "0") {
                             $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100))) . ",";
                             $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)));
                         } else {
-                            $arr_bpjs_emp_amount .= round(($record['bpjs'] * ($bpjs_emp_data->employee / 100))) . ",";
-                            $arr_bpjs_emp_amount_total += round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)));
+                            $arr_bpjs_emp_amount .= round(($bpjs_tk * ($bpjs_emp_data->employee / 100))) . ",";
+                            $arr_bpjs_emp_amount_total += round(($bpjs_tk * ($bpjs_emp_data->employee / 100)));
                         }
                     } else {
                         $arr_bpjs_emp_amount .= 0 . ",";
@@ -692,20 +696,31 @@ class Payrolls extends CI_Controller
                     }
                 } else {
                     if ($bpjs_emp_data->number == "BPJS") {
-                        if ($record['bpjs'] == "0") {
+                        if ($bpjs_kes == "0") {
                             $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
                             $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
                         } else {
-                            $arr_bpjs_emp_amount .= round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
-                            $arr_bpjs_emp_amount_total += round(($record['bpjs'] * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
+                            $arr_bpjs_emp_amount .= round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
+                            $arr_bpjs_emp_amount_total += round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
                         }
                     } else {
-                        if ($record['bpjs'] == "0") {
+                        if ($bpjs_tk == "0") {
                             $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100))) . ",";
                             $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)));
                         } else {
-                            $arr_bpjs_emp_amount .= round((($record['bpjs']) * ($bpjs_emp_data->employee / 100))) . ",";
-                            $arr_bpjs_emp_amount_total += round((($record['bpjs']) * ($bpjs_emp_data->employee / 100)));
+                            if ($bpjs_emp_data->number == "JP") {                                
+                                if ($bpjs_tk >= $rate_jp_2025 ) {
+                                    $arr_bpjs_emp_amount .= round((($rate_jp_2025) * ($bpjs_emp_data->employee / 100))) . ",";
+                                    $arr_bpjs_emp_amount_total += round((($rate_jp_2025) * ($bpjs_emp_data->employee / 100)));
+                                } else {
+                                    $arr_bpjs_emp_amount .= round((($bpjs_tk) * ($bpjs_emp_data->employee / 100))) . ",";
+                                    $arr_bpjs_emp_amount_total += round((($bpjs_tk) * ($bpjs_emp_data->employee / 100)));
+                                }
+                            } else {
+                                $arr_bpjs_emp_amount .= round((($bpjs_tk) * ($bpjs_emp_data->employee / 100))) . ",";
+                                $arr_bpjs_emp_amount_total += round((($bpjs_tk) * ($bpjs_emp_data->employee / 100)));
+                            }
+                           
                         }
 
                         
@@ -752,17 +767,17 @@ class Payrolls extends CI_Controller
                     $arr_bpjs_com_amount_jabatan_total += 0;
                 } elseif ($record['jamsostek'] == "" && $record['jkn'] != "") {
                     if ($bpjs_com_data->number == "BPJS") {
-                        if ($record['bpjs'] == "0") {
+                        if ($bpjs_kes == "0") {
                             $arr_bpjs_com_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']) . ",";
                             $arr_bpjs_com_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
                             $arr_bpjs_com_amount_total_ter += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
                             $arr_bpjs_com_amount_salary_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
                             $arr_bpjs_com_amount_jabatan_total += 0;
                         } else {
-                            $arr_bpjs_com_amount .= round((($record['bpjs']) * ($bpjs_com_data->company / 100))) . ",";
-                            $arr_bpjs_com_amount_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
-                            $arr_bpjs_com_amount_total_ter += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
-                            $arr_bpjs_com_amount_salary_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
+                            $arr_bpjs_com_amount .= round((($bpjs_kes) * ($bpjs_com_data->company / 100))) . ",";
+                            $arr_bpjs_com_amount_total += round((($bpjs_kes) * ($bpjs_com_data->company / 100)));
+                            $arr_bpjs_com_amount_total_ter += round((($bpjs_kes) * ($bpjs_com_data->company / 100)));
+                            $arr_bpjs_com_amount_salary_total += round((($bpjs_kes) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_jabatan_total += 0;
                         }
                     } else {
@@ -837,7 +852,7 @@ class Payrolls extends CI_Controller
                         } else {
                             $arr_bpjs_com_amount .= 0 . ",";
                             $arr_bpjs_com_amount_total += 0;
-                            $arr_bpjs_com_amount_total_ter += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
+                            $arr_bpjs_com_amount_total_ter += round((($bpjs_kes) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_salary_total += 0;
                             $arr_bpjs_com_amount_jabatan_total += 0;
                         }
@@ -871,8 +886,14 @@ class Payrolls extends CI_Controller
                             $arr_bpjs_com_amount_jabatan_total += 0;
                         }
                     } else {
-                        $arr_bpjs_com_amount .= round(($record['bpjs'] * ($bpjs_com_data->company / 100))) . ",";
-                        $arr_bpjs_com_amount_total += round((($record['bpjs']) * ($bpjs_com_data->company / 100)));
+                        if ($bpjs_com_data->number == "BPJS") {
+                            $bpjs_base = $bpjs_kes;
+                        } else {
+                            $bpjs_base = $bpjs_tk;
+                        }
+
+                        $arr_bpjs_com_amount .= round(($bpjs_base * ($bpjs_com_data->company / 100))) . ",";
+                        $arr_bpjs_com_amount_total += round((($bpjs_base) * ($bpjs_com_data->company / 100)));
     
                         //Perhitungan PPH Salary - Jabatan
                         if ($bpjs_com_data->number == "JKK") {
@@ -892,7 +913,7 @@ class Payrolls extends CI_Controller
                             $arr_bpjs_com_amount_salary_total += 0;
                             $arr_bpjs_com_amount_jabatan_total += round(($record['bpjs'] * ($bpjs_com_data->company / 100)));
                         } else {
-                            $arr_bpjs_com_amount_total_ter += round(($record['bpjs'] * ($bpjs_com_data->company / 100)));
+                            $arr_bpjs_com_amount_total_ter += round(($bpjs_base * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_salary_total += 0;
                             $arr_bpjs_com_amount_jabatan_total += 0;
                         }
@@ -1547,7 +1568,7 @@ class Payrolls extends CI_Controller
         }
 
         $query = $this->db->query("SELECT a.*, b.national_id, d.name as source_name, e.employee_id as status_resign, g.number as account_no,
-        coalesce(p.bpjs, 0) as bpjs_rate, b.group_id
+        coalesce(p.bpjs, 0) as bpjs_rate, b.group_id, coalesce(p.bpjs_kes, 0) as bpjs_kes_rate
         FROM payrolls a
             JOIN employees b on a.employee_id = b.id
             LEFT JOIN sources d on b.source_id = d.id
@@ -1714,7 +1735,7 @@ class Payrolls extends CI_Controller
                     <td style="mso-number-format:"0.00";">'. round($record['ter'], 0) .'</td>
                     <td style="mso-number-format:"0.00";">'. round($record['net_income'], 0) .'</td>
                     <td style="mso-number-format:"0.00";">'. round($record['bpjs_rate'], 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['bpjs_rate'], 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($record['bpjs_kes_rate'], 0) .'</td>
                     </tr>
                     ';
             $no++;

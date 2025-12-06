@@ -150,6 +150,8 @@ class Payrolls extends CI_Controller
             foreach ($records as $record) {
 
                 $arr = array(
+                    "id" => $record['id'],
+                    "is_publish" => $record['is_publish'],
                     "employee_id" => $record['employee_id'],
                     "number" => $record['number'],
                     "name" => $record['name'],
@@ -2038,5 +2040,12 @@ class Payrolls extends CI_Controller
         $total_day_resign = (@count($weekday_day) - @$calendar_amount);
 
         return $total_day_resign;
+    }
+
+    public function publishPayroll()
+    {
+        $data = $this->input->post();
+        $send = $this->crud->update('payrolls', ["id" => $data['id']], ['is_publish' => 1]);
+        echo $send;
     }
 }

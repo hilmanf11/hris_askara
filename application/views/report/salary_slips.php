@@ -47,6 +47,13 @@
                 <span style="width:35%; display:inline-block;">Group</span>
                 <input style="width:60%;" id="filter_group" name="filter_group" class="easyui-combobox">
             </div>
+            <div class="fitem">
+                <span style="width:35%; display:inline-block;">Status</span>
+                <select style="width:60%;" name="filter_is_publish" id="filter_is_publish" required="true" data-options="prompt:'Status'" class="easyui-combobox">
+                    <option value="1">Publish</option>
+                    <option value="0">Unpublish</option>
+                </select>
+            </div>
         </div>
     </fieldset>
 
@@ -93,6 +100,7 @@
         var filter_departement_sub = $("#filter_departement_sub").combobox('getValue');
         var filter_employee = $("#filter_employee").combogrid('getValue');
         var filter_group = $("#filter_group").combobox('getValue');
+        var filter_is_publish = $("#filter_is_publish").combobox('getValue');
 
         if (filter_from == "" || filter_to == "" || filter_division == "") {
             toastr.warning("Please Choose Filter Date and Division");
@@ -103,6 +111,7 @@
                 '&filter_from=' + filter_from +
                 '&filter_to=' + filter_to +
                 '&filter_group=' + filter_group +
+                '&filter_is_publish=' + filter_is_publish +
                 '&filter_employee=' + filter_employee;
 
             $('#dg').datagrid({
@@ -119,6 +128,7 @@
         var filter_division = $("#filter_division").combobox('getValue');
         var filter_employee = $("#filter_employee").combogrid('getValue');
         var filter_group = $("#filter_group").combobox('getValue');
+        var filter_is_publish = $("#filter_is_publish").combobox('getValue');
 
         if (filter_from == "" || filter_to == "" || filter_division == "") {
             toastr.warning("Please Choose Filter Date and Division");
@@ -130,10 +140,11 @@
                 '&filter_from=' + filter_from +
                 '&filter_to=' + filter_to +
                 '&filter_employee=' + filter_employee +
+                '&filter_is_publish=' + filter_is_publish +
                 '&filter_group=' + filter_group;
 
             $("#printout").contents().find('html').html("<center><br><br><br><b style='font-size:20px;'>Please Wait...</b></center>");
-            $("#printout").attr('src', '<?= base_url('report/salary_slips/print') ?>' + url);
+            $("#printout").attr('src', '<?= base_url('report/salary_slips/printPaySlip') ?>' + url);
         }
     }
 
@@ -145,6 +156,7 @@
         var filter_departement_sub = $("#filter_departement_sub").combobox('getValue');
         var filter_employee = $("#filter_employee").combogrid('getValue');
         var filter_group = $("#filter_group").combobox('getValue');
+        var filter_is_publish = $("#filter_is_publish").combobox('getValue');
 
         if (filter_from == "" || filter_to == "" || filter_division == "") {
             toastr.warning("Please Choose Filter Date and Division");
@@ -155,6 +167,7 @@
                 '&filter_from=' + filter_from +
                 '&filter_to=' + filter_to +
                 '&filter_group=' + filter_group +
+                '&filter_is_publish=' + filter_is_publish +
                 '&filter_employee=' + filter_employee;
 
             window.location.assign('<?= base_url('report/salary_slips/print/excel') ?>' + url);

@@ -2,8 +2,10 @@
 <table id="dg" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar">
     <thead frozen="true">
         <tr>
+            <th field="ck" checkbox="true"></th>
             <th data-options="field:'number',width:150,halign:'center'">Employee ID</th>
             <th data-options="field:'name',width:250,halign:'center'">Employee Name</th>
+            <th data-options="field:'is_publish',width:100,halign:'center', formatter:statusPublish, styler:styleStatusPublish">Status Publish</th>
         </tr>
     </thead>
     <thead>
@@ -176,6 +178,7 @@
     </div>
 
     <?= $button ?>
+    <a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="puslishPayroll()"><i class="fa fa-check"></i> Publish</a>
     <a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="pdfReport()"><i class="fa fa-print"></i> Print Report</a>
     <a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="excelReport()"><i class="fa fa-file"></i> Export Report</a>
 </div>
@@ -807,5 +810,60 @@
 
     function pdfReport() {
         $("#printoutreport").get(0).contentWindow.print();
+    }
+
+    function puslishPayroll() {
+        var rows = $('#dg').datagrid('getSelections');
+        console.log(rows);
+        
+        if (rows.length > 0) {
+            $.messager.confirm('Warning', 'Are you sure you want to publish this payroll?', function(r) {
+                if (r) {
+                    for (var i = 0; i < rows.length; i++) {
+                        var row = rows[i];
+                        $.ajax({
+                            method: 'post',
+                            url: '<?= base_url('payroll/payrolls/publishPayroll') ?>',
+                            data: {
+                                id: row.id
+                            },
+                            success: function(result) {
+                                var result = eval('(' + result + ')');
+                                if (result.theme == "success") {
+                                    toastr.success(result.message, result.title);
+                                } else {
+                                    toastr.error(result.message, result.title);
+                                }
+                            },
+                            error: function(jqXHR, textStatus, errorThrown) {
+                                toastr.error(jqXHR.statusText);
+                                $.messager.alert("Error", jqXHR.statusText, 'error');
+                            },
+                            complete: function(data) {
+                                $('#dg').datagrid('reload');
+                            }
+                        });
+                    }
+                }
+            });
+        } else {
+            toastr.warning("Please select one of the data in the table first!", "Information");
+        }
+    }
+
+    function statusPublish(value, row){
+        if(value == '1'){
+            return "PUBLISHED";
+        }else{
+            return "UNPUBLISHED";
+        }
+    }
+
+    function styleStatusPublish(value, row, index) {
+        if(value == '1'){
+            return 'background: #53D636; color:white;';
+        }else{
+            return 'background: #FFC41B; color:white;';
+        }
     }
 </script>

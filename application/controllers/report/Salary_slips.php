@@ -40,6 +40,7 @@ class Salary_slips extends CI_Controller
             $filter_departement_sub = $this->input->get('filter_departement_sub');
             $filter_employee = $this->input->get('filter_employee');
             $filter_group = $this->input->get('filter_group');
+            $filter_is_publish = $this->input->get('filter_is_publish');
             $username = $this->session->username;
 
             $period_start = date("Y-m", strtotime($filter_from));
@@ -73,6 +74,7 @@ class Salary_slips extends CI_Controller
             $this->db->join('groups e', "b.group_id = e.id");
             $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' $privilege");
             $this->db->where('a.deleted', 0);
+            $this->db->where('a.is_publish', $filter_is_publish);
             $this->db->where('a.period_start =', $period_start);
             $this->db->where('a.period_end =', $period_end);
             $this->db->like('b.id', $filter_employee);
@@ -483,6 +485,7 @@ class Salary_slips extends CI_Controller
             $filter_departement_sub = $this->input->get('filter_departement_sub');
             $filter_employee = $this->input->get('filter_employee');
             $filter_group = $this->input->get('filter_group');
+            $filter_is_publish = $this->input->get('filter_is_publish');
             $username = $this->session->username;
 
             $period_start = date("Y-m", strtotime($filter_from));
@@ -503,6 +506,7 @@ class Salary_slips extends CI_Controller
             LEFT JOIN maritals i ON a.marital = i.number
             WHERE a.period_start = '$period_start'
             AND a.period_end = '$period_end'
+            AND a.is_publish = '$filter_is_publish'
             AND b.division_id LIKE '%$filter_division%'
             AND b.departement_id LIKE '%$filter_departement%'
             AND b.departement_sub_id LIKE '%$filter_departement_sub%'
@@ -1009,5 +1013,359 @@ class Salary_slips extends CI_Controller
             $html .= '</body></html>';
             echo $html;
         }
+    }
+
+    public function printPaySlip()
+    {
+        $date_to = $this->input->get('filter_to');
+        $date_from = $this->input->get('filter_from');
+        $division = $this->input->get('filter_division');
+        $departement = $this->input->get('filter_departement');
+        $departement_sub = $this->input->get('filter_departement_sub');
+        $employee = $this->input->get('filter_employee');
+        $group = $this->input->get('filter_group');
+        $filter_is_publish = $this->input->get('filter_is_publish');
+
+        $time_to = strtotime($date_to);
+        $time_from = strtotime($date_from);
+        $period_to = date('Y-m', $time_to);
+        $period_from = date('Y-m', $time_from);
+        $payroll_cutoff = date('d M Y', $time_from).' - '.date('d M Y', $time_to);
+
+        $this->db->distinct()->select("COUNT(trans_date) AS count")->from("calendars")->where("trans_date BETWEEN '$date_from' AND '$date_to'", NULL, FALSE);
+        $count_national_day = intval($this->db->get()->row()->count);
+        $national_day = $count_national_day.'d';
+        // die(var_dump($count_national_day));
+
+        $mulai = new DateTime($date_from);
+        $selesai = new DateTime($date_to);
+        $selesai->modify('+1 day'); // agar tanggal akhir ikut dihitung
+        $daterange = new DatePeriod($mulai, new DateInterval('P1D'), $selesai);
+
+        $total = [
+            'sabtu' => 0,
+            'minggu' => 0,
+            'senin_kamis' => 0
+        ];
+
+        foreach ($daterange as $tanggal) {
+            $hari = $tanggal->format('N'); // format('N'): 1 = Senin ... 7 = Minggu
+
+            if ($hari == 7) { $total['minggu']++; }
+            elseif ($hari == 6) { $total['sabtu']++; }
+            else { $total['senin_kamis']++; }
+        }
+
+        $total_attandace = [
+            '5' => ['weekday' => $total['senin_kamis'], 'weekend' => $total['sabtu'] + $total['minggu']],
+            '6' => ['weekday' => $total['senin_kamis'] + $total['sabtu'], 'weekend' => $total['minggu']]
+        ];
+
+        $total_attandace['5']['weekday'] -= $count_national_day;
+        $total_attandace['6']['weekday'] -= $count_national_day;
+
+        $this->db->distinct()->select(
+            "COALESCE(TRIM(b.logo), '') AS logo,".
+            "COALESCE(TRIM(b.name), '') AS division,".
+            "TRIM(a.number) AS nik,".
+            "TRIM(a.name) AS fullname,".
+            "COALESCE(TRIM(c.name), '') AS dept,".
+            "COALESCE(TRIM(d.name), '') AS sub_dept,".
+            "COALESCE(TRIM(e.name), '') AS grup,".
+            "COALESCE(TRIM(f.number), '') AS marital,".
+            "TRIM(a.tax_id) AS npwp,".
+            "COALESCE(TRIM(g.salary), '') AS salary,".
+            "COALESCE(g.ter, 0) AS pph21,".
+            "CASE WHEN COALESCE(g.ter, 0) < 0 OR COALESCE(g.tax_allowance, 0) = 0 THEN 0 ELSE COALESCE(g.ter, 0) END AS tax,".
+            "COALESCE(TRIM(g.allowence), '') AS allowance,".
+            "COALESCE(TRIM(g.overtime_amount_weekday), '') AS weekday,".
+            "COALESCE(TRIM(g.overtime_amount_saturday), '') AS saturday,".
+            "COALESCE(TRIM(g.overtime_amount_sunday), '') AS sunday,".
+            "COALESCE(TRIM(g.overtime_amount_holiday), '') AS holiday,".
+            "COALESCE(TRIM(g.bpjs_employee), '') AS bpjs_employee,".
+            "COALESCE(TRIM(g.deduction_absence_amount), '') AS deduction,".
+            "COALESCE(TRIM(h.bpjs), '') AS bpjs,".
+            "COALESCE(TRIM(g.bpjs_company), '') AS bpjs_company,".
+            "COALESCE(TRIM(g.attandance_wd), '') AS workingday,".
+            "COALESCE(TRIM(g.attandance), '') AS attandance,".
+            "COALESCE(j.days, 5) AS days,".
+            "TRIM(a.id) AS id,".
+            "TRIM(a.group_id) AS group_id"
+        )->from("employees a")
+            ->join("divisions b", "a.division_id = b.id", "left")
+            ->join("departements c", "a.departement_id = c.id", "left")
+            ->join("departement_subs d", "a.departement_sub_id = d.id", "left")
+            ->join("groups e", "a.group_id = e.id", "left")
+            ->join("maritals f", "a.marital_id = f.id", "left")
+            ->join("payrolls g", "a.id = g.employee_id", "left")
+            ->join("setup_salaries h", "a.id = h.employee_id", "left")
+            ->join("shift_employees i", "a.id = i.employee_id", "left")
+            ->join("shift_details j", "i.shift_id = j.shift_id", "left")
+        ->where("g.period_start", $period_from)->where("g.period_end", $period_to)->where("a.division_id", $division)->where("g.is_publish", $filter_is_publish);
+        if (!empty($departement)) { $this->db->where("a.departement_id", $departement); }
+        if (!empty($departement_sub)) { $this->db->where("a.departement_sub_id", $departement_sub); }
+        if (!empty($employee)) { $this->db->where("a.id", $employee); }
+        if (!empty($group)) { $this->db->where("a.group_id", $group); }
+        $this->db->order_by("fullname");
+        $get = $this->db->get()->result();
+        // die($this->db->last_query());
+        // die(var_dump($get));
+
+        $overtimes = [];
+        $allowances = [];
+        $attandances = [];
+        foreach ($get as $index => $row) {
+            $attandances[$row->nik] = 0;
+            $overtimes[$row->id] = 0;
+
+            if ($row->group_id == '20221213000002') {
+                $allowances[$row->id] = 0;
+                $allowance = json_decode($row->allowance);
+                foreach ($allowance as $key => $value) {
+                    if (floatval($value) > 0) { $allowances[$row->id] += floatval($value); }
+                }
+            }
+        }
+
+        $this->db->distinct()->select("TRIM(number) AS id, COUNT(date_in) AS count")->from("attandances")
+        ->where_in("number", array_keys($attandances))->where("date_in BETWEEN '$date_from' AND '$date_to'", NULL, FALSE)
+        ->group_by("number")->order_by("id");
+        foreach ($this->db->get()->result() as $key => $row) { $attandances[$row->id] = intval($row->count); }
+        // die($this->db->last_query());
+        // die(var_dump($attandances));
+
+        $this->db->distinct()->select("TRIM(employee_id) AS id, SUM(break_hour + duration_hour) AS total")->from("overtimes")
+        ->where_in("employee_id", array_keys($overtimes))->where("trans_date BETWEEN '$date_from' AND '$date_to'", NULL, FALSE)
+        ->group_by("employee_id")->order_by("id");
+        foreach ($this->db->get()->result() as $key => $row) { $overtimes[$row->id] = intval($row->total); }
+
+        $html = <<<HTML
+            <!doctype html>
+            <html lang="id">
+            <head>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width,initial-scale=1" />
+                <title>Payslip</title>
+                <style>
+                    @page { size: A4; margin: 20mm; }
+                    body { width: 210mm; min-height: 297mm; margin: 0 auto; background: #f6f8fb;}
+
+                    :root{--muted:#9a9a9a;--accent:#e9f0f6;--border:#e0e0e0;--bg:#ffffff;--primary:#222}
+                    body{font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:#f6f8fb; color:var(--primary)}
+                    .card{max-width:900px;margin:8px auto;background:var(--bg);padding:22px;border-radius:6px;box-shadow:0 2px 8px rgba(16,24,40,0.06)}
+                    .header{display:flex;justify-content:space-between;align-items:flex-start}
+                    .logo{display:flex;gap:12px;align-items:center}
+                    .logo img{width:64px;height:40px;object-fit:contain}
+                    .confidential{color:#d35400;font-size:12px;font-weight:600}
+                    h5{margin:8px 0 4px;font-size:18px}
+                    .meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+                    .meta-left,.meta-right{font-size:13px}
+                    .meta-row{display:flex;gap:8px;margin-bottom:6px}
+                    .meta-row .label{min-width:160px;}
+                    .table-wrap{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+                    .box{border:1px solid var(--border);border-radius:4px;overflow:hidden;background:#fff}
+                    table{width:100%;border-collapse:collapse}
+                    th,td{padding:10px 12px;font-size:13px}
+                    thead th{background:var(--accent);text-align:left;font-weight:600;font-size:13px;border-bottom:1px solid var(--border);}
+                    .value{white-space:nowrap;text-align:right}
+                    .totals{display:flex;justify-content:space-between;align-items:center;padding:12px 0px;border-top:1px solid var(--border);background:#fbfcfd}
+                    .lower-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+                    .small-list{padding:12px}
+                    .small-list h4{margin:0 0 8px;font-size:13px}
+                    .benefit-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px dashed var(--border)}
+                    .attendance{font-size:13px}
+                    .muted{color:var(--muted);font-size:13px}
+                    @media print {
+                        body { background: none !important; }
+                        .card { box-shadow: none !important; background: #fff !important; }
+                    }
+                </style>
+            </head>
+            <body>
+        HTML;
+
+        $def_style_r = 'width: 50%; padding-bottom: 20px;';
+        $def_style_l = 'width: 50%; padding-bottom: 20px;';
+        $def_padding_r = 'padding-left: 3px;';
+        $def_padding_l = 'padding-right: 3px;';
+        foreach ($get as $index => $row) {
+            $allowance = json_decode($row->allowance);
+            $bpjs_employee = json_decode($row->bpjs_employee);
+            $bpjs_company = json_decode($row->bpjs_company);
+            $attandance = json_decode($row->attandance);
+            $is_hl = $row->group_id == '20221213000002';
+            $pagebreak = ($index != 0) ? 'style="page-break-before: always;"' : '';
+            // die(var_dump($allowance));
+
+            $logo = '';
+            if (!empty($row->logo)) {
+                $imgData = file_get_contents($row->logo);
+
+                // Deteksi tipe mime (opsional tapi bagus digunakan)
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+
+                // Format untuk img src
+                $logo = '<img src="data:'.finfo_buffer($finfo, $imgData).';base64,'.base64_encode($imgData).'" style="width: 70px; height: 70px;">';
+            }
+
+            $employee = $row->nik.' / '.$row->fullname;
+
+            $salary = ($is_hl) ? $allowances[$row->id] : floatval($row->salary);
+            $tt = floatval($allowance->tt ?? 0);
+            $tax = floatval($row->tax);
+            $weekday = floatval($row->weekday);
+            $saturday = floatval($row->saturday);
+            $sunday = floatval($row->sunday);
+            $holiday = floatval($row->holiday);
+            $sum_overtime = $weekday + $saturday + $sunday + $holiday;
+            $sum_earnings = $salary + $tt + $tax + $sum_overtime;
+
+            $bpjs_emp = floatval($bpjs_employee->bpjs_employee ?? 0);
+            $jht_emp = floatval($bpjs_employee->jht_employee ?? 0);
+            $deduction = floatval($row->deduction);
+            $jp_emp = floatval($bpjs_employee->jp_employee ?? 0);
+            $pph21 = floatval($row->pph21);
+            $sum_deduction = $bpjs_emp + $jht_emp + $deduction + $jp_emp + $pph21;
+
+            $salary = number_format($salary, 0, ',', '.');
+            $tunjangan_tetap = number_format($tt, 0, ',', '.');
+            $tax = number_format($tax, 0, ',', '.');
+            $overtime = number_format($sum_overtime, 0, ',', '.');
+            $total_earnings = number_format($sum_earnings, 0, ',', '.');
+
+            $bpjsk = number_format($bpjs_emp, 0, ',', '.');
+            $jht = number_format($jht_emp, 0, ',', '.');
+            $deduction = number_format($deduction, 0, ',', '.');
+            $jp = number_format($jp_emp, 0, ',', '.');
+            $pph21 = number_format($pph21, 0, ',', '.');
+            $total_deduction = number_format($sum_deduction, 0, ',', '.');
+
+            $total_home_pay = number_format(($sum_earnings - $sum_deduction), 0, ',', '.');
+
+            $bpjs = floatval($row->bpjs);
+            $jkk_emp = floatval($bpjs_employee->jkk_employee ?? 0);
+            $jkm_emp = floatval($bpjs_employee->jkm_employee ?? 0);
+            $jht_com = floatval($bpjs_company->jht_company ?? 0);
+            $jp_com = floatval($bpjs_company->jp_company ?? 0);
+            $bpjs_com = floatval($bpjs_company->bpjs_company ?? 0);
+
+            $bpjs_rate = number_format($bpjs, 0, ',', '.');
+            $jkk = number_format($jkk_emp, 0, ',', '.');
+            $jkm = number_format($jkm_emp, 0, ',', '.');
+            $jht_company = number_format($jht_com, 0, ',', '.');
+            $jp_company = number_format($jp_com, 0, ',', '.');
+            $bpjsk_company = number_format($bpjs_com, 0, ',', '.');
+            $total_benefits = number_format(($bpjs + $bpjs + $jkk_emp + $jkm_emp + $jht_com + $jp_com + $bpjs_com), 0, ',', '.');
+
+            $actual_wd = $attandances[$row->nik].'d';
+            $schedule_wd = intval($total_attandace[$row->days]['weekday']).'d';
+            $dayoff = intval($total_attandace[$row->days]['weekend']).'d';
+            $time_off_code = 'H: '.$attandances[$row->nik].'d S: '.intval($attandance->sa ?? 0).'d I: '.intval($attandance->ia ?? 0).'d';
+            $overtime_hour = $overtimes[$row->id].'h';
+
+            $div_tt = ($is_hl) ? '' : '<tr><td>Tunjangan Tetap</td><td class="value">'.$tunjangan_tetap.'</td></tr>';
+            $div_space = ($is_hl) ? '<tr><td></td><td class="value">&nbsp;</td></tr>' : '';
+
+            $html .= <<<HTML
+            <div $pagebreak>
+                <div class="card">
+                    <div class="header">
+                        <div class="logo">$logo</div>
+                        <div style="text-align:right"><div class="confidential">*CONFIDENTIAL</div></div>
+                    </div>
+                    <div class="header">
+                        <div><h5>$row->division</h5></div>
+                        <div style="text-align:right"><h5>PAYSLIP</h5></div>
+                    </div>
+
+                    <div class="meta">
+                        <div class="meta-left">
+                            <div class="meta-row"><div class="label">Payroll cut off</div><div>$payroll_cutoff</div></div>
+                            <div class="meta-row"><div class="label">ID / Name</div><div>$employee</div></div>
+                            <div class="meta-row"><div class="label">Job position</div><div>$row->sub_dept</div></div>
+                            <div class="meta-row"><div class="label">Organization</div><div>$row->dept</div></div>
+                        </div>
+                        <div class="meta-right">
+                            <div class="meta-row"><div class="label">Grade / Level</div><div> &minus; / $row->grup</div></div>
+                            <div class="meta-row"><div class="label">PTKP</div><div>$row->marital</div></div>
+                            <div class="meta-row"><div class="label">NPWP</div><div>$row->npwp</div></div>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                    <div class="box">
+                        <table>
+                            <thead><tr><th>Earnings</th><th class="value"></th></tr></thead>
+                            <tbody>
+                            <tr><td>Basic Salary</td><td class="value">$salary</td></tr>
+                            $div_tt
+                            <tr><td>Tax Allowance</td><td class="value">$tax</td></tr>
+                            <tr><td>Overtime (15h)</td><td class="value">$overtime</td></tr>
+                            <tr><td></td><td class="value">&nbsp;</td></tr>
+                            $div_space
+                            </tbody>
+                            <tfoot><tr><td style="font-weight:700">Total earnings</td><td class="value" style="font-weight:700">$total_earnings</td></tr></tfoot>
+                        </table>
+                    </div>
+
+                    <div class="box">
+                    <table>
+                        <thead><tr><th>Deductions</th><th class="value"></th></tr></thead>
+                        <tbody>
+                            <tr><td>BPJS Kesehatan Employee</td><td class="value">$bpjsk</td></tr>
+                            <tr><td>JHT Employee</td><td class="value">$jht</td></tr>
+                            <tr><td>Potongan Absen</td><td class="value">$deduction</td></tr>
+                            <tr><td>Jaminan Pensiun Employee</td><td class="value">$jp</td></tr>
+                            <tr><td>PPH 21</td><td class="value">$pph21</td></tr>
+                        </tbody>
+                        <tfoot><tr><td style="font-weight:700">Total deductions</td><td class="value" style="font-weight:700">$total_deduction</td></tr></tfoot>
+                    </table>
+                    </div>
+                    </div>
+
+                    <div class="totals" style="margin-top: 14px;">
+                        <div></div>
+                        <table style="width: fit-content; float: right;"><tr>
+                            <td style="font-size: 18px; font-weight: 700; padding-right: 100px;">Take Home Pay</td>
+                            <td style="font-size: 20px; font-weight: 700; padding-right: 0px;">Rp$total_home_pay</td>
+                        </tr></table>
+                    </div>
+
+                    <div class="lower-grid">
+                        <div class="box small-list">
+                            <h4>Benefits*</h4>
+                            <div class="benefit-row"><div>BPJS TK Rate</div><div>$bpjs_rate</div></div>
+                            <div class="benefit-row"><div>BPJS Kes Rate</div><div>$bpjs_rate</div></div>
+                            <div class="benefit-row"><div>JKK</div><div>$jkk</div></div>
+                            <div class="benefit-row"><div>JKM</div><div>$jkm</div></div>
+                            <div class="benefit-row"><div>JHT Company</div><div>$jht_company</div></div>
+                            <div class="benefit-row"><div>Jaminan Pensiun Company</div><div>$jp_company</div></div>
+                            <div class="benefit-row"><div>BPJS Kesehatan Company</div><div>$bpjsk_company</div></div>
+                            <div style="padding-top:8px;font-weight:700">Total benefits <span style="float:right">$total_benefits</span></div>
+                        </div>
+
+                        <div class="box small-list">
+                            <h4>Attendance Summary</h4>
+                            <div class="attendance">
+                                <div class="benefit-row"><div>Actual Working Day</div><div>$actual_wd</div></div>
+                                <div class="benefit-row"><div>Schedule Working Day</div><div>$schedule_wd</div></div>
+                                <div class="benefit-row"><div>Dayoff</div><div>$dayoff</div></div>
+                                <div class="benefit-row"><div>National Holiday</div><div>$national_day</div></div>
+                                <div class="benefit-row"><div>Attendance/Time Off Code</div><div>$time_off_code</div></div>
+                                <div class="benefit-row"><div>Overtime Hours*</div><div>$overtime_hour</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            HTML;
+        }
+
+        $html .= <<<HTML
+                </body>
+            </html>
+        HTML;
+
+        echo $html;
     }
 }

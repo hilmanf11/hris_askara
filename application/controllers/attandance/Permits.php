@@ -346,7 +346,7 @@ class Permits extends CI_Controller
                     exit;
                 } else {
                     if (date('w', $i) !== '0') {
-                        $attachment = $this->crud->upload('attachment', ['pdf', 'png', 'jpg', 'jpeg'], 'assets/image/attandance/');
+                        $attachment = $this->crud->upload('attachment', ['pdf', 'png', 'jpg', 'jpeg', 'heic'], 'assets/image/attandance/');
                         $post_final = array(
                             "employee_id" => $post['employee_id'],
                             "permit_type_id" => $post['permit_type_id'],
@@ -380,7 +380,7 @@ class Permits extends CI_Controller
         if ($this->input->post()) {
             $id   = base64_decode($this->input->get('id'));
             $post = $this->input->post();
-            $attachment = $this->crud->upload('attachment', ['pdf', 'png', 'jpg', 'jpeg'], 'assets/image/attandance/');
+            $attachment = $this->crud->upload('attachment', ['pdf', 'png', 'jpg', 'jpeg', 'heic'], 'assets/image/attandance/');
             $post_final = array_merge($post, ["attachment" => $attachment]);
             $send = $this->crud->update('permits', ["id" => $id], $post_final);
             echo $send;

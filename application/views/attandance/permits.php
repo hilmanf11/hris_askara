@@ -133,7 +133,7 @@
             </div>
             <div class="fitem">
                 <span style="width:30%; display:inline-block;">Attachment</span>
-                <input style="width:60%;" name="attachment" id="attachment" accept=".pdf, .jpg, .png" class="easyui-filebox">
+                <input style="width:60%;" name="attachment" id="attachment" accept=".pdf, .jpg, .png, .heic" class="easyui-filebox">
             </div>
         </fieldset>
     </form>
@@ -725,7 +725,8 @@
         if (value == "" || value == null) {
             return '-';
         } else {
-            return '<a href="' + value + '" target="_blank" style="text-decoration: none;"><i class="fa fa-download"></i> Download</a>';
+            let urlPhoto = '<?= base_url('assets/image/attandance/') ?>' + value;
+            return '<a href="' + urlPhoto + '" target="_blank" style="text-decoration: none;"><i class="fa fa-download"></i> Download</a>';
         }
     };
 

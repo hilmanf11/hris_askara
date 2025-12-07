@@ -35,6 +35,7 @@ class Payrolls extends CI_Controller
                 $this->db->join('maritals c', 'a.marital = c.number', 'left');
                 $this->db->join('sources d', 'b.source_id = d.id', 'left');
                 $this->db->where('b.number', $user->number);
+                $this->db->where('a.is_publish', 1);
                 $this->db->where("(a.approved_to is null or a.approved_to = '')");
                 $this->db->order_by('a.period_start', 'DESC');
                 $this->db->group_by('a.employee_id');
@@ -154,9 +155,10 @@ class Payrolls extends CI_Controller
 
                     $total_income = ($record['salary'] + $allowance_fix_total + $record['total_overtime_amount'] + $record['correction_plus']);
                     $total_deduction = ($record['deduction_absence_amount'] + $total_deduction_amount + $deduction_total + $record['loan_bank'] + $record['loan_cooperative'] + $record['loan_other'] + $record['correction_minus']);
-                
+
                     $datas[] = array(
-                        "period" => $record['period_start'],
+                        // "period" => $record['period_start'],
+                        "period" => $record['period_end'],
                         "employee_number" => $record['employee_number'],
                         "employee_name" => $record['employee_name'],
                         "departement" => $record['departement_name'],
@@ -199,7 +201,6 @@ class Payrolls extends CI_Controller
                     "theme" => "success",
                     "results" => $datas
                 )));
-
             } else {
                 show_error("Api Key Invalid");
             }
@@ -208,7 +209,7 @@ class Payrolls extends CI_Controller
         }
 
         $post = isset($_POST['q']) ? $_POST['q'] : "";
-        
+
         echo json_encode($send);
     }
 }

@@ -1208,6 +1208,18 @@ class Salary_slips extends CI_Controller
                 $logo = '<img src="data:'.finfo_buffer($finfo, $imgData).';base64,'.base64_encode($imgData).'" style="width: 70px; height: 70px;">';
             }
 
+            $div_tt = '';
+            $total_allowence = 0;
+            foreach ($allowance as $key => $value) {
+                if (floatval($value) > 0) {
+                    $total_allowence += floatval($value);
+                    $key = strtoupper($key);
+                    $value = number_format($value, 0, ',', '.');
+                    $field = $this->crud->read('allowances', [], ["number" => $key]);
+                    $div_tt .= ($is_hl) ? '' : '<tr><td>'.$field->name.'</td><td class="value">'.$value.'</td></tr>';
+                }
+            }
+
             $employee = $row->nik.' / '.$row->fullname;
 
             $salary = ($is_hl) ? $allowances[$row->id] : floatval($row->salary);
@@ -1218,7 +1230,7 @@ class Salary_slips extends CI_Controller
             $sunday = floatval($row->sunday);
             $holiday = floatval($row->holiday);
             $sum_overtime = $weekday + $saturday + $sunday + $holiday;
-            $sum_earnings = $salary + $tt + $tax + $sum_overtime;
+            $sum_earnings = $salary + $total_allowence + $tax + $sum_overtime;
 
             $bpjs_emp = floatval($bpjs_employee->bpjs_employee ?? 0);
             $jht_emp = floatval($bpjs_employee->jht_employee ?? 0);
@@ -1262,8 +1274,6 @@ class Salary_slips extends CI_Controller
             $dayoff = intval($total_attandace[$row->days]['weekend']).'d';
             $time_off_code = 'H: '.$attandances[$row->nik].'d S: '.intval($attandance->sa ?? 0).'d I: '.intval($attandance->ia ?? 0).'d';
             $overtime_hour = $overtimes[$row->id].'h';
-
-            $div_tt = ($is_hl) ? '' : '<tr><td>Tunjangan Tetap</td><td class="value">'.$tunjangan_tetap.'</td></tr>';
             $div_space = ($is_hl) ? '<tr><td></td><td class="value">&nbsp;</td></tr>' : '';
 
             $html .= <<<HTML

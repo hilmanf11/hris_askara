@@ -99,6 +99,7 @@ class Users extends CI_Controller
         if ($this->input->post()) {
             if ($this->form_validation->run() == TRUE) {
                 $post = $this->input->post();
+                unset($post['reset_pwd']);
                 $avatar = $this->crud->upload('avatar', ["jpg", "png", "jpeg"], 'assets/image/users/', ["username" => $post['username']], "users", "avatar");
 
                 if ($post['access'] == "0") {
@@ -124,6 +125,12 @@ class Users extends CI_Controller
         if ($this->input->post()) {
             $id = base64_decode($this->input->get('id'));
             $post = $this->input->post();
+            $reset_pwd = @$post['reset_pwd'];
+            if ($reset_pwd) {
+                unset($post['reset_pwd']);
+            } else {
+                unset($post['password']);
+            }
             $employee = $this->crud->read("employees", [], ["number" => $post['number']]);
             $avatar = $this->crud->upload('avatar', ["jpg", "png", "jpeg"], 'assets/image/users/', ["id" => $id], "users", "avatar");
             if ($post['access'] == "0") {

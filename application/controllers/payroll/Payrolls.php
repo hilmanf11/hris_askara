@@ -357,6 +357,7 @@ class Payrolls extends CI_Controller
             $bpjs_tk = $record['bpjs'];
             $bpjs_kes = $record['bpjs_kes'];
             $rate_jp_2025 = 10547400;
+            $rate_bpjskes_2025 = 12000000;
 
             //ambil data dari variabel filter
             $filter_from = $this->input->get('filter_from');
@@ -702,8 +703,13 @@ class Payrolls extends CI_Controller
                             $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
                             $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
                         } else {
-                            $arr_bpjs_emp_amount .= round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
-                            $arr_bpjs_emp_amount_total += round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
+                            if ($bpjs_kes >= $rate_bpjskes_2025 ) {
+                                $arr_bpjs_emp_amount .= round((($rate_bpjskes_2025) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
+                                $arr_bpjs_emp_amount_total += round((($rate_bpjskes_2025) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
+                            } else {
+                                $arr_bpjs_emp_amount .= round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
+                                $arr_bpjs_emp_amount_total += round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
+                            }
                         }
                     } else {
                         if ($bpjs_tk == "0") {
@@ -1613,6 +1619,7 @@ class Payrolls extends CI_Controller
                 <th>Tunjangan Tetap</th>
                 <th>Tunjangan Jabatan</th>
                 <th>Tunjangan Kinerja</th>
+                <th>Tunjangan Transport</th>
             ";
         }
 
@@ -1688,12 +1695,14 @@ class Payrolls extends CI_Controller
                 $tunjangan_tetap = $arr_allowance['tt'] ?? 0;
                 $tunjangan_jabatan = $arr_allowance['tj'] ?? 0;
                 $tunjangan_kinerja = $arr_allowance['tk'] ?? 0;
+                $tunjangan_transport = $arr_allowance['tr'] ?? 0;
 
                 $th2 = '
                     <td style="mso-number-format:"0.00";">'. round($record['salary'], 0) .'</td>
                     <td style="mso-number-format:"0.00";">'. round($tunjangan_tetap, 0) .'</td>
                     <td style="mso-number-format:"0.00";">'. round($tunjangan_jabatan, 0) .'</td>
                     <td style="mso-number-format:"0.00";">'. round($tunjangan_kinerja, 0) .'</td>
+                    <td style="mso-number-format:"0.00";">'. round($tunjangan_transport, 0) .'</td>
                 ';
 
             }

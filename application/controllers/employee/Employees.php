@@ -4,6 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Employees extends CI_Controller
 {
+    protected $restrict_user;
     public function __construct()
     {
         parent::__construct();
@@ -12,9 +13,12 @@ class Employees extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('crud');
+        $this->load->model('accessmodule');
 
         //VALIDASI FORM
         $this->form_validation->set_rules('number', 'Code', 'required|min_length[1]|max_length[20]|is_unique[employees.number]');
+        
+        $this->restrict_user = $this->accessmodule->restrictSelf();
     }
 
     //HALAMAN UTAMA
@@ -78,6 +82,15 @@ class Employees extends CI_Controller
         $this->db->select('*');
         $this->db->from('employees');
         $this->db->where('status', $status);
+
+        if (isset($this->restrict_user)) {
+            if (isset($this->restrict_user['privilege_groups'])) {
+                $this->db->where('division_id', $this->restrict_user['division_id']);
+                $this->db->where_in('group_id', $this->restrict_user['privilege_groups']);
+            } else {
+                $this->db->where('id', $this->restrict_user['employee_id']);
+            }
+        }
         if ($get) {
             $this->db->like($get);
         }
@@ -238,9 +251,9 @@ class Employees extends CI_Controller
         $date = date("my", strtotime($date_sign));
         if (@$group->name != "PKL") {
             if (@$group->name == "MAGANG") {
-                $numberFormat = $source->number_id . $contract->number . $date;
+                $numberFormat = $source->number_id  . $date;
             } else {
-                $numberFormat = $departement->number_id . $contract->number . $date;
+                $numberFormat = $departement->number_id  . $date;
             }
 
             $this->db->select("max(number) as kode");

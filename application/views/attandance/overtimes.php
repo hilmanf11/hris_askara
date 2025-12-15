@@ -127,7 +127,7 @@
             </div>
             <div class="fitem">
                 <span style="width:30%; display:inline-block;">Meal</span>
-                <input type="checkbox" id="meal" name="meal"  data-options="on:1,off:0" value="1">
+                <input type="checkbox" id="meal" name="meal" data-options="on:1,off:0" value="1">
             </div>
             <div class="fitem">
                 <span style="width:30%; display:inline-block;">Duration <small style="color:red;">(hour)</small></span>
@@ -243,6 +243,7 @@
         var filter_employee = $("#filter_employee").combobox('getValue');
         var filter_request = $("#filter_request").combobox('getValue');
         var filter_approval = $("#filter_approval").combobox('getValue');
+        var filter_request_code = $("#filter_request_code").combobox('getValue');
         var url = "?filter_from=" + filter_from +
             "&filter_to=" + filter_to +
             "&filter_division=" + filter_division +
@@ -250,6 +251,7 @@
             "&filter_departement_sub=" + filter_departement_sub +
             "&filter_employee=" + filter_employee +
             "&filter_request=" + filter_request +
+            "&filter_request_code=" + filter_request_code +
             "&filter_approval=" + filter_approval;
 
         $('#dg').datagrid({
@@ -274,6 +276,7 @@
         var filter_employee = $("#filter_employee").combobox('getValue');
         var filter_request = $("#filter_request").combobox('getValue');
         var filter_approval = $("#filter_approval").combobox('getValue');
+        var filter_request_code = $("#filter_request_code").combobox('getValue');
         var url = "?filter_from=" + filter_from +
             "&filter_to=" + filter_to +
             "&filter_division=" + filter_division +
@@ -281,6 +284,7 @@
             "&filter_departement_sub=" + filter_departement_sub +
             "&filter_employee=" + filter_employee +
             "&filter_request=" + filter_request +
+            "&filter_request_code=" + filter_request_code +
             "&filter_approval=" + filter_approval;
 
         window.location.assign('<?= base_url('attandance/overtimes/print/excel') ?>' + url);
@@ -726,7 +730,7 @@
         return "<b>" + formatter.format(value) + "</b>";
     }
 
-    function calculateDuration(change_break=false) {
+    function calculateDuration(change_break = false) {
         const transDate = $('#trans_date').datebox('getValue');
         const startTime = $('#start').val();
         const endTime = $('#end').val();
@@ -757,26 +761,26 @@
 
     // Attach event listeners to start and end inputs
     $('#start').maskedbox({
-        onChange: function () {
-            calculateDuration(change_break=false);
+        onChange: function() {
+            calculateDuration(change_break = false);
         }
     });
     $('#end').maskedbox({
-        onChange: function () {
-            calculateDuration(change_break=false);
+        onChange: function() {
+            calculateDuration(change_break = false);
         }
     });
 
     $('#break_hour').numberbox({
-        onChange: function () {
-            calculateDuration(change_break=true);
+        onChange: function() {
+            calculateDuration(change_break = true);
         }
     });
 
     function fetchAttendance() {
         let transDate = $('#trans_date').datebox('getValue');
-        let employeeId = $('#employee_id').combogrid('getValue');        
-        
+        let employeeId = $('#employee_id').combogrid('getValue');
+
         if (transDate && employeeId) {
             $.ajax({
                 url: '<?php echo base_url('attandance/overtimes/readAttandance'); ?>',
@@ -786,7 +790,7 @@
                     employee_id: employeeId
                 },
                 dataType: 'json',
-                success: function (response) {
+                success: function(response) {
                     if (response.start && response.end) {
                         $('#start').maskedbox('setValue', response.start);
                         $('#end').maskedbox('setValue', response.end);
@@ -794,7 +798,7 @@
                         toastr.warning(response.message, "Information");
                     }
                 },
-                error: function (xhr, status, error) {
+                error: function(xhr, status, error) {
                     $('#start').maskedbox('setValue', '00:00:00');
                     $('#end').maskedbox('setValue', '00:00:00');
                 }
@@ -803,15 +807,14 @@
     }
 
     $('#trans_date').datebox({
-        onChange: function () {
+        onChange: function() {
             fetchAttendance();
         }
     });
 
     $('#employee_id').combogrid({
-        onChange: function () {
+        onChange: function() {
             fetchAttendance();
         }
     });
-
 </script>

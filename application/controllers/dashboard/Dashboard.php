@@ -4,6 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Dashboard extends CI_Controller
 {
+    protected $restrict_user;
     public function __construct()
     {
         parent::__construct();
@@ -12,6 +13,10 @@ class Dashboard extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('crud');
+
+        $this->load->model('accessmodule');
+
+        $this->restrict_user = $this->accessmodule->restrictSelf();
     }
 
     public function index()
@@ -363,7 +368,19 @@ class Dashboard extends CI_Controller
 
     public function permitToday()
     {
-        $permits = $this->crud->reads("permits", [], ["permit_date" => date("Y-m-d")]);
+        $this->db->select('a.*');
+        $this->db->from('permits a');
+        $this->db->join('employees b', 'a.employee_id = b.id');
+        $this->db->where('a.permit_date', date("Y-m-d"));
+        if (isset($this->restrict_user)) {
+            if (isset($this->restrict_user['privilege_groups'])) {
+                $this->db->where_in('b.group_id', $this->restrict_user['privilege_groups']);
+                $this->db->where('b.division_id', $this->restrict_user['division_id']);
+            } else {
+                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
+            }
+        }
+        $permits = $this->db->get()->result_object();
         if (count($permits) > 0) {
             $html = '<table class="user-header" style="width: 100%;">';
             foreach ($permits as $permit) {
@@ -411,6 +428,14 @@ class Dashboard extends CI_Controller
         $this->db->from('employees');
         $this->db->where('status', 0);
         $this->db->where("date_expired between '$today' and '$nextday'");
+        if (isset($this->restrict_user)) {
+            if (isset($this->restrict_user['privilege_groups'])) {
+                $this->db->where_in('group_id', $this->restrict_user['privilege_groups']);
+                $this->db->where('division_id', $this->restrict_user['division_id']);
+            } else {
+                $this->db->where('id', $this->restrict_user['employee_id']);
+            }
+        }
         $this->db->order_by('name', 'asc');
         $employees = $this->db->get()->result_object();
         

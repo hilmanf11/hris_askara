@@ -4,6 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Divisions extends CI_Controller
 {
+    protected $restrict_user;
     public function __construct()
     {
         parent::__construct();
@@ -12,9 +13,12 @@ class Divisions extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('crud');
+        $this->load->model('accessmodule');
 
         //VALIDASI FORM
         $this->form_validation->set_rules('number', 'Code', 'required|min_length[1]|max_length[20]|is_unique[divisions.number]');
+
+        $this->restrict_user = $this->accessmodule->restrictSelf();
     }
 
     //HALAMAN UTAMA
@@ -36,7 +40,12 @@ class Divisions extends CI_Controller
     public function reads()
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
-        $send = $this->crud->reads('divisions', ["name" => $post]);
+        if (isset($this->restrict_user)) {
+            $division_id = $this->restrict_user['division_id'];
+        } else {
+            $division_id = '';
+        }
+        $send = $this->crud->reads('divisions', ["name" => $post, 'id' => $division_id] );
         echo json_encode($send);
     }
 

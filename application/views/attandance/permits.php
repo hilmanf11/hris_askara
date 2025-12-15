@@ -540,7 +540,7 @@
 
         $('#filter_request').combobox({
             url: '<?= base_url('attandance/permits/readRequest') ?>',
-            valueField: 'name',
+            valueField: 'created_by',
             textField: 'name',
             prompt: "Choose All",
             icons: [{

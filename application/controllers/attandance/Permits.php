@@ -4,6 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Permits extends CI_Controller
 {
+    protected $restrict_user;
     public function __construct()
     {
         parent::__construct();
@@ -12,9 +13,12 @@ class Permits extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('crud');
+        $this->load->model('accessmodule');
 
         //VALIDASI FORM
         $this->form_validation->set_rules('number', 'Code', 'required|min_length[1]|max_length[20]|is_unique[permits.number]');
+
+        $this->restrict_user = $this->accessmodule->restrictSelf();
     }
 
     //HALAMAN UTAMA
@@ -42,9 +46,18 @@ class Permits extends CI_Controller
 
     public function readRequest()
     {
-        $this->db->select('b.name');
+        $this->db->select('b.name, a.created_by');
         $this->db->from('permits a');
         $this->db->join('users b', 'a.created_by = b.username');
+        $this->db->join('employees c', 'b.number = c.number');
+        if (isset($this->restrict_user)) {
+            if (isset($this->restrict_user['privilege_groups'])) {
+                $this->db->where_in('c.group_id', $this->restrict_user['privilege_groups']);
+                $this->db->where('c.division_id', $this->restrict_user['division_id']);
+            } else {
+                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
+            }
+        }
         $this->db->group_by('a.created_by');
         $records = $this->db->get()->result_array();
         echo json_encode($records);
@@ -287,6 +300,14 @@ class Permits extends CI_Controller
             $this->db->join('permit_types g', 'a.permit_type_id = g.id');
             $this->db->join('reasons h', 'a.reason_id = h.id');
             $this->db->join('users i', 'a.created_by = i.username');
+            if (isset($this->restrict_user)) {
+                if (isset($this->restrict_user['privilege_groups'])) {
+                    $this->db->where_in('c.group_id', $this->restrict_user['privilege_groups']);
+                    $this->db->where('c.division_id', $this->restrict_user['division_id']);
+                } else {
+                    $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
+                }
+            }
             $this->db->where('a.deleted', 0);
             $this->db->where('c.deleted', 0);
             $this->db->where('c.status', 0);
@@ -574,6 +595,14 @@ class Permits extends CI_Controller
         $this->db->join('permit_types g', 'a.permit_type_id = g.id');
         $this->db->join('reasons h', 'a.reason_id = h.id');
         $this->db->join('users i', 'a.created_by = i.username');
+        if (isset($this->restrict_user)) {
+            if (isset($this->restrict_user['privilege_groups'])) {
+                $this->db->where_in('c.group_id', $this->restrict_user['privilege_groups']);
+                $this->db->where('c.division_id', $this->restrict_user['division_id']);
+            } else {
+                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
+            }
+        }
         $this->db->where('a.deleted', 0);
         $this->db->where('c.deleted', 0);
         $this->db->where('c.status', 0);

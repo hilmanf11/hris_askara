@@ -4,6 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Overtimes extends CI_Controller
 {
+    protected $restrict_user;
     public function __construct()
     {
         parent::__construct();
@@ -12,9 +13,12 @@ class Overtimes extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('crud');
+        $this->load->model('accessmodule');
 
         //VALIDASI FORM
         $this->form_validation->set_rules('number', 'Employee', 'required|min_length[1]|max_length[30]');
+        
+        $this->restrict_user = $this->accessmodule->restrictSelf();
     }
 
     //HALAMAN UTAMA
@@ -42,8 +46,18 @@ class Overtimes extends CI_Controller
 
     public function readRequest()
     {
-        $this->db->select('created_by');
-        $this->db->from('overtimes');
+        $this->db->select('a.created_by');
+        $this->db->from('overtimes a');
+        $this->db->join('users b', 'a.created_by = b.username');
+        $this->db->join('employees c', 'b.number = c.number');
+        if (isset($this->restrict_user)) {
+            if (isset($this->restrict_user['privilege_groups'])) {
+                $this->db->where_in('c.group_id', $this->restrict_user['privilege_groups']);
+                $this->db->where('c.division_id', $this->restrict_user['division_id']);
+            } else {
+                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
+            }
+        }
         $this->db->group_by('created_by');
         $records = $this->db->get()->result_array();
         echo json_encode($records);
@@ -63,6 +77,14 @@ class Overtimes extends CI_Controller
         if ($filter_from != "" && $filter_to != "") {
             $this->db->where('a.trans_date >=', $filter_from);
             $this->db->where('a.trans_date <=', $filter_to);
+        }
+        if (isset($this->restrict_user)) {
+            if (isset($this->restrict_user['privilege_groups'])) {
+                $this->db->where_in('b.group_id', $this->restrict_user['privilege_groups']);
+                $this->db->where('b.division_id', $this->restrict_user['division_id']);
+            } else {
+                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
+            }
         }
         $this->db->like('b.division_id', $filter_division);
         $this->db->like('b.departement_id', $filter_departement);
@@ -336,6 +358,14 @@ class Overtimes extends CI_Controller
             $this->db->join('departements d', 'b.departement_id = d.id');
             $this->db->join('departement_subs e', 'b.departement_sub_id = e.id');
             $this->db->join('users f', "a.created_by = f.username");
+            if (isset($this->restrict_user)) {
+                if (isset($this->restrict_user['privilege_groups'])) {
+                    $this->db->where_in('b.group_id', $this->restrict_user['privilege_groups']);
+                    $this->db->where('b.division_id', $this->restrict_user['division_id']);
+                } else {
+                    $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
+                }
+            }
             $this->db->where('b.deleted', 0);
             $this->db->where('b.status', 0);
             $this->db->where('a.deleted', 0);
@@ -775,6 +805,14 @@ class Overtimes extends CI_Controller
         $this->db->join('departements d', 'b.departement_id = d.id');
         $this->db->join('departement_subs e', 'b.departement_sub_id = e.id');
         $this->db->join('users f', "a.created_by = f.username");
+        if (isset($this->restrict_user)) {
+            if (isset($this->restrict_user['privilege_groups'])) {
+                $this->db->where_in('b.group_id', $this->restrict_user['privilege_groups']);
+                $this->db->where('b.division_id', $this->restrict_user['division_id']);
+            } else {
+                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
+            }
+        }
         $this->db->where('b.deleted', 0);
         $this->db->where('b.status', 0);
         $this->db->where('a.deleted', 0);
@@ -944,5 +982,5 @@ class Overtimes extends CI_Controller
 
         return $attandance;
     }
-    
+
 }

@@ -5,6 +5,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Attandances extends CI_Controller
 {
+    protected $restrict_user;
     public function __construct()
     {
         parent::__construct();
@@ -13,9 +14,12 @@ class Attandances extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('crud');
+        $this->load->model('accessmodule');
 
         //VALIDASI FORM
         $this->form_validation->set_rules('number', 'Employee', 'required|min_length[1]|max_length[30]');
+
+        $this->restrict_user = $this->accessmodule->restrictSelf();
     }
 
     //HALAMAN UTAMA
@@ -80,6 +84,14 @@ class Attandances extends CI_Controller
             $this->db->join('contracts g', 'g.id = a.contract_id', 'left');
             if ($filter_from != "" && $filter_to != "") {
                 $this->db->where("(b.date_in >= '$filter_from' and b.date_in <= '$filter_to' or b.date_out >= '$filter_from' and b.date_out <= '$filter_to')");
+            }
+            if (isset($this->restrict_user)) {
+                if (isset($this->restrict_user['privilege_groups'])) {
+                    $this->db->where_in('a.group_id', $this->restrict_user['privilege_groups']);
+                    $this->db->where('a.division_id', $this->restrict_user['division_id']);
+                } else {
+                    $this->db->where('a.id', $this->restrict_user['employee_id']);
+                }
             }
             $this->db->like('a.division_id', $filter_division);
             $this->db->like('a.departement_id', $filter_departement);
@@ -264,7 +276,12 @@ class Attandances extends CI_Controller
                     'is_processed'  => 0,
                 );
                 $this->db->from('attandance_logs');
-                $this->db->where('pin', $pin);
+                if (!empty($pin)) {
+                    $this->db->where('pin', $pin);
+                }
+                if (!empty($machineCode)) {
+                    $this->db->where('machine_code', $machineCode);
+                }
                 $this->db->where('lokasi_id', $lokasi);
 
                 if (!empty($scanDatetime)) {
@@ -278,7 +295,12 @@ class Attandances extends CI_Controller
                 if (!$exists) {
                     $this->crud->create('attandance_logs', $logsInsert);
                 } else {
-                    $this->db->where('pin', $pin);
+                    if (!empty($pin)) {
+                        $this->db->where('pin', $pin);
+                    }
+                    if (!empty($machineCode)) {
+                        $this->db->where('machine_code', $machineCode);
+                    }
                     $this->db->where('lokasi_id', $lokasi);
                     if (!empty($scanDatetime)) {
                         $this->db->where('scan_datetime', $scanDatetime);
@@ -407,6 +429,7 @@ class Attandances extends CI_Controller
                     ');
                     $this->db->from('attandance_logs');
                     $this->db->where('pin', $pin);
+                    $this->db->where('machine_code', $machine_code);
                     $this->db->where("$adjustedDateExpr =", $work_date);
 
                     if (!empty($lokasi)) {
@@ -812,6 +835,14 @@ class Attandances extends CI_Controller
         if ($filter_from != "" && $filter_to != "") {
             $this->db->where("(b.date_in >= '$filter_from' and b.date_in <= '$filter_to' or b.date_out >= '$filter_from' and b.date_out <= '$filter_to')");
         }
+        if (isset($this->restrict_user)) {
+            if (isset($this->restrict_user['privilege_groups'])) {
+                $this->db->where_in('a.group_id', $this->restrict_user['privilege_groups']);
+                $this->db->where('a.division_id', $this->restrict_user['division_id']);
+            } else {
+                $this->db->where('a.id', $this->restrict_user['employee_id']);
+            }
+        }
         $this->db->like('a.division_id', $filter_division);
         $this->db->like('a.departement_id', $filter_departement);
         $this->db->like('a.departement_sub_id', $filter_departement_sub);
@@ -1018,6 +1049,15 @@ class Attandances extends CI_Controller
             $date_out        = $dateNext;
             $time_out        = end($morningNext);         // pagi terakhir
 
+        } elseif (!empty($morningToday) && empty($eveningToday)) {
+            sort($morningToday);
+            sort($eveningToday);
+
+            $shiftDetailName = 'SHIFT PAGI';
+            $date_in         = $dateToday;
+            $time_in         = $morningToday[0];          // scan pagi paling awal
+            $date_out        = null;
+            $time_out        = null;
         } else {
             // === Fallback: kemungkinan ini checkout shift malam hari sebelumnya ===
             // Kasus: hanya ada scan pagi di hari ini (contoh: 12/11 07:10),

@@ -4,6 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Departements extends CI_Controller
 {
+    protected $restrict_user;
     public function __construct()
     {
         parent::__construct();
@@ -12,9 +13,12 @@ class Departements extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('crud');
+        $this->load->model('accessmodule');
 
         //VALIDASI FORM
         $this->form_validation->set_rules('number', 'Code', 'required|min_length[1]|max_length[20]|is_unique[departements.number]');
+
+        $this->restrict_user = $this->accessmodule->restrictSelf();
     }
 
     //HALAMAN UTAMA
@@ -45,7 +49,22 @@ class Departements extends CI_Controller
             $departement_id = $this->session->departement_id;
         }
 
-        $send = $this->crud->reads('departements', ["name" => $post, "division_id" => $division_id, "id" => $departement_id]);
+        $this->db->select('a.*');
+        $this->db->from('departements a');
+        $this->db->like('a.name', $post);
+        $this->db->like('a.division_id', $division_id);
+        if (isset($this->restrict_user)) {
+            if (isset($this->restrict_user['privilege_groups'])) {
+                $this->db->where_in('a.id', $this->restrict_user['department_ids']);
+            } else {
+                $departement_id = $this->restrict_user['department_id'];
+                $this->db->like('a.id', $departement_id);
+            }
+        } else {
+            $this->db->like('a.id', $departement_id);
+        }
+        $this->db->order_by('a.name', 'asc');
+        $send = $this->db->get()->result_array();
         echo json_encode($send);
     }
 

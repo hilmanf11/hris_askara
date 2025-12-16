@@ -26,6 +26,7 @@
 <!-- TOOLBAR DATAGRID -->
 <div id="toolbar" style="height: 35px;">
     <?= $button ?>
+    <a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="unassigned()"><i class="fa fa-check"></i> Unassigned</a>
 </div>
 
 <!-- DIALOG SAVE AND UPDATE -->
@@ -52,7 +53,7 @@
                     <option value="agreements">Agreements</option>
                     <option value="mutations">Mutations</option>
                     <!-- <option value="employee_requests">Employee Requests</option> -->
-                    <!-- <option value="overtimes">Overtimes</option> -->
+                    <option value="overtimes">Overtimes</option>
                     <option value="cash_carries">Cash Carries</option>
                     <option value="permits">Permits</option>
                     <option value="change_days">Change Days</option>
@@ -102,6 +103,10 @@
 
         </ul>
     </div>
+</div>
+
+<div id="dlg_unassigned" class="easyui-dialog" title="unassigned employees" data-options="closed: true,modal:true" style="width: 800px; height: 500px; padding:10px;">
+    <table id="dg_unassigned" class="easyui-datagrid" style="width:100%;height:400px"></table>
 </div>
 
 <!-- PDF -->
@@ -482,5 +487,31 @@
 
     function download_excel() {
         window.location.assign('<?= base_url('template/tmp_approvals.xls') ?>');
+    }
+
+    function unassigned() {
+        $('#dlg_unassigned').dialog('open');
+        $('#dg_unassigned').datagrid({
+            url: '<?= base_url('admin/approvals/unassignedEmployees') ?>',
+            pagination: true,
+            clientPaging: false,
+            remoteFilter: true,
+            rownumbers: true,
+            fit: true,
+            fitColumns: true,
+            pageList: [10, 50, 100, 500, 1000],
+            pageSize: 10,
+            columns: [[
+                {field:'number',title:'ID',width:150},
+                {field:'name',title:'Name',width:200},
+                {field:'module',title:'Module',width:200},
+            ]],
+            onLoadSuccess: function() {
+                if ($('#dg_unassigned').datagrid('getPanel').find('.datagrid-filter-row').length === 0) {
+                    $('#dg_unassigned').datagrid('enableFilter');
+                }
+            }
+        });
+
     }
 </script>

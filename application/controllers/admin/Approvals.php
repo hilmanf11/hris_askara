@@ -80,6 +80,8 @@ class Approvals extends CI_Controller
                         $this->db->like("e.name", $filter->value);
                     } elseif ($filter->field == "user_approval_name_5") {
                         $this->db->like("f.name", $filter->value);
+                    } elseif ($filter->field == "employee_name") {
+                        $this->db->like("i.name", $filter->value);
                     }
                 }
             }
@@ -370,4 +372,85 @@ class Approvals extends CI_Controller
             }
         }
     }
+
+    public function unassignedEmployees()
+    {
+        $page   = (int) $this->input->post('page', true) ?: 1;
+        $limit  = (int) $this->input->post('rows', true) ?: 10;
+        $offset = ($page - 1) * $limit;
+
+        $filters = json_decode($this->input->post('filterRules'));
+
+        $arrTableName = [
+            "users",
+            "employees",
+            "warning_letters",
+            "resignations",
+            "agreements",
+            "mutations",
+            "cash_carries",
+            "permits",
+            "change_days",
+            "setup_salaries",
+            "payrolls",
+        ];
+
+        $data = [];
+
+        foreach ($arrTableName as $module) {
+
+            if (!empty($filters)) {
+                foreach ($filters as $filter) {
+                    if ($filter->field === "module") {
+                        if (stripos($module, $filter->value) === false) {
+                            continue 2; // ⬅️ PENTING
+                        }
+                    }
+                }
+            }
+
+            $this->db->select("
+                e.id AS employee_id,
+                e.number,
+                e.name,
+                '{$module}' AS module
+            ", false);
+
+            $this->db->from('employees e');
+            $this->db->join(
+                'approvals a',
+                "a.employee_id = e.id AND a.table_name = '{$module}'",
+                'left'
+            );
+
+            $this->db->where('a.id IS NULL');
+            $this->db->where('e.deleted', 0);
+
+            if (!empty($filters)) {
+                foreach ($filters as $filter) {
+                    if ($filter->field === "number") {
+                        $this->db->like("e.number", $filter->value);
+                    } elseif ($filter->field === "name") {
+                        $this->db->like("e.name", $filter->value);
+                    }
+                }
+            }
+
+            $rows = $this->db->get()->result_array();
+
+            foreach ($rows as $row) {
+                $data[] = $row;
+            }
+        }
+
+        $total = count($data);
+
+        $pagedData = array_slice($data, $offset, $limit);
+
+        echo json_encode([
+            'total' => $total,
+            'rows'  => $pagedData
+        ]);
+    }
+
 }

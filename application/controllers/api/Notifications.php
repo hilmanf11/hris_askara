@@ -36,7 +36,16 @@ class Notifications extends CI_Controller
                 $tablename = $this->input->post('module');
                 $data = $this->mobile->read($tablename, [], ["id" => $id]);
                 $user = $this->mobile->read('users', [], ["username" => $data->created_by]);
+
+                /// cek penanganan approval
+                // if ($tablename == 'overtimes') {
+                //     $tableApproval = 'cash_carries';
+                // } else {
+                //     $tableApproval = $tablename;
+                // }
+
                 $approval = $this->mobile->read('approvals', [], ["table_name" => $tablename, "employee_id" => @$data->employee_id]);
+                // $approval = $this->mobile->read('approvals', [], ["table_name" => $tableApproval, "employee_id" => @$data->employee_id]);
 
                 if ($data->approved == 1) {
                     $users_id = @$approval->user_approval_2;
@@ -65,30 +74,34 @@ class Notifications extends CI_Controller
                 $send = $this->db->update($tablename, $values, ["id" => $id]);
 
                 if ($send) {
-                    $message = "Sent a request to approve data " . strtoupper(str_replace("_", " ", $tablename));
 
-                    if ($approved == 0) {
-                        $users_id = $data->created_by;
-                        $message = "Your a Request " . strtoupper(str_replace("_", " ", $tablename)) . " has been Approved by " . $dataUser->name;
+                    // check jika ada approval lagi, maka kirimkan notifikasi
+                    if ($users_id != "") {
+                        $message = "Sent a request to approve data " . strtoupper(str_replace("_", " ", $tablename));
+                        $userApproval = $this->mobile->read('users', [], ["username" => $users_id]);
+
+                        if (!empty(@$userApproval->api_key)) {
+                            $this->apps->where('api_key', @$userApproval->api_key);
+                            $userAp = $this->apps->get('users')->row();
+
+                            if ($userAp) {
+                                $this->mobile->pushNotification(@$userAp->token, $userApproval->name, $message);
+                            }
+                        }
                     }
 
+                    // Notifikasi untuk user yang mengajukan
+                    $users_id = $data->created_by;
                     $userFr = $this->mobile->read("users", [], ["username" => $users_id]);
+                    $message = "Your a Request " . strtoupper(str_replace("_", " ", $tablename)) . " has been Approved by " . $dataUser->name;
 
                     if (!empty(@$userFr->api_key)) {
                         $this->apps->where('api_key', @$userFr->api_key);
                         $userAp = $this->apps->get('users')->row();
 
-                        $this->pushNotification($userAp->token, $userFr->name, $message);
-
-                        $users_id_created = $data->created_by;
-                        $message = "Your a Request " . strtoupper(str_replace("_", " ", $tablename)) . " has been Approved by " . $dataUser->name;
-
-                        $userFr_created = $this->mobile->read("users", [], ["username" => $users_id_created]);
-                        if (!empty(@$userFr_created->api_key)) {
-                            $message = "Your a Request " . strtoupper(str_replace("_", " ", $tablename)) . " has been Approved by " . $dataUser->name;
-                            $this->pushNotification($userFr_created->token, $userFr_created->name, $message);
-                        }
+                        $this->mobile->pushNotification(@$userAp->token, $userFr->name, $message);
                     }
+
                     echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
                 } else {
                     echo log_message('error', 'There is an error in your system or data');
@@ -115,10 +128,18 @@ class Notifications extends CI_Controller
 
                 $datas = $this->mobile->reads($table_name, [], ["approved_to" => $approved_to, "created_by" => $created_by]);
 
+                /// cek penanganan approval
+                // if ($tablename == 'overtimes') {
+                //     $tableApproval = 'cash_carries';
+                // } else {
+                //     $tableApproval = $tablename;
+                // }
+
                 foreach ($datas as $data) {
                     $id = $data->id;
                     $user = $this->mobile->read('users', [], ["username" => $data->created_by]);
                     $approval = $this->mobile->read('approvals', [], ["table_name" => $table_name, "employee_id" => @$data->employee_id]);
+                    // $approval = $this->mobile->read('approvals', [], ["table_name" => $tableApproval, "employee_id" => @$data->employee_id]);
 
                     if ($data->approved == 1) {
                         $users_id = @$approval->user_approval_2;
@@ -147,27 +168,33 @@ class Notifications extends CI_Controller
                     $send = $this->db->update($table_name, $values, ["id" => $id]);
 
                     if ($send) {
-                        $message = "Sent a request to approve data " . strtoupper(str_replace("_", " ", $table_name));
-    
+                        // check jika ada approval lagi, maka kirimkan notifikasi
+                        if ($users_id != "") {
+                            $message = "Sent a request to approve data " . strtoupper(str_replace("_", " ", $table_name));
+                            $userApproval = $this->mobile->read('users', [], ["username" => $users_id]);
+
+                            if (!empty(@$userApproval->api_key)) {
+                                $this->apps->where('api_key', @$userApproval->api_key);
+                                $userAp = $this->apps->get('users')->row();
+
+                                if ($userAp) {
+                                    $this->mobile->pushNotification(@$userAp->token, $userApproval->name, $message);
+                                }
+                            }
+                        }
+
+                        // Notifikasi untuk user yang mengajukan
+                        $users_id = $data->created_by;
                         $userFr = $this->mobile->read("users", [], ["username" => $users_id]);
-    
+                        $message = "Your a Request " . strtoupper(str_replace("_", " ", $table_name)) . " has been Approved by " . $dataUser->name;
+
                         if (!empty(@$userFr->api_key)) {
                             $this->apps->where('api_key', @$userFr->api_key);
                             $userAp = $this->apps->get('users')->row();
-    
-                            $this->pushNotification($userAp->token, $userFr->name, $message);
-    
-                            $users_id_created = $data->created_by;
-                            $message = "Your a Request " . strtoupper(str_replace("_", " ", $table_name)) . " has been Approved by " . $dataUser->name;
-    
-                            $userFr_created = $this->mobile->read("users", [], ["username" => $users_id_created]);
-                            if (!empty(@$userFr_created->api_key)) {
-                                $message = "Your a Request " . strtoupper(str_replace("_", " ", $table_name)) . " has been Approved by " . $dataUser->name;
-                                $this->pushNotification($userFr_created->token, $userFr_created->name, $message);
-                            }
+
+                            $this->mobile->pushNotification(@$userAp->token, $userFr->name, $message);
                         }
-                        echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
-                    } 
+                    }
                 }
 
                 echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
@@ -181,16 +208,46 @@ class Notifications extends CI_Controller
 
     public function disapprove($api_key)
     {
+        $this->apps = $this->load->database('apps', TRUE);
         if ($api_key != "") {
             $dataUser = $this->mobile->read("users", [], ["api_key" => $api_key]);
 
             if ($dataUser) {
                 $id = $this->input->post('id');
-                $tablename = $this->input->post('module');
+                $table_name = $this->input->post('module');
                 $username = $dataUser->username;
 
-                /* Default */
-                $this->mobile->delete($tablename, ["id" => $id], $username);
+                $data = $this->mobile->read($table_name, [], ["id" => $id]);
+                $userCreated = $this->mobile->read("users", [], ["username"]);
+
+                /* Default */ // diganti jadi update bukan delete
+                $this->mobile->delete($table_name, ["id" => $id], $username);
+
+                // UPDATE DISAPPROVE
+                // $values = array(
+                //     "approved_to" => "",
+                //     "approved_by" => "",
+                //     "disapproved_by" => $username,
+                //     "disapproved_date" => date('Y-m-d H:i:s'),
+                //     "deleted" => 1,
+                // );
+
+                // $send = $this->db->update($table_name, $values, ["id" => $id]);
+
+                // if ($send) {
+                //     // Notifikasi untuk user yang mengajukan
+                //     $users_id = $data->created_by;
+                //     $userFr = $this->mobile->read("users", [], ["username" => $users_id]);
+                //     $message = "Your a Request " . strtoupper(str_replace("_", " ", $table_name)) . " has been Disapproved by " . $dataUser->name;
+
+                //     if (!empty(@$userFr->api_key)) {
+                //         $this->apps->where('api_key', @$userFr->api_key);
+                //         $userAp = $this->apps->get('users')->row();
+
+                //         $this->pushNotification($userAp->token, $userFr->name, $message);
+                //     }
+                // }
+
                 echo json_encode(array("title" => "Disapproved", "message" => "Data Disapproved Successfully", "theme" => "success"));
             } else {
                 show_error("Api Key Invalid");
@@ -202,6 +259,7 @@ class Notifications extends CI_Controller
 
     public function disapproveAll($api_key)
     {
+        $this->apps = $this->load->database('apps', TRUE);
         if ($api_key != "") {
             $dataUser = $this->mobile->read("users", [], ["api_key" => $api_key]);
 
@@ -214,7 +272,32 @@ class Notifications extends CI_Controller
 
                 /* Default */
                 foreach ($datas as $data) {
+                    //
                     $this->mobile->delete($table_name, ["id" => $data->id], $username);
+                    // UPDATE DISAPPROVE
+                    // $values = array(
+                    //     "approved_to" => "",
+                    //     "approved_by" => "",
+                    //     "disapproved_by" => $username,
+                    //     "disapproved_date" => date('Y-m-d H:i:s'),
+                    //     "deleted" => 1,
+                    // );
+
+                    // $send = $this->db->update($table_name, $values, ["id" => $data->id]);
+
+                    // if ($send) {
+                    //     // Notifikasi untuk user yang mengajukan
+                    //     $users_id = $data->created_by;
+                    //     $userFr = $this->mobile->read("users", [], ["username" => $users_id]);
+                    //     $message = "Your a Request " . strtoupper(str_replace("_", " ", $table_name)) . " has been Disapproved by " . $dataUser->name;
+
+                    //     if (!empty(@$userFr->api_key)) {
+                    //         $this->apps->where('api_key', @$userFr->api_key);
+                    //         $userAp = $this->apps->get('users')->row();
+
+                    //         $this->pushNotification($userAp->token, $userFr->name, $message);
+                    //     }
+                    // }
                 }
 
                 echo json_encode(array("title" => "Disapproved", "message" => "Data Disapproved Successfully", "theme" => "success"));
@@ -233,31 +316,35 @@ class Notifications extends CI_Controller
 
             if ($user) {
                 //Cash Carries (overtimes)
-                $this->db->select('b.name as fullname, a.approved_to, a.created_by, a.created_date, d.image_profile');
+                $this->db->select('e.name as fullname, a.approved_to, a.created_by, a.created_date, d.image_profile');
                 $this->db->from('overtimes a');
                 $this->db->join('users b', 'a.approved_by = b.username');
                 $this->db->join('users c', 'a.approved_to = c.username');
                 $this->db->join('employees d', 'b.number = d.number');
+                $this->db->join('employees e', 'a.employee_id = e.id');
                 $this->db->where('a.approved_to', $user->username);
+                // $this->db->where('a.approved_to', 'nafisah_euxi');
                 $this->db->group_by('a.created_by');
                 $overtimes = $this->db->get()->result_object();
 
                 //Permits
-                $this->db->select('b.name as fullname, a.approved_to, a.created_by, a.created_date, d.image_profile');
+                $this->db->select('e.name as fullname, a.approved_to, a.created_by, a.created_date, d.image_profile');
                 $this->db->from('permits a');
                 $this->db->join('users b', 'a.approved_by = b.username');
                 $this->db->join('users c', 'a.approved_to = c.username');
                 $this->db->join('employees d', 'b.number = d.number', 'left');
+                $this->db->join('employees e', 'a.employee_id = e.id');
                 $this->db->where('a.approved_to', $user->username);
                 $this->db->group_by('a.created_by');
                 $permits = $this->db->get()->result_object();
 
                 //Change Days
-                $this->db->select('b.name as fullname, a.approved_to, a.created_by, a.created_date, d.image_profile');
+                $this->db->select('e.name as fullname, a.approved_to, a.created_by, a.created_date, d.image_profile');
                 $this->db->from('change_days a');
                 $this->db->join('users b', 'a.approved_by = b.username');
                 $this->db->join('users c', 'a.approved_to = c.username');
                 $this->db->join('employees d', 'b.number = d.number');
+                $this->db->join('employees e', 'a.employee_id = e.id');
                 $this->db->where('a.approved_to', $user->username);
                 $this->db->group_by('a.created_by');
                 $change_days = $this->db->get()->result_object();
@@ -265,6 +352,7 @@ class Notifications extends CI_Controller
                 $records = array();
                 if (count($overtimes) > 0) {
                     foreach ($overtimes as $overtime) {
+                        // $records[] = $this->approvalMessage($overtime->image_profile, $overtime->fullname, $overtime->approved_to, $overtime->created_by, $overtime->created_date, "overtimes");
                         $records[] = $this->approvalMessage($overtime->image_profile, $overtime->fullname, $overtime->approved_to, $overtime->created_by, $overtime->created_date, "overtimes");
                     }
                 }
@@ -303,7 +391,8 @@ class Notifications extends CI_Controller
                 $avatar = 'assets/image/employee/profile/' . substr($foto, -14);
             }
         } else {
-            $avatar = base_url('assets/image/users/default.png');
+            // $avatar = base_url('assets/image/users/default.png');
+            $avatar = 'http://ias.askara-int.com/hris/assets/image/users/default.png';
         }
 
         return array(
@@ -318,6 +407,150 @@ class Notifications extends CI_Controller
     }
 
     public function approvalDetails($approved_to, $created_by, $module)
+    {
+        $approved_to = urldecode($approved_to);
+        $created_by = urldecode($created_by);
+
+        switch ($module) {
+            case "overtimes":
+                $this->db->select('a.*, 
+                        c.name as division_name,
+                        d.name as departement_name,
+                        e.name as departement_sub_name,
+                        b.number as employee_number,
+                        b.name as employee_name
+                    ');
+                $this->db->from('overtimes a');
+                $this->db->join('employees b', 'a.employee_id = b.id');
+                $this->db->join('divisions c', 'b.division_id = c.id');
+                $this->db->join('departements d', 'b.departement_id = d.id');
+                $this->db->join('departement_subs e', 'b.departement_sub_id = e.id');
+                $this->db->join('users f', "a.created_by = f.username");
+                $this->db->where('b.deleted', 0);
+                $this->db->where('b.status', 0);
+                $this->db->where('a.deleted', 0);
+                $this->db->where('a.approved_to', $approved_to);
+                $this->db->where('a.created_by', $created_by);
+                $this->db->group_by('a.trans_date');
+                $this->db->group_by('a.employee_id');
+                $this->db->group_by('a.type');
+                $this->db->order_by('a.trans_date', 'DESC');
+                $records = $this->db->get()->result_array();
+
+                $data = array();
+                foreach ($records as $record) {
+                    if ($record['plan'] == 0) {
+                        $record['plan'] = $record['duration_hour'] + $record['break_hour'];
+                    }
+                    if ($record['actual'] == 0) {
+                        $record['actual'] = $record['duration_hour'];
+                    }
+                    if (!empty($record['attachment'])) {
+                        if (substr($record['attachment'], -4) == "jpeg") {
+                            $attachment = "assets/image/overtime/" . substr($record['attachment'], -15);
+                        } else {
+                            $attachment = "assets/image/overtime/" . substr($record['attachment'], -14);
+                        }
+                    } else {
+                        $attachment = null;
+                    }
+
+                    $data[] = array_merge($record, array("file_attachment" => $attachment));
+                }
+
+                die(json_encode(array(
+                    "title" => "Success",
+                    "message" => "Data Found",
+                    "theme" => "success",
+                    "results" => $data
+                )));
+
+                break;
+            case "permits":
+                $this->db->select('a.*,
+                    c.number as employee_number,
+                    c.name as employee_name,
+                    d.name as division_name,
+                    e.name as departement_name,
+                    f.name as departement_sub_name,
+                    g.name as permit_type_name,
+                    h.name as reason_name,
+                    i.name as request_name
+                ');
+                $this->db->from('permits a');
+                $this->db->join('employees c', 'a.employee_id = c.id');
+                $this->db->join('divisions d', 'c.division_id = d.id');
+                $this->db->join('departements e', 'c.departement_id = e.id');
+                $this->db->join('departement_subs f', 'c.departement_sub_id = f.id');
+                $this->db->join('permit_types g', 'a.permit_type_id = g.id');
+                $this->db->join('reasons h', 'a.reason_id = h.id');
+                $this->db->join('users i', 'a.created_by = i.username');
+                $this->db->where('c.status', 0);
+                $this->db->where('a.approved_to', $approved_to);
+                $this->db->where('a.created_by', $created_by);
+                $this->db->order_by('a.permit_date', 'DESC');
+                $records = $this->db->get()->result_array();
+
+                $data = array();
+                foreach ($records as $record) {
+                    if (!empty($record['attachment'])) {
+                        if (substr($record['attachment'], -4) == "jpeg") {
+                            $attachment = "assets/image/attandance/" . substr($record['attachment'], -15);
+                        } else {
+                            $attachment = "assets/image/attandance/" . substr($record['attachment'], -14);
+                        }
+                    } else {
+                        $attachment = null;
+                    }
+
+                    $data[] = array_merge($record, array("file_attachment" => $attachment));
+                }
+
+                die(json_encode(array(
+                    "title" => "Success",
+                    "message" => "Data Found",
+                    "theme" => "success",
+                    "results" => $data
+                )));
+
+                break;
+            case "change_days":
+                $this->db->select('a.*,
+                        c.name as division_name,
+                        d.name as departement_name,
+                        e.name as departement_sub_name,
+                        b.number as employee_number,
+                        b.name as employee_name
+                    ');
+                $this->db->from('change_days a');
+                $this->db->join('employees b', 'a.employee_id = b.id');
+                $this->db->join('divisions c', 'b.division_id = c.id');
+                $this->db->join('departements d', 'b.departement_id = d.id');
+                $this->db->join('departement_subs e', 'b.departement_sub_id = e.id');
+                $this->db->where('b.deleted', 0);
+                $this->db->where('b.status', 0);
+                $this->db->where('a.deleted', 0);
+                $this->db->where('a.approved_to', $approved_to);
+                $this->db->where('a.created_by', $created_by);
+                $this->db->group_by('a.start');
+                $this->db->group_by('a.employee_id');
+                $this->db->order_by('a.created_date', 'DESC');
+                $records = $this->db->get()->result_array();
+
+                die(json_encode(array(
+                    "title" => "Success",
+                    "message" => "Data Found",
+                    "theme" => "success",
+                    "results" => $records
+                )));
+
+                break;
+            default:
+                die(json_encode(array("title" => "Module Not Found")));
+        }
+    }
+
+    public function approvalDetailsTest($approved_to, $created_by, $module)
     {
         $approved_to = urldecode($approved_to);
         $created_by = urldecode($created_by);
@@ -455,26 +688,68 @@ class Notifications extends CI_Controller
         }
     }
 
-    // function firebaseApproval($token, $title, $messages)
+    // function getAccessToken()
     // {
-    //     $url = "https://fcm.googleapis.com/fcm/send";
+    //     // Path relatif ke file JSON
+    //     $pathToFile = APPPATH . 'controllers/mobile/hris-app.json';
 
+    //     $serviceAccount = json_decode(file_get_contents($pathToFile), true);
+    //     $header = base64_encode(json_encode(['alg' => 'RS256', 'typ' => 'JWT']));
+    //     $iat = time();
+    //     $exp = $iat + 360;
+    //     $claimSet = base64_encode(json_encode([
+    //         'iss' => $serviceAccount['client_email'],
+    //         'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
+    //         'aud' => 'https://oauth2.googleapis.com/token',
+    //         'exp' => $exp,
+    //         'iat' => $iat,
+    //     ]));
+
+    //     $signatureInput = $header . '.' . $claimSet;
+    //     $signature = null;
+    //     openssl_sign($signatureInput, $signature, $serviceAccount['private_key'], 'SHA256');
+
+    //     $jwt = $signatureInput . '.' . base64_encode($signature);
+    //     $ch = curl_init('https://oauth2.googleapis.com/token');
+    //     curl_setopt($ch, CURLOPT_POST, true);
+    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    //     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+    //     curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+    //         'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+    //         'assertion' => $jwt,
+    //     ]));
+
+    //     $response = curl_exec($ch);
+    //     curl_close($ch);
+
+    //     $responseArray = json_decode($response, true);
+    //     return $responseArray['access_token'];
+    // }
+
+    // function pushNotification($token, $title, $messages)
+    // {
+    //     $url = 'https://fcm.googleapis.com/v1/projects/hris-app-26211/messages:send';
+    //     $tokenUser = 'etEMRoRsSiqSti7MJxsrja:APA91bGA1mcgGB8CkJBsbVoE1ptEHRoheLCZgtLBfr8QGfbwxb6-0lpKWfIem8Q6hDYvjmH9N0U_I7fqJMLxn_43UfCW4tqNRhWIJ_5HVyS1SMKxBcqt9Nw';
+
+    //     // Data notifikasi dari input
     //     $notification = [
     //         'title' => $title,
-    //         'body' => $messages
+    //         'body' => $messages,
     //     ];
 
-    //     $extraNotificationData = ["message" => $messages];
+    //     // Payload yang akan dikirim ke Firebase
+    //     $payload = [
+    //         'message' => [
+    //             // 'token' => $token,
+    //             'token' => $tokenUser,
+    //             'notification' => $notification,
+    //         ]
+    //     ];
 
-    //     $fields = array(
-    //         "registration_ids" => array($token),
-    //         "notification" => $notification
-    //     );
-
-    //     $headers = array(
-    //         "Authorization:key=AAAACAakFgs:APA91bEodY7R-M67PGckJNeyU6PgIw0vvnCNH5zbYLPkxe8Z2kxUbyr21ec6YdnA5zbFH_fKZr4vOuJOS2dzllM13OGyZO3AId013_cBdD732J0h1iaj1IkglZmUSdcB412gcmd3w6Nv",
-    //         "Content-Type: application/json"
-    //     );
+    //     $headers = [
+    //         'Authorization: Bearer ' . $this->getAccessToken(),
+    //         'Content-Type: application/json',
+    //     ];
 
     //     $ch = curl_init();
     //     curl_setopt($ch, CURLOPT_URL, $url);
@@ -483,101 +758,52 @@ class Notifications extends CI_Controller
     //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     //     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
     //     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    //     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
+    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    //     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
     //     $result = curl_exec($ch);
-    //     // if($result === FALSE){
-    //     //     die('CURL FAILED' . curl_error($ch));
-    //     // }else{
-    //     //     die(json_encode(array("code" => 200, "message" => "Send Firebase Success", "theme" => "success", "results" => json_decode($result))));
-    //     // }
+    //     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     //     curl_close($ch);
     // }
 
-    // function testNotif($created_by)
+    // public function pushNotification($token, $title, $message)
     // {
-    //     $this->apps = $this->load->database('apps', TRUE);
-    //     $users_id = $created_by;
-    //     $userFr = $this->mobile->read("users", [], ["username" => $users_id]);
-    //     $this->apps->where('api_key', @$userFr->api_key);
-    //     $userAp = $this->apps->get('users')->row();
+    //     $url = "https://askara.hris-server.com//api/notifications/pushNotification";
 
-    //     $this->pushNotification($userAp->token, $userFr->name, "TESTING");
-    //     // die(json_encode(array("data" => $userAp)));
+    //     $data = [
+    //         "token" => $token, // <<< Gunakan token asli di sini
+    //         "title" => $title,
+    //         "message" => $message,
+    //     ];
+
+    //     // --- PERBAIKAN: Definisikan Header Content-Type ---
+    //     $headers = [
+    //         "Content-Type: application/json",
+    //         // 'Content-Length: ' . strlen(json_encode($data)) // Opsional
+    //     ];
+    //     // --- AKHIR PERBAIKAN ---
+
+    //     $ch = curl_init($url);
+
+    //     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    //     curl_setopt($ch, CURLOPT_POST, true);
+    //     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+
+    //     // --- Terapkan Header ---
+    //     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    //     // Hapus baris SSL VERIFY kecuali ada error SSL
+    //     // curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    //     // curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+
+    //     $response = curl_exec($ch);
+    //     $error = curl_error($ch);
+
+    //     curl_close($ch);
+
+    //     if ($error) {
+    //         echo "Curl Error: " . $error;
+    //     } else {
+    //         echo $response;
+    //     }
     // }
-
-    function getAccessToken()
-    {
-        // Path relatif ke file JSON
-        $pathToFile = APPPATH . 'controllers/mobile/hris-app.json';
-
-        $serviceAccount = json_decode(file_get_contents($pathToFile), true);
-        $header = base64_encode(json_encode(['alg' => 'RS256', 'typ' => 'JWT']));
-        $iat = time();
-        $exp = $iat + 360;
-        $claimSet = base64_encode(json_encode([
-            'iss' => $serviceAccount['client_email'],
-            'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
-            'aud' => 'https://oauth2.googleapis.com/token',
-            'exp' => $exp,
-            'iat' => $iat,
-        ]));
-
-        $signatureInput = $header . '.' . $claimSet;
-        $signature = null;
-        openssl_sign($signatureInput, $signature, $serviceAccount['private_key'], 'SHA256');
-
-        $jwt = $signatureInput . '.' . base64_encode($signature);
-        $ch = curl_init('https://oauth2.googleapis.com/token');
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-            'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            'assertion' => $jwt,
-        ]));
-
-        $response = curl_exec($ch);
-        curl_close($ch);
-
-        $responseArray = json_decode($response, true);
-        return $responseArray['access_token'];
-    }
-
-    function pushNotification($token, $title, $messages)
-    {
-        $url = 'https://fcm.googleapis.com/v1/projects/hris-app-26211/messages:send';
-        // $tokenUser = 'fjt-9yygSH-kcAiPoMY7cY:APA91bEpNVcIP47v5flZ4nSgJJ97i3pkgDip_zO5wlcuAOwOjSrEHIju-v_jqGruP-aW83O9qHhBVoAdv-w0-BmaXTp5QzUFw0LKfac_S4ZJ-DnoIk6NbCg';
-
-        // Data notifikasi dari input
-        $notification = [
-            'title' => $title,
-            'body' => $messages,
-        ];
-
-        // Payload yang akan dikirim ke Firebase
-        $payload = [
-            'message' => [
-                'token' => $token,
-                'notification' => $notification,
-            ]
-        ];
-
-        $headers = [
-            'Authorization: Bearer ' . $this->getAccessToken(),
-            'Content-Type: application/json',
-        ];
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-        $result = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-    }
 }

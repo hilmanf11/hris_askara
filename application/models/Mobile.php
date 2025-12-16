@@ -122,7 +122,7 @@ class Mobile extends CI_Model
         if ($this->db->update($table, $data)) {
             $this->logs("Update Before", json_encode($dataBefore), $table, $username);
             $this->logs("Update New", json_encode($data), $table, $username);
-            
+
             $read = $this->read($table, [], $where);
             $this->approvals($table, @$read->id, $username);
 
@@ -146,7 +146,7 @@ class Mobile extends CI_Model
 
     function upload($filename, $extension, $path, $id = [], $table = "", $field = "")
     {
-        if(!empty(@$_FILES[$filename]["name"])){
+        if (!empty(@$_FILES[$filename]["name"])) {
             //Setting Upload Image
             $file = $_FILES[$filename]["name"];
             $extension_explode = explode('.', $file);
@@ -154,7 +154,7 @@ class Mobile extends CI_Model
             $size = $_FILES[$filename]['size'];
             $temporary = $_FILES[$filename]['tmp_name'];
             $newname  = round(microtime(true)) . '.' . $extension_final;
-    
+
             if (in_array($extension_final, $extension) === true || $file == "") {
                 if ($size < 2097152) {
                     if ($file == "") {
@@ -171,7 +171,7 @@ class Mobile extends CI_Model
                             $records = $this->read($table, $id);
                             @unlink('"' . $records->$field . '"');
                         }
-    
+
                         @move_uploaded_file($temporary, $path . $newname);
                         return $newname;
                     }
@@ -183,7 +183,7 @@ class Mobile extends CI_Model
                 show_error("Your extension file is not recognized", 200, "File Upload Error");
                 exit;
             }
-        }else{
+        } else {
             return null;
         }
     }
@@ -234,17 +234,18 @@ class Mobile extends CI_Model
 
                 $userFr = $this->read("users", [], ["username" => $approval->user_approval_1]);
 
-                if(!empty(@$userFr->api_key)){
+                if (!empty(@$userFr->api_key)) {
                     $this->apps->where('api_key', @$userFr->api_key);
                     $userAp = $this->apps->get('users')->row();
 
-                    $this->firebaseApproval($userAp->token, $user->name, "Sent a request to approve data ". strtoupper(str_replace("_", " ", $table)));
+                    // $this->firebaseApproval(@$userAp->token, $user->name, "Sent a request to approve data " . strtoupper(str_replace("_", " ", $table)));
                 }
             }
         }
     }
 
-    function firebaseApproval($token, $title, $messages){
+    function firebaseApproval($token, $title, $messages)
+    {
         $url = "https://fcm.googleapis.com/fcm/send";
 
         $notification = [
@@ -302,5 +303,47 @@ class Mobile extends CI_Model
         }
 
         echo $txt;
+    }
+
+    public function pushNotification($token, $title, $message)
+    {
+        $url = "https://askara.hris-server.com//api/notifications/pushNotification";
+
+        $data = [
+            "token" => $token, // <<< Gunakan token asli di sini
+            "title" => $title,
+            "message" => $message,
+        ];
+
+        // --- PERBAIKAN: Definisikan Header Content-Type ---
+        $headers = [
+            "Content-Type: application/json",
+            // 'Content-Length: ' . strlen(json_encode($data)) // Opsional
+        ];
+        // --- AKHIR PERBAIKAN ---
+
+        $ch = curl_init($url);
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+
+        // --- Terapkan Header ---
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        // Hapus baris SSL VERIFY kecuali ada error SSL
+        // curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        // curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+
+        $response = curl_exec($ch);
+        $error = curl_error($ch);
+
+        curl_close($ch);
+
+        // if ($error) {
+        //     echo "Curl Error: " . $error;
+        // } else {
+        //     echo $response;
+        // }
     }
 }

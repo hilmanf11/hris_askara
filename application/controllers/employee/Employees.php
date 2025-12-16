@@ -1081,7 +1081,8 @@ class Employees extends CI_Controller
                 k.name as marital_name,
                 l.number as source_number,
                 l.name as source_name,
-                n.name as shift_name');
+                n.name as shift_name,
+                m.resign_date');
         $this->db->from('employees a');
         $this->db->join('divisions c', 'c.id = a.division_id');
         $this->db->join('departements d', 'd.id = a.departement_id');
@@ -1190,6 +1191,7 @@ class Employees extends CI_Controller
                 <th>Image Profile</th>
                 <th>Status</th>
                 <th>Status Date</th>
+                <th>Resign Date</th>
             </tr>';
         $no = 1;
         foreach ($records as $data) {
@@ -1250,6 +1252,7 @@ class Employees extends CI_Controller
                     <td>' . $data['image_profile'] . '</td>
                     <td>' . $data['status'] . '</td>
                     <td>' . $data['status_date'] . '</td>
+                    <td>' . $data['resign_date'] . '</td>
                     </tr>';
             $no++;
         }

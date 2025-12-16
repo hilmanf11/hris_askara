@@ -502,6 +502,9 @@ class Overtimes extends CI_Controller
 
             $ot_amount = $this->readOvertimePrice($employee_id, $trans_date, $start, $end, $duration_hour);
 
+            $plan = $duration_hour + $break_hour;
+            $actual = $duration_hour;
+            
             $post_final = array(
                 "trans_date" =>  $trans_date,
                 "employee_id" =>  $employee_id,
@@ -515,7 +518,9 @@ class Overtimes extends CI_Controller
                 "amount" =>  $ot_amount['amount'],
                 "remarks" =>  $remarks,
                 "meal" =>  $meal,
-                "break_hour" =>  $break_hour
+                "break_hour" =>  $break_hour,
+                "plan" => $plan,
+                "actual" => $actual
             );
 
             $overtime = $this->crud->reads('overtimes', [], ["employee_id" => $employee_id, "trans_date" => $trans_date, "type" => $type]);
@@ -937,8 +942,8 @@ class Overtimes extends CI_Controller
 
                     if (@$shift->start == null) {
                         echo json_encode([
-                            'start' => '00:00:00',
-                            'end' => '00:00:00'
+                            'start' => $attandance->time_in,
+                            'end' => $attandance->time_out
                         ]);
                     } else {
                         $dayType = $this->checkDayType($transDate, $shift->days);

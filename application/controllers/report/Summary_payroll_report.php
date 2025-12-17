@@ -425,6 +425,10 @@ class Summary_payroll_report extends CI_Controller
         $this->db->select("COUNT(*) as days");
         $this->db->from('change_days');
         $this->db->where('employee_id', $employeeId);
+        $this->db->group_start()
+            ->where('approved_to IS NULL', null, false)
+            ->or_where('approved_to', '')
+        ->group_end();
         $this->db->where("(start between '$from' and '$to' or end between '$from' and '$to')");
         if (count($weekday_day) > 0) {
             $this->db->where_in('end', $weekday_day);
@@ -444,6 +448,10 @@ class Summary_payroll_report extends CI_Controller
             ->where('employee_id', $employeeId)
             ->where('trans_date >=', $from)
             ->where('trans_date <=', $to)
+            ->group_start()
+                ->where('approved_to IS NULL', null, false)
+                ->or_where('approved_to', '')
+            ->group_end()
             ->get('overtimes')
             ->result_array();
 
@@ -467,10 +475,11 @@ class Summary_payroll_report extends CI_Controller
 
         foreach ($overtimes as $overtime) {
             $date = $overtime['trans_date'];
+            $duration = $overtime['duration_hour'];
 
             // Cek libur nasional
             if (in_array($date, $holidayDates)) {
-                $result['overtime_holiday']++;
+                $result['overtime_holiday'] += $duration;
                 continue;
             }
 
@@ -478,13 +487,13 @@ class Summary_payroll_report extends CI_Controller
 
             switch ($dayOfWeek) {
                 case 0:
-                    $result['overtime_sunday']++;
+                    $result['overtime_sunday'] += $duration;
                     break;
                 case 6:
-                    $result['overtime_saturday']++;
+                    $result['overtime_saturday'] += $duration;
                     break;
                 default:
-                    $result['overtime_weekday']++;
+                    $result['overtime_weekday'] += $duration;
             }
         }
 

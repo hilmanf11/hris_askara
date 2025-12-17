@@ -157,6 +157,10 @@ class Detail_payroll_report extends CI_Controller
                     $this->db->join('permit_types b', 'a.permit_type_id = b.id', 'left');
                     $this->db->where("permit_date", $date);
                     $this->db->where('employee_id', $data['employee_id']);
+                    $this->db->group_start()
+                      ->where('a.approved_to IS NULL', null, false)
+                      ->or_where('a.approved_to', '')
+                    ->group_end();
                     $this->db->order_by('a.permit_date', 'asc');
                     $permit = $this->db->get()->row();
 
@@ -262,6 +266,10 @@ class Detail_payroll_report extends CI_Controller
             ->select('duration_hour, break_hour')
             ->where('employee_id', $employeeId)
             ->where('trans_date', $trans_date)
+            ->group_start()
+              ->where('approved_to IS NULL', null, false)
+              ->or_where('approved_to', '')
+            ->group_end()
             ->get('overtimes')
             ->row();
 

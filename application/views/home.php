@@ -1733,7 +1733,8 @@
 		if (value == "" || value == null) {
 			return '-';
 		} else {
-			return '<a href="' + value + '" target="_blank" style="text-decoration: none;"><i class="fa fa-eye"></i> View</a>';
+			let urlPhoto = '<?= base_url('assets/image/attandance/') ?>' + value;
+			return '<a href="' + urlPhoto + '" target="_blank" style="text-decoration: none;"><i class="fa fa-eye"></i> View</a>';
 		}
 	};
 

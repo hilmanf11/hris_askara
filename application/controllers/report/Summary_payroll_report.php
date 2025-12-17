@@ -48,7 +48,7 @@ class Summary_payroll_report extends CI_Controller
             $filter_departement_sub = $this->input->get('filter_departement_sub');
             $filter_employee = $this->input->get('filter_employee');
 
-            $header_html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 10px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style>
+            $header_html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 10px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}#ttd {border-collapse: collapse;width: 100%;font-size: 10px;}#ttd td, #ttd th {padding: 2px;}</style>
             <style> .str{ mso-number-format:\@; } </style>
             <body>';
 
@@ -75,6 +75,20 @@ class Summary_payroll_report extends CI_Controller
             $finish = strtotime($filter_to);
 
             $no = 1;
+            $tot_wd        = 0;
+            $tot_wd_ot     = 0;
+            $tot_sat       = 0;
+            $tot_sun       = 0;
+            $tot_holiday   = 0;
+            $tot_pot_hadir = 0;
+            $tot_pot_absen = 0;
+            $tot_pinjaman  = 0;
+            $tot_sakit     = 0;
+            $tot_cuti      = 0;
+            $tot_absen     = 0;
+            $tot_izin      = 0;
+
+
             foreach ($records as $record) {
                 $html = '<div style="page-break-after:always;">
                 <center>
@@ -205,11 +219,79 @@ class Summary_payroll_report extends CI_Controller
                                 <td>' . $permit['izin'] . '</td>                            
                                 ';
 
+
                     $html .= '</tr>';
                     $no++;
+                    $wd        = (int) ($hkw['wd'] ?? 0);
+                    $wd_ot     = (int) ($overtime_weekday ?? 0);
+                    $sat       = (int) ($overtime_saturday ?? 0);
+                    $sun       = (int) ($overtime_sunday ?? 0);
+                    $holiday   = (int) ($overtime_holiday ?? 0);
+                    $potHadir  = (int) ($pot_hadir ?? 0);
+                    $potAbsen  = (int) ($pot_absen ?? 0);
+                    $pinjaman  = 0;
+
+                    $sakit     = (int) ($permit['sakit'] ?? 0);
+                    $cuti      = (int) ($permit['cuti'] ?? 0);
+                    $absen     = (int) ($hkw['absen'] ?? 0);
+                    $izin      = (int) ($permit['izin'] ?? 0);
+
+                    /* JUMLAHKAN */
+                    $tot_wd        += $wd;
+                    $tot_wd_ot     += $wd_ot;
+                    $tot_sat       += $sat;
+                    $tot_sun       += $sun;
+                    $tot_holiday   += $holiday;
+                    $tot_pot_hadir += $potHadir;
+                    $tot_pot_absen += $potAbsen;
+                    $tot_pinjaman  += $pinjaman;
+                    $tot_sakit     += $sakit;
+                    $tot_cuti      += $cuti;
+                    $tot_absen     += $absen;
+                    $tot_izin      += $izin;
                     
                 }
-                $html .= '</table></div><br><br>';
+                $html .= '<tr style="font-weight:bold;">
+                    <td colspan="8" align="center">TOTAL</td>
+
+                    <td>' . $tot_wd . '</td>
+                    <td>' . $tot_wd_ot . '</td>
+                    <td>' . $tot_sat . '</td>
+                    <td>' . $tot_sun . '</td>
+                    <td>' . $tot_holiday . '</td>
+                    <td>' . $tot_pot_hadir . '</td>
+                    <td>' . $tot_pot_absen . '</td>
+                    <td>' . $tot_pinjaman . '</td>
+                    <td>' . $tot_sakit . '</td>
+                    <td>' . $tot_cuti . '</td>
+                    <td>' . $tot_absen . '</td>
+                    <td>' . $tot_izin . '</td>
+                </tr>';
+
+                $html .= '</table><br><br>';
+
+                $html .= '
+                <table id="ttd">
+                    <tr>
+                        <th style="width: 62%;" colspan="17"></th>
+                        <th style="width: 10%; border: 1px solid #ddd;">Disetujui,</th>
+                        <th style="width: 10%; border: 1px solid #ddd;">Diperiksa,</th>
+                        <th style="width: 10%; border: 1px solid #ddd;">Dibuat,</th>
+                    </tr>
+                    <tr>
+                        <th style="width: 62%; style="height: 65px" colspan="17"></th>
+                        <th style="height: 65px; width: 13%; border: 1px solid #ddd;"></th>
+                        <th style="height: 65px; width: 13%; border: 1px solid #ddd;"></th>
+                        <th style="height: 65px; width: 13%; border: 1px solid #ddd;"></th>
+                    </tr>
+                    <tr>
+                        <th style="width: 62%;" colspan="17"></th>
+                        <th style="width: 10%; border: 1px solid #ddd;">Askara P. Harsono</th>
+                        <th style="width: 10%; border: 1px solid #ddd;">Ariananda Desmaria</th>
+                        <th style="width: 10%; border: 1px solid #ddd;">Nafisah A.</th>
+                    </tr>
+                ';
+                $html .= '</div><br><br>';
 
                 echo $header_html . $html;
             }
@@ -260,7 +342,10 @@ class Summary_payroll_report extends CI_Controller
         $this->db->from('calendars');
         $this->db->where('trans_date >=', $filter_from);
         $this->db->where('trans_date <=', $filter_to);
-        $this->db->where_not_in('trans_date', $weekend_day);
+        $this->db->where('description !=', "Weekend");
+        if (count($weekend_day) > 0) {
+            $this->db->where_not_in('trans_date', $weekend_day);
+        }
         $calendar = $this->db->get()->result_array();
         $calendar_amount = empty($calendar) ? 0 : count($calendar);
         $w_calendars = array();

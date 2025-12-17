@@ -145,6 +145,19 @@ class Detail_payroll_report extends CI_Controller
             foreach ($records as $data) {
 
                 foreach ($dates as $date) {
+                    //Resignation
+                    $this->db->select('*');
+                    $this->db->from('resignations');
+                    $this->db->where('employee_id', $data['employee_id']);
+                    $resignation = $this->db->get()->row();
+
+                    if ($resignation && !empty($resignation->resign_date)) {
+
+                        // resign sebelum periode → skip
+                        if ($resignation->resign_date <= $date) {
+                            continue;
+                        }
+                    }
                     $this->db->select("date_in, time_in, date_out, time_out");
                     $this->db->from('attandances');
                     $this->db->where("date_in", $date);

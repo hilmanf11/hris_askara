@@ -71,8 +71,8 @@ class Summary_payroll_report extends CI_Controller
             $this->db->from('config');
             $config = $this->db->get()->row();
 
-            $start = strtotime($filter_from);
-            $finish = strtotime($filter_to);
+            $start = $filter_from;
+            $finish = $filter_to;
 
             $no = 1;
             $tot_wd        = 0;
@@ -172,6 +172,7 @@ class Summary_payroll_report extends CI_Controller
                 $this->db->join('positions i', 'a.position_id = i.id', 'left');
                 $this->db->join('maritals j', 'a.marital_id = j.id', 'left');
                 $this->db->where('a.status', '0');
+                $this->db->where('a.group_id !=','20221213000006');
                 $this->db->where('a.division_id', $record['division_id']);
                 $this->db->like('a.departement_id', $filter_departement);
                 $this->db->like('a.departement_sub_id', $filter_departement_sub);
@@ -182,6 +183,28 @@ class Summary_payroll_report extends CI_Controller
                 
                 $no = 1;
                 foreach ($employees as $data) {
+                    $filter_from = $start;
+                    $filter_to = $finish;
+
+                    //Resignation
+                    $this->db->select('*');
+                    $this->db->from('resignations');
+                    $this->db->where('employee_id', $data['employee_id']);
+                    $resignation = $this->db->get()->row();
+
+                    if ($resignation && !empty($resignation->resign_date)) {
+
+                        // resign sebelum periode → skip
+                        if ($resignation->resign_date < $filter_from) {
+                            continue;
+                        }
+
+                        // resign di tengah periode → potong sampai resign_date
+                        if ($resignation->resign_date <= $filter_to) {
+                            $filter_to = $resignation->resign_date;
+                        }
+                    }
+
                     $hkw = $this->getHkw($filter_from, $filter_to, $data['days'], $data['number'], $data['employee_id']);
 
                     //Overtime

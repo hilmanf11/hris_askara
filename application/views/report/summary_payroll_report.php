@@ -172,7 +172,7 @@
         });
 
         $('#filter_employee').combogrid({
-            url: '<?= base_url('employee/employees/reads') ?>',
+            url: '<?= base_url('employee/employees/readEmployeeNotPkl') ?>',
             panelWidth: 450,
             idField: 'id',
             textField: 'name',

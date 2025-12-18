@@ -84,12 +84,7 @@ class Employees extends CI_Controller
         $this->db->where('status', $status);
 
         if (isset($this->restrict_user)) {
-            if (isset($this->restrict_user['privilege_groups'])) {
-                $this->db->where('division_id', $this->restrict_user['division_id']);
-                $this->db->where_in('group_id', $this->restrict_user['privilege_groups']);
-            } else {
-                $this->db->where('id', $this->restrict_user['employee_id']);
-            }
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user);
         }
         if ($get) {
             $this->db->like($get);
@@ -373,12 +368,7 @@ class Employees extends CI_Controller
         $this->db->join('shifts j', 'f.shift_id = j.id', 'left');
         $this->db->where('a.deleted', 0);
         if (isset($this->restrict_user)) {
-            if (isset($this->restrict_user['privilege_groups'])) {
-                $this->db->where_in('a.group_id', $this->restrict_user['privilege_groups']);
-                $this->db->where('a.division_id', $this->restrict_user['division_id']);
-            } else {
-                $this->db->where('a.id', $this->restrict_user['employee_id']);
-            }
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'a');
         }
         if($filter_from_join != ""  && $filter_to_join != ""){
             $this->db->where("a.date_sign between '$filter_from_join' and '$filter_to_join'");

@@ -51,12 +51,7 @@ class Permits extends CI_Controller
         $this->db->join('users b', 'a.created_by = b.username');
         $this->db->join('employees c', 'b.number = c.number');
         if (isset($this->restrict_user)) {
-            if (isset($this->restrict_user['privilege_groups'])) {
-                $this->db->where_in('c.group_id', $this->restrict_user['privilege_groups']);
-                $this->db->where('c.division_id', $this->restrict_user['division_id']);
-            } else {
-                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
-            }
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'c');
         }
         $this->db->group_by('a.created_by');
         $records = $this->db->get()->result_array();
@@ -301,12 +296,7 @@ class Permits extends CI_Controller
             $this->db->join('reasons h', 'a.reason_id = h.id');
             $this->db->join('users i', 'a.created_by = i.username');
             if (isset($this->restrict_user)) {
-                if (isset($this->restrict_user['privilege_groups'])) {
-                    $this->db->where_in('c.group_id', $this->restrict_user['privilege_groups']);
-                    $this->db->where('c.division_id', $this->restrict_user['division_id']);
-                } else {
-                    $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
-                }
+                $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'c');
             }
             $this->db->where('a.deleted', 0);
             $this->db->where('c.deleted', 0);
@@ -596,12 +586,7 @@ class Permits extends CI_Controller
         $this->db->join('reasons h', 'a.reason_id = h.id');
         $this->db->join('users i', 'a.created_by = i.username');
         if (isset($this->restrict_user)) {
-            if (isset($this->restrict_user['privilege_groups'])) {
-                $this->db->where_in('c.group_id', $this->restrict_user['privilege_groups']);
-                $this->db->where('c.division_id', $this->restrict_user['division_id']);
-            } else {
-                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
-            }
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'c');
         }
         $this->db->where('a.deleted', 0);
         $this->db->where('c.deleted', 0);

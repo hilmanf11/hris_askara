@@ -52,7 +52,7 @@ class Summary_payroll_report extends CI_Controller
             <style> .str{ mso-number-format:\@; } </style>
             <body>';
 
-            $this->db->select("a.division_id, a.departement_id, a.departement_sub_id, c.name as division_name, d.name as departement_name, e.name as departement_sub_name");
+            $this->db->select("a.division_id, a.departement_id, a.departement_sub_id, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, c.logo");
             $this->db->from('divisions c');
             $this->db->join('departements d', 'd.division_id = c.id');
             $this->db->join('departement_subs e', 'e.departement_id = d.id');
@@ -96,10 +96,10 @@ class Summary_payroll_report extends CI_Controller
                         <table style="width: 100%;">
                             <tr>
                                 <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
-                                    <img src="' . $config->favicon . '" width="30">
+                                    <img src="' . base_url('assets/image/division/' . $record['logo']) . '" width="30">
                                 </td>
                                 <td style="font-size: 14px; text-align: left; margin:2px;">
-                                    <b>' . $config->name . '</b><br>
+                                    <b>' . $record['division_name'] . '</b><br>
                                     <small>' . $config->description . '</small>
                                 </td>
                             </tr>

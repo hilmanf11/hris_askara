@@ -52,8 +52,10 @@ class Departement_subs extends CI_Controller
             if (isset($this->restrict_user['privilege_groups'])) {
                 $this->db->where_in('a.id', $this->restrict_user['departement_sub_ids']);
             } else {
-                $departement_sub_id = $this->restrict_user['departement_sub_id'];
-                $this->db->like('a.id', $departement_sub_id);
+                if ($this->restrict_user['admin_emdep'] == 0) {
+                    $departement_sub_id = $this->restrict_user['departement_sub_id'];
+                    $this->db->like('a.id', $departement_sub_id);
+                }
             }
         }
         $this->db->order_by('a.name', 'asc');

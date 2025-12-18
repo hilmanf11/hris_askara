@@ -373,12 +373,7 @@ class Dashboard extends CI_Controller
         $this->db->join('employees b', 'a.employee_id = b.id');
         $this->db->where('a.permit_date', date("Y-m-d"));
         if (isset($this->restrict_user)) {
-            if (isset($this->restrict_user['privilege_groups'])) {
-                $this->db->where_in('b.group_id', $this->restrict_user['privilege_groups']);
-                $this->db->where('b.division_id', $this->restrict_user['division_id']);
-            } else {
-                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
-            }
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'b');
         }
         $permits = $this->db->get()->result_object();
         if (count($permits) > 0) {
@@ -429,12 +424,7 @@ class Dashboard extends CI_Controller
         $this->db->where('status', 0);
         $this->db->where("date_expired between '$today' and '$nextday'");
         if (isset($this->restrict_user)) {
-            if (isset($this->restrict_user['privilege_groups'])) {
-                $this->db->where_in('group_id', $this->restrict_user['privilege_groups']);
-                $this->db->where('division_id', $this->restrict_user['division_id']);
-            } else {
-                $this->db->where('id', $this->restrict_user['employee_id']);
-            }
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user);
         }
         $this->db->order_by('name', 'asc');
         $employees = $this->db->get()->result_object();

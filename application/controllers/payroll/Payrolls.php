@@ -4,6 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Payrolls extends CI_Controller
 {
+    protected $restrict_user;
     public function __construct()
     {
         parent::__construct();
@@ -12,9 +13,12 @@ class Payrolls extends CI_Controller
         $this->load->library('form_validation');
         $this->load->library('session');
         $this->load->model('crud');
+        $this->load->model('accessmodule');
 
         //VALIDASI FORM
         $this->form_validation->set_rules('employee_id', 'Employee', 'required|min_length[1]|max_length[30]');
+        
+        $this->restrict_user = $this->accessmodule->restrictSelf();
     }
 
     //HALAMAN UTAMA
@@ -106,6 +110,9 @@ class Payrolls extends CI_Controller
             $this->db->join('resignations e', 'e.employee_id = b.id', 'left');
             $this->db->join('account_coa f', 'b.division_id = f.division_id and b.departement_id = f.departement_id and b.position_id = f.position_id and b.contract_id = f.contract_id', 'left');
             $this->db->join('accounts g', "f.account_id = g.id and g.category = 'payroll'", 'left');
+            if (isset($this->restrict_user)) {
+                $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'b');
+            }
             if ($filter_from != "" && $filter_to != "") {
                 $this->db->where('a.period_start =', $period_start);
                 $this->db->where('a.period_end =', $period_end);
@@ -295,6 +302,10 @@ class Payrolls extends CI_Controller
             } else {
                 $privilege = " and m.status = '1'";
             }
+            $restrictionSQL = '';
+            if (isset($this->restrict_user)) {
+                $restrictionSQL = $this->accessmodule->getEmployeeRestrictionSQL($this->restrict_user, 'a');
+            }
 
             $query = $this->db->query("SELECT a.*, 
                     b.name as division_name,
@@ -332,6 +343,7 @@ class Payrolls extends CI_Controller
                 JOIN privilege_groups m ON (i.id = m.group_id or m.group_id is null or m.group_id = '') 
                 and m.username = '$username' $privilege
                 WHERE a.deleted = 0 and a.status = 0 and a.date_sign <= '$filter_to'
+                $restrictionSQL
                 $divisions
                 $department
                 $department_sub

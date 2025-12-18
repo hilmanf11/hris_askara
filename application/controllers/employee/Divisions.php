@@ -39,15 +39,30 @@ class Divisions extends CI_Controller
     //GET DATA
     public function reads()
     {
-        $post = isset($_POST['q']) ? $_POST['q'] : "";
-        if (isset($this->restrict_user)) {
-            $division_id = $this->restrict_user['division_id'];
-        } else {
-            $division_id = '';
+        $post = $this->input->post('q');
+
+        $this->db->select('id, name');
+        $this->db->from('divisions');
+
+        if (!empty($post)) {
+            $this->db->like('name', $post);
         }
-        $send = $this->crud->reads('divisions', ["name" => $post, 'id' => $division_id] );
+
+        if (isset($this->restrict_user)) {
+            $this->db->group_start();
+                $this->db->where('id', $this->restrict_user['division_id']);
+                if (!empty($this->restrict_user['is_operator'])) {
+                    $this->db->or_where('id', '20240806000001'); // Inotek
+                }
+            $this->db->group_end();
+        }
+
+        $this->db->order_by('name', 'ASC');
+
+        $send = $this->db->get()->result_array();
         echo json_encode($send);
     }
+
 
     //GET DATATABLES
     public function datatables()

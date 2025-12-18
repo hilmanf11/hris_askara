@@ -51,12 +51,7 @@ class Overtimes extends CI_Controller
         $this->db->join('users b', 'a.created_by = b.username');
         $this->db->join('employees c', 'b.number = c.number');
         if (isset($this->restrict_user)) {
-            if (isset($this->restrict_user['privilege_groups'])) {
-                $this->db->where_in('c.group_id', $this->restrict_user['privilege_groups']);
-                $this->db->where('c.division_id', $this->restrict_user['division_id']);
-            } else {
-                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
-            }
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'c');
         }
         $this->db->group_by('created_by');
         $records = $this->db->get()->result_array();
@@ -79,12 +74,7 @@ class Overtimes extends CI_Controller
             $this->db->where('a.trans_date <=', $filter_to);
         }
         if (isset($this->restrict_user)) {
-            if (isset($this->restrict_user['privilege_groups'])) {
-                $this->db->where_in('b.group_id', $this->restrict_user['privilege_groups']);
-                $this->db->where('b.division_id', $this->restrict_user['division_id']);
-            } else {
-                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
-            }
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'b');
         }
         $this->db->like('b.division_id', $filter_division);
         $this->db->like('b.departement_id', $filter_departement);
@@ -359,12 +349,7 @@ class Overtimes extends CI_Controller
             $this->db->join('departement_subs e', 'b.departement_sub_id = e.id');
             $this->db->join('users f', "a.created_by = f.username");
             if (isset($this->restrict_user)) {
-                if (isset($this->restrict_user['privilege_groups'])) {
-                    $this->db->where_in('b.group_id', $this->restrict_user['privilege_groups']);
-                    $this->db->where('b.division_id', $this->restrict_user['division_id']);
-                } else {
-                    $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
-                }
+                $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'b');
             }
             $this->db->where('b.deleted', 0);
             $this->db->where('b.status', 0);
@@ -811,12 +796,7 @@ class Overtimes extends CI_Controller
         $this->db->join('departement_subs e', 'b.departement_sub_id = e.id');
         $this->db->join('users f', "a.created_by = f.username");
         if (isset($this->restrict_user)) {
-            if (isset($this->restrict_user['privilege_groups'])) {
-                $this->db->where_in('b.group_id', $this->restrict_user['privilege_groups']);
-                $this->db->where('b.division_id', $this->restrict_user['division_id']);
-            } else {
-                $this->db->where('a.employee_id', $this->restrict_user['employee_id']);
-            }
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'b');
         }
         $this->db->where('b.deleted', 0);
         $this->db->where('b.status', 0);

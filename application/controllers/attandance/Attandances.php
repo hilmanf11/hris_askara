@@ -86,12 +86,7 @@ class Attandances extends CI_Controller
                 $this->db->where("(b.date_in >= '$filter_from' and b.date_in <= '$filter_to' or b.date_out >= '$filter_from' and b.date_out <= '$filter_to')");
             }
             if (isset($this->restrict_user)) {
-                if (isset($this->restrict_user['privilege_groups'])) {
-                    $this->db->where_in('a.group_id', $this->restrict_user['privilege_groups']);
-                    $this->db->where('a.division_id', $this->restrict_user['division_id']);
-                } else {
-                    $this->db->where('a.id', $this->restrict_user['employee_id']);
-                }
+                $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'a');
             }
             $this->db->like('a.division_id', $filter_division);
             $this->db->like('a.departement_id', $filter_departement);
@@ -836,12 +831,7 @@ class Attandances extends CI_Controller
             $this->db->where("(b.date_in >= '$filter_from' and b.date_in <= '$filter_to' or b.date_out >= '$filter_from' and b.date_out <= '$filter_to')");
         }
         if (isset($this->restrict_user)) {
-            if (isset($this->restrict_user['privilege_groups'])) {
-                $this->db->where_in('a.group_id', $this->restrict_user['privilege_groups']);
-                $this->db->where('a.division_id', $this->restrict_user['division_id']);
-            } else {
-                $this->db->where('a.id', $this->restrict_user['employee_id']);
-            }
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'a');
         }
         $this->db->like('a.division_id', $filter_division);
         $this->db->like('a.departement_id', $filter_departement);

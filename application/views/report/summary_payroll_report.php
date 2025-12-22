@@ -31,6 +31,10 @@
                     <span style="width:35%; display:inline-block;">Employee</span>
                     <input style="width:60%;" id="filter_employee" class="easyui-combogrid">
                 </div>
+                 <div class="fitem">
+                    <span style="width:35%; display:inline-block;">Group</span>
+                    <input style="width:60%;" id="filter_group" name="filter_group" class="easyui-combobox">
+                </div>
             </div>
         </fieldset>
         <?= $button ?>
@@ -56,13 +60,15 @@
         var filter_departement = $("#filter_departement").combobox('getValue');
         var filter_departement_sub = $("#filter_departement_sub").combobox('getValue');
         var filter_employee = $("#filter_employee").combogrid('getValue');
+        var filter_group = $("#filter_group").combobox('getValue');
 
         var url = "?filter_division=" + filter_division +
             "&filter_departement=" + filter_departement +
             "&filter_departement_sub=" + filter_departement_sub +
             '&filter_from=' + filter_from +
             '&filter_to=' + filter_to +
-            '&filter_employee=' + filter_employee;
+            '&filter_employee=' + filter_employee +
+            "&filter_group=" + filter_group;
 
         var date1 = new Date(filter_from);
         var date2 = new Date(filter_to);
@@ -82,13 +88,15 @@
         var filter_departement = $("#filter_departement").combobox('getValue');
         var filter_departement_sub = $("#filter_departement_sub").combobox('getValue');
         var filter_employee = $("#filter_employee").combogrid('getValue');
+        var filter_group = $("#filter_group").combobox('getValue');
 
         var url = "?filter_division=" + filter_division +
             "&filter_departement=" + filter_departement +
             "&filter_departement_sub=" + filter_departement_sub +
             '&filter_from=' + filter_from +
             '&filter_to=' + filter_to +
-            '&filter_employee=' + filter_employee;
+            '&filter_employee=' + filter_employee +
+            "&filter_group=" + filter_group;
 
         var date1 = new Date(filter_from);
         var date2 = new Date(filter_to);
@@ -196,6 +204,19 @@
                     width: 200
                 }]
             ],
+        });
+
+        $("#filter_group").combobox({
+            url: '<?= base_url('employee/groups/reads') ?>',
+            valueField: 'id',
+            textField: 'name',
+            prompt: "Choose All",
+            icons: [{
+                iconCls: 'icon-clear',
+                handler: function(e) {
+                    $(e.data.target).combobox('clear').combobox('textbox').focus();
+                }
+            }],
         });
     });
 

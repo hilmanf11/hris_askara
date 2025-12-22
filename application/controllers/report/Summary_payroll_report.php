@@ -47,6 +47,7 @@ class Summary_payroll_report extends CI_Controller
             $filter_departement = $this->input->get('filter_departement');
             $filter_departement_sub = $this->input->get('filter_departement_sub');
             $filter_employee = $this->input->get('filter_employee');
+            $filter_group = $this->input->get('filter_group');
 
             $header_html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 10px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}#ttd {border-collapse: collapse;width: 100%;font-size: 10px;}#ttd td, #ttd th {padding: 2px;}</style>
             <style> .str{ mso-number-format:\@; } </style>
@@ -62,6 +63,7 @@ class Summary_payroll_report extends CI_Controller
             $this->db->like('a.departement_id', $filter_departement);
             $this->db->like('a.departement_sub_id', $filter_departement_sub);
             $this->db->like('a.id', $filter_employee);
+            $this->db->like('a.group_id', $filter_group);
             $this->db->group_by('c.id');
             $this->db->order_by('e.name', 'asc');
             $records = $this->db->get()->result_array();
@@ -177,6 +179,7 @@ class Summary_payroll_report extends CI_Controller
                 $this->db->like('a.departement_id', $filter_departement);
                 $this->db->like('a.departement_sub_id', $filter_departement_sub);
                 $this->db->like('a.id', $filter_employee);
+                $this->db->like('a.group_id', $filter_group);
                 $this->db->group_by('a.number');
                 $this->db->order_by('d.name','a.name',  'asc');
                 $employees = $this->db->get()->result_array();

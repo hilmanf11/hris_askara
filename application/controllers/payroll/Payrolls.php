@@ -2069,4 +2069,130 @@ class Payrolls extends CI_Controller
         $send = $this->crud->update('payrolls', ["id" => $data['id']], ['is_publish' => 1]);
         echo $send;
     }
+
+    public function printcsv(){
+        if ($this->input->get()) {
+
+            header("Content-type: text/csv; charset=utf-8");
+            header("Content-Disposition: attachment; filename=payroll_" . time() . ".csv");
+            $output = fopen("php://output", "w");
+
+            $filter_from = $this->input->get('filter_from');
+            $filter_to = $this->input->get('filter_to');
+            $filter_division = $this->input->get('filter_division');
+            $filter_departement = $this->input->get('filter_departement');
+            $filter_departement_sub = $this->input->get('filter_departement_sub');
+            $filter_employee = $this->input->get('filter_employee');
+            $filter_employee_type = $this->input->get('filter_employee_type');
+            $filter_group = $this->input->get('filter_group');
+            $filter_status = $this->input->get('filter_status');
+            $payroll_bank_id = $this->input->get('payroll_bank_id');
+            $username = $this->session->username;
+
+            $payroll_bank = $this->crud->read('payroll_bank', [], ["id" => $payroll_bank_id]);
+            $rekening = $payroll_bank->account_no;
+            $filter_division = $payroll_bank->division_id;
+
+            $period_start = date("Y-m", strtotime($filter_from));
+            $period_end = date("Y-m", strtotime($filter_to));
+
+            $periode = date("Ymd", strtotime($filter_to));
+            
+            $bulan_payroll = strtoupper(date('My', strtotime($filter_to)));
+            $bulan_payroll = 'PAYROLL '.$bulan_payroll;
+
+            if ($username == "admin") {
+                $privilege = "";
+            } else {
+                $privilege = " and c.status = '1'";
+            }
+            $this->db->select('a.*, b.bank_no, b.bank_name, b.name as employee_name, b.email');
+            $this->db->from('payrolls a');
+            $this->db->join('employees b', 'a.employee_id = b.id');
+            $this->db->join('privilege_groups c', "(b.group_id = c.group_id or b.group_id is null or b.group_id = '') and c.username = '$username' $privilege");
+            if (isset($this->restrict_user)) {
+                $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'b');
+            }
+            if ($filter_from != "" && $filter_to != "") {
+                $this->db->where('a.period_start =', $period_start);
+                $this->db->where('a.period_end =', $period_end);
+            }
+            if($filter_status == "0"){
+                $this->db->where('e.employee_id', null);
+            }elseif($filter_status == "1"){
+                $this->db->where('e.employee_id !=', null);
+            }
+
+            if($filter_division != ""){
+               $this->db->like('b.division_id', $filter_division);
+            }
+
+            if($filter_departement != ""){
+                $this->db->like('b.departement_id', $filter_departement);
+            }
+
+            if($filter_departement_sub != ""){
+                $this->db->like('b.departement_sub_id', $filter_departement_sub);
+            }
+
+            if($filter_employee != ""){
+                $this->db->like('b.id', $filter_employee);
+            }
+           
+            if($filter_employee_type != ""){
+                $this->db->like('b.contract_id', $filter_employee_type);
+            }
+            if($filter_group != ""){
+                $this->db->like('c.group_id', $filter_group);
+            }
+            
+            $this->db->order_by('a.name', 'ASC');
+            $this->db->group_by('a.employee_id');
+            //Total Data
+            $totalRows = $this->db->count_all_results('', false);
+
+            $records = $this->db->get()->result_array();
+            
+
+
+            $arr_final = [];
+            $total_income = 0;
+            foreach ($records as $record) {
+                $arr_final[] = array(
+                    $record['bank_no'],
+                    $record['employee_name'],
+                    '',
+                    '',
+                    '',
+                    'IDR',
+                    $record['net_income'],
+                    $bulan_payroll,
+                    '',
+                    'IBU',
+                    '',
+                    $record['bank_name'],
+                    'Jakarta',
+                    '',
+                    '',
+                    '',
+                    'Y',
+                    $record['email'],
+                    '',
+                    '',
+                    '',
+                    'Y',
+                    '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '',
+                    'OUR',
+                    '1'
+                );
+                $total_income += $record['net_income'];
+            }
+            fputcsv($output, array(
+                "P",$periode, $rekening, $totalRows, $total_income
+            ));
+            foreach ($arr_final as $row) {
+                fputcsv($output, $row);
+            }
+        }
+    }
 }

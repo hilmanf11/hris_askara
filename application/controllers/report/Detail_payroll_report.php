@@ -98,7 +98,7 @@ class Detail_payroll_report extends CI_Controller
                 </div>
             </center><br><br><br>
             <center>
-                <h3 style="margin:0;">Absen Manager</h3>
+                <h3 style="margin:0;">Absensi</h3>
                 <span>Period ' . $filter_from . ' to ' . $filter_to . '</span>
             </center>
             <br>

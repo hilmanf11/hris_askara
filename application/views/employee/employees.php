@@ -272,6 +272,16 @@
                         <input style="width:20%;" name="jkn_date" id="jkn_date" data-options="formatter:myformatter,parser:myparser, editable: false" class="easyui-datebox">
                     </div>
                     <div class="fitem">
+                        <span style="width:35%; display:inline-block;">BPJS Ditanggung Perusahaan</span>
+                        <input type="hidden" name="is_company_paid_bpjs" value="0">
+                        <input
+                            type="checkbox"
+                            class="easyui-checkbox"
+                            name="is_company_paid_bpjs"
+                            id="is_company_paid_bpjs"
+                            value="1">
+                    </div>
+                    <div class="fitem">
                         <span style="width:35%; display:inline-block;">Number of Family (JKN) </span>
                         <select style="width:35%;" name="jkn_family" id="jkn_family" class="easyui-combobox" panelHeight="true">
                             <option value="1">1 (One)</option>
@@ -536,6 +546,9 @@
             checked: true
         });
         $("#jkn_family").combobox("setValue", "1");
+
+        $("#is_company_paid_bpjs").checkbox("uncheck");
+
         $("#form_status_date").hide();
 
         tableFamily();
@@ -569,6 +582,12 @@
                 $("#contract_id").combobox("disable");
                 $("#position_id").combogrid("disable");
                 $("#group_id").combobox("disable");
+
+                if (row.is_company_paid_bpjs == 1) {
+                    $("#is_company_paid_bpjs").checkbox("check");
+                } else {
+                    $("#is_company_paid_bpjs").checkbox("uncheck");
+                }
 
                 $('#division_id').combobox({
                     url: '<?php echo base_url('employee/divisions/reads'); ?>',

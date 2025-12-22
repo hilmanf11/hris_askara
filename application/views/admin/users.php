@@ -45,6 +45,10 @@
                 <span style="width:35%; display:inline-block;">Username</span>
                 <input style="width:60%;" name="username" id="username" required="" class="easyui-textbox">
             </div>
+            <div class="fitem" style="display: none;" id="div_reset_pwd" >
+                <span style="width:35%; display:inline-block;">Reset Password</span>
+                <input class="easyui-checkbox" id="reset_pwd" name="reset_pwd" value="0">
+            </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Password</span>
                 <input style="width:60%;" name="password" id="password" required="" class="easyui-passwordbox">
@@ -115,6 +119,11 @@
     function add() {
         $('#dlg_insert').dialog('open');
         $('#username').textbox('enable');
+        $('#div_reset_pwd').hide();
+
+        $('#reset_pwd').checkbox('uncheck');
+        $('#reset_pwd').checkbox('setValue', '0');
+        $('#reset_pwd').checkbox('options').onChange = function(){}; 
         $('#password').textbox('enable');
         url_save = '<?= base_url('admin/users/create') ?>';
         $('#frm_insert').form('clear');
@@ -127,6 +136,19 @@
             $('#frm_insert').form('load', row);
             $('#username').textbox('disable');
             $('#password').textbox('disable');
+            $('#div_reset_pwd').show();
+            $('#reset_pwd').checkbox({
+                checked: false,
+                onChange: function(checked) {
+                    if (checked) {
+                        $('#password').textbox('enable');
+                        $('#reset_pwd').checkbox('setValue', '1');
+                    } else {
+                        $('#password').textbox('disable');
+                        $('#reset_pwd').checkbox('setValue', '0');
+                    }
+                }
+            });
             url_save = '<?= base_url('admin/users/update') ?>?id=' + btoa(row.id);
         } else {
             toastr.info("Please select one of the data in the table first");

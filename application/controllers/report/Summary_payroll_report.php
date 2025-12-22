@@ -76,6 +76,18 @@ class Summary_payroll_report extends CI_Controller
             $start = $filter_from;
             $finish = $filter_to;
 
+            $group_name = '';
+            if ($filter_group) {
+                $group = $this->crud->read('groups', [], ["id" => $filter_group]);
+                $group_name = $group->name;
+            }
+
+            if ($group_name) {
+                $judul = 'ABSENSI '. $group_name;
+            } else {
+                $judul = 'ABSENSI';
+            }
+
             $no = 1;
             $tot_wd        = 0;
             $tot_wd_ot     = 0;
@@ -114,7 +126,7 @@ class Summary_payroll_report extends CI_Controller
                 </center><br><br><br>
                 <center>
                     <h3 style="margin:0;"><b>' . $record['division_name'] . '</b></h3>
-                    <h3 style="margin:0;">ABSEN MANAGER</h3>
+                    <h3 style="margin:0;">'. $judul .'</h3>
                     <p style="margin:0;">Period ' . $filter_from . ' to ' . $filter_to . '</p>
                     <br><br>
                 </center>

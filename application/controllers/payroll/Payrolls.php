@@ -323,7 +323,7 @@ class Payrolls extends CI_Controller
                     l.days,
                     coalesce(p.amount, 0) as salary,
                     coalesce(p.bpjs, 0) as bpjs,
-                    coalesce(NULLIF(p.bpjs_kes, 0), p.bpjs) as bpjs_kes,
+                    coalesce(p.bpjs_kes, 0) as bpjs_kes,
                     q.number as marital,
                     q.ter_type,
                     a.tax_id,
@@ -384,8 +384,8 @@ class Payrolls extends CI_Controller
             $resign_date = null;
             if (@$resign->id) {
                 // cek resign dalam periode gaji
-                $rstart = new DateTime($period_start . '-01');
-                $rend   = (new DateTime($period_end . '-01'))->modify('last day of this month');
+                $rstart = new DateTime($filter_from);
+                $rend   = (new DateTime($filter_to));
                 $rdate = new DateTime($resign->resign_date);
 
                 if ($rdate >= $rstart && $rdate <= $rend) {
@@ -685,13 +685,13 @@ class Payrolls extends CI_Controller
                     $arr_bpjs_emp_amount_total += 0;
                 } elseif ($record['jamsostek'] == "" && $record['jkn'] != "") {
                     if ($bpjs_emp_data->number == "BPJS") {
-                        if ($bpjs_kes == "0") {
-                            $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
-                            $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
-                        } else {
+                        // if ($bpjs_kes == "0") {
+                            // $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
+                            // $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
+                        // } else {
                             $arr_bpjs_emp_amount .= round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
                             $arr_bpjs_emp_amount_total += round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
-                        }
+                        // }
                     } else {
                         $arr_bpjs_emp_amount .= 0 . ",";
                         $arr_bpjs_emp_amount_total += 0;
@@ -711,10 +711,10 @@ class Payrolls extends CI_Controller
                     }
                 } else {
                     if ($bpjs_emp_data->number == "BPJS") {
-                        if ($bpjs_kes == "0") {
-                            $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
-                            $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
-                        } else {
+                        // if ($bpjs_kes == "0") {
+                        //     $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
+                        //     $arr_bpjs_emp_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
+                        // } else {
                             if ($bpjs_kes >= $rate_bpjskes_2025 ) {
                                 $arr_bpjs_emp_amount .= round((($rate_bpjskes_2025) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
                                 $arr_bpjs_emp_amount_total += round((($rate_bpjskes_2025) * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
@@ -722,7 +722,7 @@ class Payrolls extends CI_Controller
                                 $arr_bpjs_emp_amount .= round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']) . ",";
                                 $arr_bpjs_emp_amount_total += round(($bpjs_kes * ($bpjs_emp_data->employee / 100)) * $record['jkn_family']);
                             }
-                        }
+                        // }
                     } else {
                         if ($bpjs_tk == "0") {
                             $arr_bpjs_emp_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_emp_data->employee / 100))) . ",";
@@ -787,19 +787,19 @@ class Payrolls extends CI_Controller
                     $arr_bpjs_com_amount_jabatan_total += 0;
                 } elseif ($record['jamsostek'] == "" && $record['jkn'] != "") {
                     if ($bpjs_com_data->number == "BPJS") {
-                        if ($bpjs_kes == "0") {
-                            $arr_bpjs_com_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']) . ",";
-                            $arr_bpjs_com_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
-                            $arr_bpjs_com_amount_total_ter += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
-                            $arr_bpjs_com_amount_salary_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
-                            $arr_bpjs_com_amount_jabatan_total += 0;
-                        } else {
+                        // if ($bpjs_kes == "0") {
+                        //     $arr_bpjs_com_amount .= round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']) . ",";
+                        //     $arr_bpjs_com_amount_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
+                        //     $arr_bpjs_com_amount_total_ter += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
+                        //     $arr_bpjs_com_amount_salary_total += round((($record['salary'] + $arr_allowance_amount_total_bpjs) * ($bpjs_com_data->company / 100)) * $record['jkn_family']);
+                        //     $arr_bpjs_com_amount_jabatan_total += 0;
+                        // } else {
                             $arr_bpjs_com_amount .= round((($bpjs_kes) * ($bpjs_com_data->company / 100))) . ",";
                             $arr_bpjs_com_amount_total += round((($bpjs_kes) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_total_ter += round((($bpjs_kes) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_salary_total += round((($bpjs_kes) * ($bpjs_com_data->company / 100)));
                             $arr_bpjs_com_amount_jabatan_total += 0;
-                        }
+                        // }
                     } else {
                         $arr_bpjs_com_amount .= 0 . ",";
                         $arr_bpjs_com_amount_total += 0;
@@ -1066,9 +1066,10 @@ class Payrolls extends CI_Controller
             $calc_tax_allowance = $this->calcTaxAllowance(($total_all_allowance-$total_all_deduction), $record['ter_type'], $record['salary_component_id']);
             $tax_allowance = $calc_tax_allowance['tax_allowance'];
             $total_bruto_tax = $calc_tax_allowance['total_bruto_tax'];
+            $total_bruto = $total_bruto_tax - @$loan_bank_amount - @$loan_other_amount;
 
             //Hitung TER
-            $terCalc = $this->computeTER($total_bruto_tax, $record['ter_type']);
+            $terCalc = $this->computeTER($total_bruto, $record['ter_type']);
             $ter_number = $terCalc['ter_number'];
             $ter        = $terCalc['ter'];
 
@@ -1100,6 +1101,11 @@ class Payrolls extends CI_Controller
 
             //Total keseluruhan
             $netincome = ($income - $arr_deduction_amount_total - $arr_bpjs_emp_amount_total - @$loan_cooperative_amount - @$loan_bank_amount - @$loan_other_amount);
+
+            // bjps ditanggung perusahaan
+            if ($record['is_company_paid_bpjs'] == "1") {
+                $netincome += $arr_bpjs_emp_amount_total;
+            }
             // Jika resign dan gross up, karena gross up tax allowancenya 0
             if ($is_resign || $tax_allowance == 0) {
                 $netincome -= $ter;
@@ -1635,7 +1641,7 @@ class Payrolls extends CI_Controller
             ";
         }
 
-        $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>
+        $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}#ttd {border-collapse: collapse;width: 100%;font-size: 10px;}#ttd td, #ttd th {padding: 2px;}</style><body>
                 <style> .str{ mso-number-format:\@; } </style>
                 <div style="page-break-after:always;"><center>
                     <div style="float: left; font-size: 12px; text-align: left;">
@@ -1675,6 +1681,7 @@ class Payrolls extends CI_Controller
                 <th>Tax Allowance</th>
                 <th>Total Allowance</th>
                 <th>Potongan Absen</th>
+                <th>Potongan Lain-Lain</th>
                 <th>Jaminan Pensiun Employee</th>
                 <th>BPJSK Employee</th>
                 <th>JHT Employee</th>
@@ -1687,7 +1694,32 @@ class Payrolls extends CI_Controller
             </tr>';
 
         $no = 1;
+        $sum_total_overtime       = 0;
+        $sum_tax_allowance        = 0;
+        $sum_total_all_allowance  = 0;
+        $sum_deduction_absence    = 0;
+        $sum_potongan_lain        = 0;
+        $sum_jp_emp               = 0;
+        $sum_bpjs_emp             = 0;
+        $sum_jht_emp              = 0;
+        $sum_ter                  = 0;
+        $sum_total_all_deduction  = 0;
+        $sum_net_income           = 0;
+        $sum_bpjs_rate            = 0;
+        $sum_bpjs_kes_rate        = 0;
+        // total untuk th2
+        $sum_salary              = 0;
+        $sum_tunjangan_tetap     = 0;
+        $sum_tunjangan_jabatan   = 0;
+        $sum_tunjangan_kinerja   = 0;
+        $sum_tunjangan_transport = 0;
+
+        $sum_gaji_harian = 0;
+        $sum_uang_makan  = 0;
+
+
         foreach ($records as $record) {
+            $potongan_lain = $record['loan_cooperative'] + $record['loan_bank'] + $record['loan_other'];
             $arr_allowance = json_decode($record['allowence'], true);
             if ($is_hl) {
                 $gaji_harian = 0;
@@ -1699,23 +1731,49 @@ class Payrolls extends CI_Controller
                     if ($key === 'um') continue; // skip uang makan
                     $gaji_harian += (float) $value;
                 }
-                $th2 = '
-                    <td style="mso-number-format:"0.00";">'. round($gaji_harian, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($uang_makan, 0) .'</td>
-                ';
+                if ($option === 'excel') {
+                    $th2 = '
+                        <td style="mso-number-format:&quot;#,##0&quot;">'. round($gaji_harian, 0) .'</td>
+                        <td style="mso-number-format:&quot;#,##0&quot;">'. round($uang_makan, 0) .'</td>
+                    ';
+                } else {
+                    $th2 = '
+                        <td>'. number_format($gaji_harian, 0, ".", ",") .'</td>
+                        <td>'. number_format($uang_makan, 0, ".", ",") .'</td>
+                    ';
+                }
+
+                $sum_gaji_harian += $gaji_harian;
+                $sum_uang_makan  += $uang_makan;
             } else {
                 $tunjangan_tetap = $arr_allowance['tt'] ?? 0;
                 $tunjangan_jabatan = $arr_allowance['tj'] ?? 0;
                 $tunjangan_kinerja = $arr_allowance['tk'] ?? 0;
                 $tunjangan_transport = $arr_allowance['tr'] ?? 0;
 
-                $th2 = '
-                    <td style="mso-number-format:"0.00";">'. round($record['salary'], 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tunjangan_tetap, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tunjangan_jabatan, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tunjangan_kinerja, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tunjangan_transport, 0) .'</td>
-                ';
+                if ($option === 'excel') {
+                    $th2 = '
+                        <td style="mso-number-format:&quot;#,##0&quot;">'. round($record['salary'], 0) .'</td>
+                        <td style="mso-number-format:&quot;#,##0&quot;">'. round($tunjangan_tetap, 0) .'</td>
+                        <td style="mso-number-format:&quot;#,##0&quot;">'. round($tunjangan_jabatan, 0) .'</td>
+                        <td style="mso-number-format:&quot;#,##0&quot;">'. round($tunjangan_kinerja, 0) .'</td>
+                        <td style="mso-number-format:&quot;#,##0&quot;">'. round($tunjangan_transport, 0) .'</td>
+                    ';
+                } else {
+                    $th2 = '
+                        <td>'. number_format($record['salary'], 0, '.', ',') .'</td>
+                        <td>'. number_format($tunjangan_tetap, 0, '.', ',') .'</td>
+                        <td>'. number_format($tunjangan_jabatan, 0, '.', ',') .'</td>
+                        <td>'. number_format($tunjangan_kinerja, 0, '.', ',') .'</td>
+                        <td>'. number_format($tunjangan_transport, 0, '.', ',') .'</td>
+                    ';
+                }
+
+                $sum_salary              += $record['salary'];
+                $sum_tunjangan_tetap     += $tunjangan_tetap;
+                $sum_tunjangan_jabatan   += $tunjangan_jabatan;
+                $sum_tunjangan_kinerja   += $tunjangan_kinerja;
+                $sum_tunjangan_transport += $tunjangan_transport;
 
             }
             if ($record['ter'] < 0 || $record['tax_allowance'] == 0) {
@@ -1738,6 +1796,43 @@ class Payrolls extends CI_Controller
 
             $total_all_deduction = $record['total_all_deduction'] + $jp_emp + $bpjs_emp + $jht_emp + $record['ter'];
 
+            if ($option === 'excel') {
+                // ===== EXCEL (numeric, bisa dihitung) =====
+                $td_number = '
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($total_overtime, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($tax_allowance, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($total_all_allowance, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($record["deduction_absence_amount"], 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($potongan_lain, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($jp_emp, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($bpjs_emp, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($jht_emp, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($record["ter"], 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($total_all_deduction, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($record["ter"], 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($record["net_income"], 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($record["bpjs_rate"], 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($record["bpjs_kes_rate"], 0) .'</td>
+                ';
+            } else {
+                // ===== PDF (tampilan pakai koma) =====
+                $td_number = '
+                    <td>'. number_format($total_overtime, 0, ".", ",") .'</td>
+                    <td>'. number_format($tax_allowance, 0, ".", ",") .'</td>
+                    <td>'. number_format($total_all_allowance, 0, ".", ",") .'</td>
+                    <td>'. number_format($record["deduction_absence_amount"], 0, ".", ",") .'</td>
+                    <td>'. number_format($potongan_lain, 0, ".", ",") .'</td>
+                    <td>'. number_format($jp_emp, 0, ".", ",") .'</td>
+                    <td>'. number_format($bpjs_emp, 0, ".", ",") .'</td>
+                    <td>'. number_format($jht_emp, 0, ".", ",") .'</td>
+                    <td>'. number_format($record["ter"], 0, ".", ",") .'</td>
+                    <td>'. number_format($total_all_deduction, 0, ".", ",") .'</td>
+                    <td>'. number_format($record["ter"], 0, ".", ",") .'</td>
+                    <td>'. number_format($record["net_income"], 0, ".", ",") .'</td>
+                    <td>'. number_format($record["bpjs_rate"], 0, ".", ",") .'</td>
+                    <td>'. number_format($record["bpjs_kes_rate"], 0, ".", ",") .'</td>
+                ';
+            }
 
             $html .= '<tr>
                     <td>' . $no . '</td>
@@ -1746,25 +1841,122 @@ class Payrolls extends CI_Controller
                     <td>' . $record['position_name'] . '</td>
                     <td>' . $record['departement_sub_name'] . '</td>
                     '.$th2.'
-                    <td style="mso-number-format:"0.00";">'. round($total_overtime, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($tax_allowance, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($total_all_allowance, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['deduction_absence_amount'], 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($jp_emp, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($bpjs_emp, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($jht_emp, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['ter'], 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($total_all_deduction, 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['ter'], 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['net_income'], 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['bpjs_rate'], 0) .'</td>
-                    <td style="mso-number-format:"0.00";">'. round($record['bpjs_kes_rate'], 0) .'</td>
-                    </tr>
+                    '.$td_number.'
                     ';
             $no++;
+            $sum_total_overtime      += $total_overtime;
+            $sum_tax_allowance       += $tax_allowance;
+            $sum_total_all_allowance += $total_all_allowance;
+            $sum_deduction_absence   += $record['deduction_absence_amount'];
+            $sum_potongan_lain       += $potongan_lain;
+            $sum_jp_emp              += $jp_emp;
+            $sum_bpjs_emp            += $bpjs_emp;
+            $sum_jht_emp             += $jht_emp;
+            $sum_ter                 += $record['ter'];
+            $sum_total_all_deduction += $total_all_deduction;
+            $sum_net_income          += $record['net_income'];
+            $sum_bpjs_rate           += $record['bpjs_rate'];
+            $sum_bpjs_kes_rate       += $record['bpjs_kes_rate'];
         }
 
-        $html .= '</table></body></html>';
+        if ($is_hl) {
+            if ($option === 'excel') {
+                $th2_total = '
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_gaji_harian, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_uang_makan, 0) .'</td>
+                ';
+            } else {
+                $th2_total = '
+                    <td>'. number_format($sum_gaji_harian, 0, ".", ",") .'</td>
+                    <td>'. number_format($sum_uang_makan, 0, ".", ",") .'</td>
+                ';
+            }
+        } else {
+            if ($option === 'excel') {
+                $th2_total = '
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_salary, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_tunjangan_tetap, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_tunjangan_jabatan, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_tunjangan_kinerja, 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_tunjangan_transport, 0) .'</td>
+                ';
+            } else {
+                $th2_total = '
+                    <td>'. number_format($sum_salary, 0, ".", ",") .'</td>
+                    <td>'. number_format($sum_tunjangan_tetap, 0, ".", ",") .'</td>
+                    <td>'. number_format($sum_tunjangan_jabatan, 0, ".", ",") .'</td>
+                    <td>'. number_format($sum_tunjangan_kinerja, 0, ".", ",") .'</td>
+                    <td>'. number_format($sum_tunjangan_transport, 0, ".", ",") .'</td>
+                ';
+            }
+        }
+
+
+
+        if ($option === 'excel') {
+            $html .= '
+            <tr style="font-weight:bold; background:#f0f0f0;">
+                <td colspan="5" align="center">TOTAL</td>
+                '.$th2_total.'
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_total_overtime,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_tax_allowance,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_total_all_allowance,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_deduction_absence,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_potongan_lain,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_jp_emp,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_bpjs_emp,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_jht_emp,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_ter,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_total_all_deduction,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_ter,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_net_income,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_bpjs_rate,0) .'</td>
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_bpjs_kes_rate,0) .'</td>
+            </tr>';
+        } else {
+            $html .= '
+            <tr style="font-weight:bold; background:#f0f0f0;">
+                <td colspan="5" align="center">TOTAL</td>
+                '.$th2_total.'
+                <td>'. number_format($sum_total_overtime,0,'.',',') .'</td>
+                <td>'. number_format($sum_tax_allowance,0,'.',',') .'</td>
+                <td>'. number_format($sum_total_all_allowance,0,'.',',') .'</td>
+                <td>'. number_format($sum_deduction_absence,0,'.',',') .'</td>
+                <td>'. number_format($sum_potongan_lain,0,'.',',') .'</td>
+                <td>'. number_format($sum_jp_emp,0,'.',',') .'</td>
+                <td>'. number_format($sum_bpjs_emp,0,'.',',') .'</td>
+                <td>'. number_format($sum_jht_emp,0,'.',',') .'</td>
+                <td>'. number_format($sum_ter,0,'.',',') .'</td>
+                <td>'. number_format($sum_total_all_deduction,0,'.',',') .'</td>
+                <td>'. number_format($sum_ter,0,'.',',') .'</td>
+                <td>'. number_format($sum_net_income,0,'.',',') .'</td>
+                <td>'. number_format($sum_bpjs_rate,0,'.',',') .'</td>
+                <td>'. number_format($sum_bpjs_kes_rate,0,'.',',') .'</td>
+            </tr>';
+        }
+
+        $html .= '</table><br></br>';
+
+        $html .= '
+            <table id="ttd">
+                <tr>
+                    <th style="width: 62%;" colspan="22"></th>
+                    <th colspan="2" style="width: 10%; border: 1px solid #ddd;">Approval By</th>
+                </tr>
+                <tr>
+                    <th style="width: 62%; style="height: 65px" colspan="22"></th>
+                    <th style="height: 65px; width: 13%; border: 1px solid #ddd;"></th>
+                    <th style="height: 65px; width: 13%; border: 1px solid #ddd;"></th>
+                </tr>
+                <tr>
+                    <th style="width: 62%;" colspan="22"></th>
+                    <th style="width: 10%; border: 1px solid #ddd;">⁠Rendhika Harsono</th>
+                    <th style="width: 10%; border: 1px solid #ddd;">⁠Askara Harsono</th>
+                </tr>
+            </table>
+            ';
+        $html .= '</body></html>';
+        
         echo $html;
     }
 
@@ -2054,7 +2246,9 @@ class Payrolls extends CI_Controller
         $this->db->from('calendars');
         $this->db->where('trans_date >=', $from);
         $this->db->where('trans_date <=', $date_resign);
-        $this->db->where_not_in('trans_date', $weekend_day);
+        if (count($weekend_day) > 0) {
+            $this->db->where_not_in('trans_date', $weekend_day);
+        }
         $calendar = $this->db->get()->result_array();
         $calendar_amount = empty($calendar) ? 0 : count($calendar);
 

@@ -54,6 +54,7 @@
         </div>
     </div>
     <?= $button ?>
+    <a href="javascript:;" class="easyui-linkbutton" data-options="plain:true" onclick="unassigned()"><i class="fa fa-check"></i> Unregister</a>
 </div>
 
 <!-- DIALOG SAVE AND UPDATE -->
@@ -104,6 +105,10 @@
 
         </ul>
     </div>
+</div>
+
+<div id="dlg_unassigned" class="easyui-dialog" title="unassigned employees" data-options="closed: true,modal:true" style="width: 800px; height: 500px; padding:10px;">
+    <table id="dg_unassigned" class="easyui-datagrid" style="width:100%;height:400px"></table>
 </div>
 
 <!-- PDF -->
@@ -374,7 +379,7 @@
         });
 
         $('#filter_employee').combogrid({
-            url: '<?= base_url('employee/employees/reads') ?>',
+            url: '<?= base_url('employee/employees/readEmployeeNotPkl') ?>',
             panelWidth: 450,
             idField: 'id',
             textField: 'name',
@@ -400,4 +405,29 @@
             ],
         });
     });
+
+    function unassigned() {
+        $('#dlg_unassigned').dialog('open');
+        $('#dg_unassigned').datagrid({
+            url: '<?= base_url('employee/banks/unassignedEmployees') ?>',
+            pagination: true,
+            clientPaging: false,
+            remoteFilter: true,
+            rownumbers: true,
+            fit: true,
+            fitColumns: true,
+            pageList: [10, 50, 100, 500, 1000],
+            pageSize: 10,
+            columns: [[
+                {field:'number',title:'ID',width:150},
+                {field:'name',title:'Name',width:200},
+            ]],
+            onLoadSuccess: function() {
+                if ($('#dg_unassigned').datagrid('getPanel').find('.datagrid-filter-row').length === 0) {
+                    $('#dg_unassigned').datagrid('enableFilter');
+                }
+            }
+        });
+
+    }
 </script>

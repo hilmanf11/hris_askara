@@ -371,6 +371,9 @@ class Payrolls extends CI_Controller
             $rate_jp_2025 = 10547400;
             $rate_bpjskes_2025 = 12000000;
 
+            $group_hl_operator = ["20221213000002", "20221213000003"];
+            $is_hl_operator = in_array($record['group_id'], $group_hl_operator);
+
             //ambil data dari variabel filter
             $filter_from = $this->input->get('filter_from');
             $filter_to = $this->input->get('filter_to');
@@ -587,7 +590,7 @@ class Payrolls extends CI_Controller
             $arr_allowance_amount_number = 0;
             $count_allowance_number = 0;
             foreach ($r_allowance as $allowance_data) {
-                if ($is_resign) {
+                if ($is_resign && !$is_hl_operator) {
                     $allowance_data['amount'] = ($allowance_data['amount'] / $hkw) * $masuk;
                 }
                 if ($allowance_data['calculate_days'] == "1") {
@@ -1107,7 +1110,10 @@ class Payrolls extends CI_Controller
                 $netincome += $arr_bpjs_emp_amount_total;
             }
             // Jika resign dan gross up, karena gross up tax allowancenya 0
-            if ($is_resign || $tax_allowance == 0) {
+            // HL Magang Operator tidak dikurangi TER
+            if ($is_resign) {
+                $netincome -= $ter;
+            } elseif ($tax_allowance == 0 && !$is_hl_operator) {
                 $netincome -= $ter;
             }
             $roundup = 500; // digit pembulatan, dalam hal ini ratusan
@@ -1641,6 +1647,15 @@ class Payrolls extends CI_Controller
             ";
         }
 
+        if ($filter_division) {
+            $division = $this->crud->read('divisions', [], ['id' => $filter_division]);
+            $division_name = $division ? $division->name : '';
+            $division_logo = $division ? base_url('assets/image/division/' . $division->logo) : '';
+        } else {
+            $division_name = $config->name;
+            $division_logo = $config->favicon;
+        }
+
         $html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 12px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}#ttd {border-collapse: collapse;width: 100%;font-size: 10px;}#ttd td, #ttd th {padding: 2px;}</style><body>
                 <style> .str{ mso-number-format:\@; } </style>
                 <div style="page-break-after:always;"><center>
@@ -1648,10 +1663,10 @@ class Payrolls extends CI_Controller
                         <table style="width: 100%;">
                             <tr>
                                 <td width="50" style="font-size: 12px; vertical-align: top; text-align: center; vertical-align:jus margin-right:10px;">
-                                    <img src="' . $config->favicon . '" width="30">
+                                    <img src="' . $division_logo . '" width="30">
                                 </td>
                                 <td style="font-size: 14px; text-align: left; margin:2px;">
-                                    <b>' . $config->name . '</b><br>
+                                    <b>' . $division_name . '</b><br>
                                     <small>' . $config->description . '</small>
                                 </td>
                             </tr>
@@ -2085,6 +2100,10 @@ class Payrolls extends CI_Controller
         $this->db->where('employee_id', $employeeId);
         $this->db->where('trans_date >=', $from);
         $this->db->where('trans_date <=', $to);
+        $this->db->group_start()
+            ->where('approved_to IS NULL', null, false)
+            ->or_where('approved_to', '')
+        ->group_end();
         $overtimes = $this->db->get()->result_array();
 
         $this->db->select('
@@ -2287,6 +2306,9 @@ class Payrolls extends CI_Controller
             $rekening = $payroll_bank->account_no;
             $filter_division = $payroll_bank->division_id;
 
+            $master_bank = $this->crud->read('banks', [], ["id" => $payroll_bank->bank_id]);
+            $bank_name = $master_bank->name;
+
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
 
@@ -2304,6 +2326,7 @@ class Payrolls extends CI_Controller
             $this->db->from('payrolls a');
             $this->db->join('employees b', 'a.employee_id = b.id');
             $this->db->join('privilege_groups c', "(b.group_id = c.group_id or b.group_id is null or b.group_id = '') and c.username = '$username' $privilege");
+            $this->db->like('b.bank_name', $bank_name);
             if (isset($this->restrict_user)) {
                 $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'b');
             }

@@ -207,6 +207,8 @@ class Summary_payroll_report extends CI_Controller
                     $this->db->where('employee_id', $data['employee_id']);
                     $resignation = $this->db->get()->row();
 
+                    $is_resign = false;
+                    $filter_to_actual = $finish;
                     if ($resignation && !empty($resignation->resign_date)) {
 
                         // resign sebelum periode → skip
@@ -216,11 +218,18 @@ class Summary_payroll_report extends CI_Controller
 
                         // resign di tengah periode → potong sampai resign_date
                         if ($resignation->resign_date <= $filter_to) {
+                            $is_resign = true;
                             $filter_to = $resignation->resign_date;
                         }
                     }
 
                     $hkw = $this->getHkw($filter_from, $filter_to, $data['days'], $data['number'], $data['employee_id']);
+                    $hkw_text = $hkw['hkw'];
+
+                    if ($is_resign) {
+                        $hkw_resign = $this->getHkwResign($filter_from, $filter_to_actual, $data['days']);
+                        $hkw_text = $hkw_resign['hkw'];
+                    }
 
                     //Overtime
                     $overtime  = $this->computeOvertimes($data['employee_id'], $filter_from, $filter_to);
@@ -242,7 +251,7 @@ class Summary_payroll_report extends CI_Controller
                                 <td>' . $data['position_name'] . '</td>
                                 <td></td>
                                 <td>' . $data['marital_number'] . '</td>
-                                <td>' . $hkw['hkw'] . '</td>
+                                <td>' . $hkw_text . '</td>
                                 <td>' . $hkw['wd'] . '</td>
                                 <td>' . $overtime_weekday . '</td>
                                 <td>' . $overtime_saturday . '</td>
@@ -583,6 +592,65 @@ class Summary_payroll_report extends CI_Controller
         }
 
         return $result;
+    }
+
+    private function getHkwResign($filter_from, $filter_to, $days)
+    {
+        $start = strtotime($filter_from);
+        $finish = strtotime($filter_to);
+
+        //Looping tanggal awal sampai tanggal akhir
+        $weekday = [];
+        $weekday2 = [];
+        $weekend = [];
+        $weekend2 = [];
+
+        for ($i = $start; $i <= $finish; $i += (60 * 60 * 24)) {
+            //Jika tanggal yg di looping bukan hari sabtu dan minggu
+            if (date('w', $i) !== '0' && date('w', $i) !== '6') {
+                //Hari kerja
+                $weekday[] = date('Y-m-d', $i);
+            } else {
+                //Hari libur
+                $weekend[] = date('Y-m-d', $i);
+            }
+
+            if (date('w', $i) !== '0') {
+                //Hari kerja
+                $weekday2[] = date('Y-m-d', $i);
+            } else {
+                //Hari libur
+                $weekend2[] = date('Y-m-d', $i);
+            }
+        }
+
+        if ($days == "6") {
+            $weekend_day = $weekend2;
+            $weekday_day = $weekday2;
+        } else {
+            $weekend_day = $weekend;
+            $weekday_day = $weekday;
+        }
+
+        //Tanggal merah di master calendar
+        $this->db->select('trans_date');
+        $this->db->from('calendars');
+        $this->db->where('trans_date >=', $filter_from);
+        $this->db->where('trans_date <=', $filter_to);
+        $this->db->where('description !=', "Weekend");
+        if (count($weekend_day) > 0) {
+            $this->db->where_not_in('trans_date', $weekend_day);
+        }
+        $calendar = $this->db->get()->result_array();
+        $calendar_amount = empty($calendar) ? 0 : count($calendar);
+        $w_calendars = array();
+        foreach ($calendar as $cal) {
+            $w_calendars[] = $cal['trans_date'];
+        }
+
+        $hkw = (@count($weekday_day) - @$calendar_amount);
+
+        return ['hkw' => $hkw];
     }
 
 

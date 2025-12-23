@@ -65,6 +65,7 @@ class Banks extends CI_Controller
             $this->db->like('division_id', $filter_division);
             $this->db->like('departement_id', $filter_departement);
             $this->db->like('departement_sub_id', $filter_departement_sub);
+            $this->db->where('group_id !=','20221213000006');
             $this->db->order_by('name', 'ASC');
             //Total Data
             $totalRows = $this->db->count_all_results('', false);
@@ -270,5 +271,55 @@ class Banks extends CI_Controller
 
         $html .= '</table></body></html>';
         echo $html;
+    }
+
+    public function unassignedEmployees()
+    {
+        $page   = (int) $this->input->post('page', true) ?: 1;
+        $limit  = (int) $this->input->post('rows', true) ?: 10;
+        $offset = ($page - 1) * $limit;
+
+        $filters = json_decode($this->input->post('filterRules'));
+
+        $data = [];
+
+        $this->db->select("
+            a.number,
+            a.name,
+        ", false);
+
+        $this->db->from('employees a');
+        $this->db->where('a.group_id !=','20221213000006');
+        $this->db->group_start();
+            $this->db->where('a.bank_name IS NULL', null, false);
+            $this->db->or_where('a.bank_name', '');
+            $this->db->or_where('a.bank_name', '-');
+        $this->db->group_end();
+
+
+        if (!empty($filters)) {
+            foreach ($filters as $filter) {
+                if ($filter->field === "number") {
+                    $this->db->like("a.number", $filter->value);
+                } elseif ($filter->field === "name") {
+                    $this->db->like("a.name", $filter->value);
+                }
+            }
+        }
+
+        $rows = $this->db->get()->result_array();
+
+        foreach ($rows as $row) {
+            $data[] = $row;
+        }
+        
+        $total = count($data);
+
+        $pagedData = array_slice($data, $offset, $limit);
+
+        echo json_encode([
+            'total' => $total,
+            'rows'  => $pagedData
+        ]);
     }
 }

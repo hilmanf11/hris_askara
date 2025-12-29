@@ -84,6 +84,7 @@ class Payrolls extends CI_Controller
             $filter_group = $this->input->get('filter_group');
             $filter_status = $this->input->get('filter_status');
             $username = $this->session->username;
+            $filter_group_ex = explode(",", trim($filter_group));
 
             $page   = $this->input->post('page');
             $rows   = $this->input->post('rows');
@@ -142,8 +143,9 @@ class Payrolls extends CI_Controller
             if($filter_employee_type != ""){
                 $this->db->like('b.contract_id', $filter_employee_type);
             }
+
             if($filter_group != ""){
-                $this->db->like('c.group_id', $filter_group);
+                $this->db->where_in('c.group_id', $filter_group_ex);
             }
             
             $this->db->order_by('a.name', 'ASC');
@@ -258,6 +260,7 @@ class Payrolls extends CI_Controller
             $filter_employee = $this->input->get('filter_employee');
             $filter_employee_type = $this->input->get('filter_employee_type');
             $filter_group = $this->input->get('filter_group');
+            $filter_group_ex = explode(",", trim($filter_group));
 
             if($filter_division != ""){
                 $divisions = " AND a.division_id LIKE '%$filter_division%' ";
@@ -290,7 +293,11 @@ class Payrolls extends CI_Controller
             }
 
             if($filter_group != ""){
-                $f_group = " AND a.group_id LIKE '%$filter_group%' ";
+                $filter_group_ex = array_map(function($v) {
+                    return $this->db->escape($v);
+                }, $filter_group_ex);
+
+                $f_group = " AND a.group_id IN (" . implode(',', $filter_group_ex) . ")";
             } else {
                 $f_group = "";
             }
@@ -1240,6 +1247,8 @@ class Payrolls extends CI_Controller
         $period_start = date("Y-m", strtotime($post['filter_from']));
         $period_end = date("Y-m", strtotime($post['filter_to']));
         $username = $this->session->username;
+        $filter_group = $this->input->get('filter_group');
+        $filter_group_ex = explode(",", trim($filter_group));
 
         if ($username == "admin") {
             $privileges = $this->crud->reads('privilege_groups', [], ["username" => $username]);
@@ -1271,7 +1280,7 @@ class Payrolls extends CI_Controller
                 $this->db->where('b.contract_id', $post['filter_employee_type']);
             }
             if ($post['filter_group'] != "") {
-                $this->db->where('b.group_id', $post['filter_group']);
+                $this->db->where_in('b.group_id', $filter_group_ex);
             } else {
                 $this->db->where('b.group_id', $group_id);
             }
@@ -1309,6 +1318,7 @@ class Payrolls extends CI_Controller
         $filter_group = $this->input->get('filter_group');
         $filter_status = $this->input->get('filter_status');
         $username = $this->session->username;
+        $filter_group_ex = explode(",", trim($filter_group));
 
         $period_start = date("Y-m", strtotime($filter_from));
         $period_end = date("Y-m", strtotime($filter_to));
@@ -1327,6 +1337,16 @@ class Payrolls extends CI_Controller
             $privileges = "AND c.status = '1'";
         }
 
+        if($filter_group != ""){
+            $filter_group_ex = array_map(function($v) {
+                return $this->db->escape($v);
+            }, $filter_group_ex);
+
+            $where_group = "AND b.group_id IN (" . implode(',', $filter_group_ex) . ")";
+        } else {
+            $where_group = "";
+        }
+
         $query = $this->db->query("SELECT a.*, b.national_id, d.name as source_name, e.employee_id as status_resign, g.number as account_no FROM payrolls a
             JOIN employees b on a.employee_id = b.id
             LEFT JOIN sources d on b.source_id = d.id
@@ -1341,7 +1361,7 @@ class Payrolls extends CI_Controller
             AND b.departement_sub_id LIKE '%$filter_departement_sub%'
             AND a.employee_id LIKE '%$filter_employee%'
             AND b.contract_id LIKE '%$filter_employee_type%'
-            AND b.group_id LIKE '%$filter_group%'
+            $where_group
             GROUP BY a.employee_id
             ORDER BY a.name ASC");
         $records = $query->result_array();
@@ -1581,6 +1601,7 @@ class Payrolls extends CI_Controller
         $filter_group = $this->input->get('filter_group');
         $filter_status = $this->input->get('filter_status');
         $username = $this->session->username;
+        $filter_group_ex = explode(",", trim($filter_group));
 
         $period_start = date("Y-m", strtotime($filter_from));
         $period_end = date("Y-m", strtotime($filter_to));
@@ -1597,6 +1618,16 @@ class Payrolls extends CI_Controller
             $privileges = "";
         } else {
             $privileges = "AND c.status = '1'";
+        }
+
+        if($filter_group != ""){
+            $filter_group_ex = array_map(function($v) {
+                return $this->db->escape($v);
+            }, $filter_group_ex);
+
+            $where_group = "AND b.group_id IN (" . implode(',', $filter_group_ex) . ")";
+        } else {
+            $where_group = "";
         }
 
         $query = $this->db->query("SELECT a.*, b.national_id, d.name as source_name, e.employee_id as status_resign, g.number as account_no,
@@ -1616,7 +1647,7 @@ class Payrolls extends CI_Controller
             AND b.departement_sub_id LIKE '%$filter_departement_sub%'
             AND a.employee_id LIKE '%$filter_employee%'
             AND b.contract_id LIKE '%$filter_employee_type%'
-            AND b.group_id LIKE '%$filter_group%'
+            $where_group
             GROUP BY a.employee_id
             ORDER BY a.name ASC");
         $records = $query->result_array();
@@ -2301,6 +2332,7 @@ class Payrolls extends CI_Controller
             $filter_status = $this->input->get('filter_status');
             $payroll_bank_id = $this->input->get('payroll_bank_id');
             $username = $this->session->username;
+            $filter_group_ex = explode(",", trim($filter_group));
 
             $payroll_bank = $this->crud->read('payroll_bank', [], ["id" => $payroll_bank_id]);
             $rekening = $payroll_bank->account_no;
@@ -2312,7 +2344,7 @@ class Payrolls extends CI_Controller
             $period_start = date("Y-m", strtotime($filter_from));
             $period_end = date("Y-m", strtotime($filter_to));
 
-            $periode = date("Ymd", strtotime($filter_to));
+            $today = date("Ymd");
             
             $bulan_payroll = strtoupper(date('My', strtotime($filter_to)));
             $bulan_payroll = 'PAYROLL '.$bulan_payroll;
@@ -2360,7 +2392,7 @@ class Payrolls extends CI_Controller
                 $this->db->like('b.contract_id', $filter_employee_type);
             }
             if($filter_group != ""){
-                $this->db->like('c.group_id', $filter_group);
+                $this->db->where_in('c.group_id', $filter_group_ex);
             }
             
             $this->db->order_by('a.name', 'ASC');
@@ -2405,7 +2437,7 @@ class Payrolls extends CI_Controller
                 $total_income += $record['net_income'];
             }
             fputcsv($output, array(
-                "P",$periode, $rekening, $totalRows, $total_income
+                "P",$today, $rekening, $totalRows, $total_income
             ));
             foreach ($arr_final as $row) {
                 fputcsv($output, $row);

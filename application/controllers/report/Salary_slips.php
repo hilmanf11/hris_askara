@@ -4,6 +4,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Salary_slips extends CI_Controller
 {
+    protected $restrict_user;
     public function __construct()
     {
         parent::__construct();
@@ -13,6 +14,9 @@ class Salary_slips extends CI_Controller
         $this->load->library('session');
         $this->load->model('crud');
         $this->load->model('emails');
+        $this->load->model('accessmodule');
+
+        $this->restrict_user = $this->accessmodule->restrictSelf();
     }
 
     //HALAMAN UTAMA
@@ -47,11 +51,18 @@ class Salary_slips extends CI_Controller
             $period_end = date("Y-m", strtotime($filter_to));
 
             $username = $this->session->username;
-            if ($username == "admin") {
-                $privilege = "";
-            } else {
-                $privilege = " and f.status = '1'";
-            }
+
+            $allowed_groups = $this->db
+                ->select('group_id')
+                ->from('privilege_groups')
+                ->where('username', $username)
+                ->where('status', 1)
+                ->get()
+                ->result_array();
+
+            $allowed_group_ids = array_column($allowed_groups, 'group_id');
+
+
 
             //Select Query
             $this->db->select('
@@ -72,11 +83,30 @@ class Salary_slips extends CI_Controller
             $this->db->join('departements c', "b.departement_id = c.id");
             $this->db->join('departement_subs d', "b.departement_sub_id = d.id");
             $this->db->join('groups e', "b.group_id = e.id");
-            $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' $privilege");
+            if ($username !== 'admin' && !empty($allowed_group_ids)) {
+                $this->db->join(
+                    'privilege_groups f',
+                    "b.group_id = f.group_id
+                    AND f.username = '$username'
+                    AND f.status = 1",
+                    'left'
+                );
+            }
             $this->db->where('a.deleted', 0);
+            if ($username !== 'admin' && !empty($allowed_group_ids)) {
+                $this->db->group_start();
+                    // whitelist group
+                    $this->db->where_in('b.group_id', $allowed_group_ids);
+
+                    $this->db->or_where('b.number', $this->session->userdata()['number']);
+                $this->db->group_end();
+            }
             $this->db->where('a.is_publish', $filter_is_publish);
             $this->db->where('a.period_start =', $period_start);
             $this->db->where('a.period_end =', $period_end);
+            if (isset($this->restrict_user)) {
+                $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'b');
+            }
             $this->db->like('b.id', $filter_employee);
             $this->db->like('b.division_id', $filter_division);
             $this->db->like('b.departement_id', $filter_departement);
@@ -113,14 +143,19 @@ class Salary_slips extends CI_Controller
             } else {
                 $privilege = " and e.status = '1'";
             }
+            $restrictionSQL = '';
+            if (isset($this->restrict_user)) {
+                $restrictionSQL = $this->accessmodule->getEmployeeRestrictionSQL($this->restrict_user, 'b');
+            }
 
             $query = $this->db->query("SELECT a.*, b.bank_branch, b.bank_no, b.national_id, b.tax_id, i.name as marital_name, b.email, d.ter as ter_persentase
             FROM payrolls a
             JOIN employees b ON a.employee_id = b.id
-            JOIN privilege_groups e ON b.group_id = e.group_id and e.username = '$username' $privilege
+            LEFT JOIN privilege_groups e ON b.group_id = e.group_id and e.username = '$username' $privilege
             LEFT JOIN marital_categories d ON a.ter_number = d.number
             LEFT JOIN maritals i ON a.marital = i.number
             WHERE a.period_start = '$period_start'
+            $restrictionSQL
             AND a.period_end = '$period_end'
             AND b.division_id LIKE '%$filter_division%'
             AND b.departement_id LIKE '%$filter_departement%'
@@ -498,13 +533,18 @@ class Salary_slips extends CI_Controller
                 $privilege = " and f.status = '1'";
             }
 
+            $restrictionSQL = '';
+            if (isset($this->restrict_user)) {
+                $restrictionSQL = $this->accessmodule->getEmployeeRestrictionSQL($this->restrict_user, 'b');
+            }
             $query = $this->db->query("SELECT a.*, b.bank_branch, b.bank_no, b.national_id, b.tax_id, i.name as marital_name, b.email, d.ter as ter_persentase
             FROM payrolls a
             JOIN employees b ON a.employee_id = b.id
-            JOIN privilege_groups e ON b.group_id = e.group_id and e.username = '$username' $privilege
+            LEFT JOIN privilege_groups e ON b.group_id = e.group_id and e.username = '$username' $privilege
             LEFT JOIN marital_categories d ON a.ter_number = d.number
             LEFT JOIN maritals i ON a.marital = i.number
             WHERE a.period_start = '$period_start'
+            $restrictionSQL
             AND a.period_end = '$period_end'
             AND a.is_publish = '$filter_is_publish'
             AND b.division_id LIKE '%$filter_division%'
@@ -898,8 +938,11 @@ class Salary_slips extends CI_Controller
             $this->db->join('departements c', "b.departement_id = c.id");
             $this->db->join('departement_subs d', "b.departement_sub_id = d.id");
             $this->db->join('groups e', "b.group_id = e.id");
-            $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' $privilege");
+            $this->db->join('privilege_groups f', "(b.group_id = f.group_id or b.group_id is null or b.group_id = '') and f.username = '$username' $privilege", 'left');
             $this->db->where('a.deleted', 0);
+            if (isset($this->restrict_user)) {
+                $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'b');
+            }
             $this->db->where('a.period_start =', $period_start);
             $this->db->where('a.period_end =', $period_end);
             $this->db->like('b.id', $filter_employee);
@@ -941,8 +984,11 @@ class Salary_slips extends CI_Controller
                 $this->db->join('departements c', "b.departement_id = c.id");
                 $this->db->join('departement_subs d', "b.departement_sub_id = d.id");
                 $this->db->join('groups e', "b.group_id = e.id");
-                $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' $privilege");
+                $this->db->join('privilege_groups f', "b.group_id = f.group_id and f.username = '$username' $privilege", 'left');
                 $this->db->where('a.deleted', 0);
+                if (isset($this->restrict_user)) {
+                    $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'b');
+                }
                 $this->db->where('a.period_start =', $period_start);
                 $this->db->where('a.period_end =', $period_end);
                 $this->db->like('b.id', $filter_employee);
@@ -1064,6 +1110,23 @@ class Salary_slips extends CI_Controller
         $total_attandace['5']['weekday'] -= $count_national_day;
         $total_attandace['6']['weekday'] -= $count_national_day;
 
+        $username = $this->session->username;
+        if ($username == "admin") {
+            $privilege = "";
+        } else {
+            $privilege = " and k.status = '1'";
+        }
+
+        $allowed_groups = $this->db
+            ->select('group_id')
+            ->from('privilege_groups')
+            ->where('username', $username)
+            ->where('status', 1)
+            ->get()
+            ->result_array();
+
+        $allowed_group_ids = array_column($allowed_groups, 'group_id');
+
         $this->db->distinct()->select(
             "COALESCE(TRIM(b.logo), '') AS logo,".
             "COALESCE(TRIM(b.name), '') AS division,".
@@ -1076,6 +1139,7 @@ class Salary_slips extends CI_Controller
             "TRIM(a.tax_id) AS npwp,".
             "COALESCE(TRIM(g.salary), '') AS salary,".
             "COALESCE(g.ter, 0) AS pph21,".
+            "COALESCE(g.net_income, 0) AS thp,".
             "CASE WHEN COALESCE(g.ter, 0) < 0 OR COALESCE(g.tax_allowance, 0) = 0 THEN 0 ELSE COALESCE(g.ter, 0) END AS tax,".
             "COALESCE(TRIM(g.allowence), '') AS allowance,".
             "COALESCE(TRIM(g.overtime_amount_weekday), '') AS weekday,".
@@ -1083,7 +1147,7 @@ class Salary_slips extends CI_Controller
             "COALESCE(TRIM(g.overtime_amount_sunday), '') AS sunday,".
             "COALESCE(TRIM(g.overtime_amount_holiday), '') AS holiday,".
             "COALESCE(TRIM(g.bpjs_employee), '') AS bpjs_employee,".
-            "COALESCE(TRIM(g.deduction_absence_amount), '') AS deduction,".
+            "COALESCE(TRIM(g.total_all_deduction), '') AS deduction,".
             "COALESCE(TRIM(h.bpjs), '') AS bpjs,".
             "COALESCE(TRIM(g.bpjs_company), '') AS bpjs_company,".
             "COALESCE(TRIM(g.attandance_wd), '') AS workingday,".
@@ -1100,8 +1164,28 @@ class Salary_slips extends CI_Controller
             ->join("payrolls g", "a.id = g.employee_id", "left")
             ->join("setup_salaries h", "a.id = h.employee_id", "left")
             ->join("shift_employees i", "a.id = i.employee_id", "left")
-            ->join("shift_details j", "i.shift_id = j.shift_id", "left")
-        ->where("g.period_start", $period_from)->where("g.period_end", $period_to)->where("a.division_id", $division)->where("g.is_publish", $filter_is_publish);
+            ->join("shift_details j", "i.shift_id = j.shift_id", "left");
+        if ($username !== 'admin' && !empty($allowed_group_ids)) {
+            $this->db->join(
+                'privilege_groups k',
+                "a.group_id = k.group_id
+                AND k.username = '$username'
+                AND k.status = 1",
+                'left'
+            );
+        }
+        if ($username !== 'admin' && !empty($allowed_group_ids)) {
+            $this->db->group_start();
+                // whitelist group
+                $this->db->where_in('a.group_id', $allowed_group_ids);
+
+                $this->db->or_where('a.number', $this->session->userdata()['number']);
+            $this->db->group_end();
+        }
+        $this->db->where("g.period_start", $period_from)->where("g.period_end", $period_to)->where("a.division_id", $division)->where("g.is_publish", $filter_is_publish);
+        if (isset($this->restrict_user)) {
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'a');
+        }
         if (!empty($departement)) { $this->db->where("a.departement_id", $departement); }
         if (!empty($departement_sub)) { $this->db->where("a.departement_sub_id", $departement_sub); }
         if (!empty($employee)) { $this->db->where("a.id", $employee); }
@@ -1134,7 +1218,7 @@ class Salary_slips extends CI_Controller
         // die($this->db->last_query());
         // die(var_dump($attandances));
 
-        $this->db->distinct()->select("TRIM(employee_id) AS id, SUM(break_hour + duration_hour) AS total")->from("overtimes")
+        $this->db->distinct()->select("TRIM(employee_id) AS id, SUM(duration_hour) AS total")->from("overtimes")
         ->where_in("employee_id", array_keys($overtimes))->where("trans_date BETWEEN '$date_from' AND '$date_to'", NULL, FALSE)
         ->group_by("employee_id")->order_by("id");
         foreach ($this->db->get()->result() as $key => $row) { $overtimes[$row->id] = intval($row->total); }
@@ -1252,7 +1336,7 @@ class Salary_slips extends CI_Controller
             $pph21 = number_format($pph21, 0, ',', '.');
             $total_deduction = number_format($sum_deduction, 0, ',', '.');
 
-            $total_home_pay = number_format(($sum_earnings - $sum_deduction), 0, ',', '.');
+            $total_home_pay = number_format(($row->thp), 0, ',', '.');
 
             $bpjs = floatval($row->bpjs);
             $jkk_emp = floatval($bpjs_employee->jkk_employee ?? 0);
@@ -1310,7 +1394,7 @@ class Salary_slips extends CI_Controller
                             <tr><td>Basic Salary</td><td class="value">$salary</td></tr>
                             $div_tt
                             <tr><td>Tax Allowance</td><td class="value">$tax</td></tr>
-                            <tr><td>Overtime (15h)</td><td class="value">$overtime</td></tr>
+                            <tr><td>Overtime ($overtime_hour)</td><td class="value">$overtime</td></tr>
                             <tr><td></td><td class="value">&nbsp;</td></tr>
                             $div_space
                             </tbody>

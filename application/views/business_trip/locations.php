@@ -4,7 +4,7 @@
         <tr>
             <th rowspan="2" field="ck" checkbox="true"></th>
             <th rowspan="2" data-options="field:'division_name',halign:'center',width:200">Lokasi</th>
-            <th rowspan="2" data-options="field:'name',width:200,halign:'center'">Area</th>
+            <th rowspan="2" data-options="field:'area_name',width:200,halign:'center'">Area</th>
             <th rowspan="2" data-options="field:'group_type',width:200,halign:'center'">Status</th>
             <th rowspan="2" data-options="field:'description',width:150,halign:'center'">Description</th>
             <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
@@ -34,7 +34,7 @@
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Area</span>
-                <input style="width:60%;" name="name" class="easyui-textbox">
+                <input style="width:60%;" name="area_id" id="area_id" required="" class="easyui-combobox">
             </div>
             <div class="fitem">
                 <span style="width:35%; display:inline-block;">Status</span>
@@ -163,6 +163,19 @@
         //Get Division
         $('#division_id').combobox({
             url: '<?= base_url('employee/divisions/reads') ?>',
+            valueField: 'id',
+            textField: 'name',
+            prompt: 'Choose Location',
+            icons: [{
+                iconCls: 'icon-clear',
+                handler: function(e) {
+                    $(e.data.target).combobox('clear').combobox('textbox').focus();
+                }
+            }],
+        });
+
+        $('#area_id').combobox({
+            url: '<?= base_url('business_trip/areas/reads') ?>',
             valueField: 'id',
             textField: 'name',
             prompt: 'Choose Location',

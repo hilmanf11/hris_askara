@@ -40,11 +40,9 @@ class Expense_specifications extends CI_Controller
         $division_id = $this->input->get('division_id') ? $this->input->get('division_id') : "";
 
         $this->db->select('a.*');
-        $this->db->from('locations a');
-        $this->db->like('a.name', $post);
-        $this->db->like('a.division_id', $division_id);
+        $this->db->from('expense_specifications a');
 
-        $this->db->order_by('a.name', 'asc');
+        $this->db->order_by('a.start_date', 'asc');
         $send = $this->db->get()->result_array();
         echo json_encode($send);
     }
@@ -64,13 +62,13 @@ class Expense_specifications extends CI_Controller
             a.*,
 
             c.name AS category_name,
-            l.name AS location_name,
+            ar.name AS area_name,
 
         ");
 
         $this->db->from('expense_specifications a');
         $this->db->join('expense_categories c', 'c.id = a.expense_category_id', 'left');
-        $this->db->join('locations l', 'l.id = a.location_id', 'left');
+        $this->db->join('areas ar', 'ar.id = a.area_id', 'left');
 
         $this->db->where('a.deleted', 0);
 
@@ -82,8 +80,8 @@ class Expense_specifications extends CI_Controller
                             $this->db->like('c.name', $filter->value);
                             break;
 
-                        case 'location_name':
-                            $this->db->like('l.name', $filter->value);
+                        case 'area_name':
+                            $this->db->like('ar.name', $filter->value);
                             break;
 
                         default:
@@ -96,7 +94,7 @@ class Expense_specifications extends CI_Controller
 
         $this->db->order_by('a.start_date', 'DESC');
         $this->db->order_by('c.name', 'ASC');
-        $this->db->order_by('l.name', 'ASC');
+        $this->db->order_by('ar.name', 'ASC');
 
         $totalRows = $this->db->count_all_results('', false);
 
@@ -167,13 +165,13 @@ class Expense_specifications extends CI_Controller
             a.*,
 
             c.name AS category_name,
-            l.name AS location_name,
+            l.name AS area_name,
 
         ");
 
         $this->db->from('expense_specifications a');
         $this->db->join('expense_categories c', 'c.id = a.expense_category_id', 'left');
-        $this->db->join('locations l', 'l.id = a.location_id', 'left');
+        $this->db->join('areas l', 'l.id = a.area_id', 'left');
         $this->db->where('a.deleted', 0);
         $this->db->order_by('a.start_date', 'DESC');
         $this->db->order_by('c.name', 'ASC');
@@ -211,7 +209,8 @@ class Expense_specifications extends CI_Controller
                 <th>Name Category</th>
                 <th>Lokasi</th>
                 <th>Director</th>
-                <th>Asst. Manager & Up</th>
+                <th>Asst. Manager</th>
+                <th>Manager</th>
                 <th>Leader</th>
                 <th>Staff</th>
                 <th>Operator</th>
@@ -225,9 +224,10 @@ class Expense_specifications extends CI_Controller
                     <td>' . $data['start_date'] . '</td>
                     <td>' . $data['valid_date'] . '</td>
                     <td>' . $data['category_name'] . '</td>
-                    <td>' . $data['location_name'] . '</td>
+                    <td>' . $data['area_name'] . '</td>
                     <td>' . $data['director_amount'] . '</td>
                     <td>' . $data['asst_manager_amount'] . '</td>
+                    <td>' . $data['manager_amount'] . '</td>
                     <td>' . $data['leader_amount'] . '</td>
                     <td>' . $data['staff_amount'] . '</td>
                     <td>' . $data['operator_amount'] . '</td>

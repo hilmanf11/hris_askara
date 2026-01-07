@@ -7,9 +7,10 @@
       <th rowspan="2" data-options="field:'start_date',width:200,halign:'center'">Start Date</th>
       <th rowspan="2" data-options="field:'valid_date',width:120,halign:'center',align:'center'">Valid Until</th>
       <th rowspan="2" data-options="field:'category_name',width:150,halign:'center'">Expense Category</th>
-      <th rowspan="2" data-options="field:'location_name',width:150,halign:'center'">Location</th>
+      <th rowspan="2" data-options="field:'area_name',width:150,halign:'center'">Location</th>
       <th rowspan="2" data-options="field:'director_amount',width:120,align:'right'">Director</th>
-      <th rowspan="2" data-options="field:'asst_manager_amount',width:150,align:'right'">Asst. Manager & Up</th>
+      <th rowspan="2" data-options="field:'asst_manager_amount',width:150,align:'right'">Asst. Manager</th>
+      <th rowspan="2" data-options="field:'manager_amount',width:150,align:'right'">Manager</th>
       <th rowspan="2" data-options="field:'leader_amount',width:120,align:'right'">Leader</th>
       <th rowspan="2" data-options="field:'staff_amount',width:120,align:'right'">Staff</th>
       <th rowspan="2" data-options="field:'operator_amount',width:120,align:'right'">Operator</th>
@@ -52,16 +53,20 @@
         <input style="width:60%;" name="expense_category_id" id="expense_category_id" required="" class="easyui-combobox">
       </div>
       <div class="fitem">
-        <span style="width:35%; display:inline-block;">Location</span>
-        <input style="width:60%;" name="location_id" id="location_id" required="" class="easyui-combogrid">
+        <span style="width:35%; display:inline-block;">Area</span>
+        <input style="width:60%;" name="area_id" id="area_id" required="" class="easyui-combobox">
       </div>
       <div class="fitem">
         <span style="width:35%; display:inline-block;">Director</span>
         <input style="width:60%;" name="director_amount" id="director_amount" data-options="buttonText:'Rp', buttonAlign:'left'" class="easyui-numberbox">
       </div>
       <div class="fitem">
-        <span style="width:35%; display:inline-block;">Asst. Manager & Up</span>
+        <span style="width:35%; display:inline-block;">Asst. Manager</span>
         <input style="width:60%;" name="asst_manager_amount" id="asst_manager_amount" data-options="buttonText:'Rp', buttonAlign:'left'" class="easyui-numberbox">
+      </div>
+      <div class="fitem">
+        <span style="width:35%; display:inline-block;">Manager</span>
+        <input style="width:60%;" name="manager_amount" id="manager_amount" data-options="buttonText:'Rp', buttonAlign:'left'" class="easyui-numberbox">
       </div>
       <div class="fitem">
         <span style="width:35%; display:inline-block;">Leader</span>
@@ -205,26 +210,19 @@
       }],
     });
 
-    $('#location_id').combogrid({
-        url: '<?= base_url('business_trip/locations/reads') ?>',
-        panelWidth: 420,
-        idField: 'id',
-        textField: 'name',
-        mode: 'remote',
-        fitColumns: true,
-        prompt: "Choose Location",
-        columns: [
-            [{
-                field: 'division_name',
-                title: 'Lokasi',
-                width: 200
-            }, {
-                field: 'name',
-                title: 'Area',
-                width: 200
-            }, ]
-        ]
+    $('#area_id').combobox({
+      url: '<?= base_url('business_trip/areas/reads') ?>',
+      valueField: 'id',
+      textField: 'name',
+      prompt: 'Choose Area',
+      icons: [{
+        iconCls: 'icon-clear',
+        handler: function(e) {
+          $(e.data.target).combobox('clear').combobox('textbox').focus();
+        }
+      }],
     });
+
   });
 
   //Format Datepicker

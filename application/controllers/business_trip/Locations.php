@@ -38,12 +38,15 @@ class Locations extends CI_Controller
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
         $division_id = $this->input->get('division_id') ? $this->input->get('division_id') : "";
+        $area_id = $this->input->get('area_id') ? $this->input->get('area_id') : "";
 
-        $this->db->select('a.*, b.name as division_name');
+        $this->db->select('a.*, b.name as division_name, c.name as area_name');
         $this->db->from('locations a');
         $this->db->join('divisions b', 'a.division_id = b.id');
+        $this->db->join('areas c', 'a.area_id = c.id');
         $this->db->like('a.name', $post);
         $this->db->like('a.division_id', $division_id);
+        $this->db->like('a.area_id', $area_id);
         
         $this->db->order_by('a.name', 'asc');
         $send = $this->db->get()->result_array();
@@ -62,9 +65,10 @@ class Locations extends CI_Controller
         $offset = ($page - 1) * $rows;
         $result = array();
         //Select Query
-        $this->db->select('a.*, b.name as division_name');
+        $this->db->select('a.*, b.name as division_name, c.name as area_name');
         $this->db->from('locations a');
         $this->db->join('divisions b', 'a.division_id = b.id');
+        $this->db->join('areas c', 'a.area_id = c.id', 'left');
         $this->db->where('a.deleted', 0);
         if (@count($filters) > 0) {
             foreach ($filters as $filter) {
@@ -72,6 +76,7 @@ class Locations extends CI_Controller
             }
         }
         $this->db->order_by('b.name', 'ASC');
+        $this->db->order_by('c.name', 'ASC');
         $this->db->order_by('a.number', 'ASC');
         //Total Data
         $totalRows = $this->db->count_all_results('', false);
@@ -133,9 +138,10 @@ class Locations extends CI_Controller
         $this->db->from('config');
         $config = $this->db->get()->row();
 
-        $this->db->select('a.*, b.name as division_name');
+        $this->db->select('a.*, b.name as division_name, c.name as area_name');
         $this->db->from('locations a');
         $this->db->join('divisions b', 'a.division_id = b.id');
+        $this->db->join('areas c', 'a.area_id = c.id', 'left');
         $this->db->where('a.deleted', 0);
         $this->db->order_by('b.name', 'ASC');
         $this->db->order_by('a.number', 'ASC');
@@ -176,7 +182,7 @@ class Locations extends CI_Controller
             $html .= '<tr>
                     <td>' . $no . '</td>
                     <td>' . $data['division_name'] . '</td>
-                    <td>' . $data['name'] . '</td>
+                    <td>' . $data['area_name'] . '</td>
                     <td>' . $data['group_type'] . '</td>
                     <td>' . $data['description'] . '</td>';
             $no++;

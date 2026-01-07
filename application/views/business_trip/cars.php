@@ -5,6 +5,7 @@
       <th rowspan="2" field="ck" checkbox="true"></th>
       <th rowspan="2" data-options="field:'number',halign:'center',width:200">Plat No</th>
       <th rowspan="2" data-options="field:'location_name',width:150,halign:'center'">Location</th>
+      <th rowspan="2" data-options="field:'type',width:150,halign:'center'">Type</th>
       <th rowspan="2" data-options="field:'description',width:150,halign:'center'">Description</th>
       <th colspan="2" data-options="field:'',width:100,halign:'center'"> Created</th>
       <th colspan="2" data-options="field:'',width:100,halign:'center'"> Updated</th>
@@ -33,7 +34,14 @@
       </div>
       <div class="fitem">
         <span style="width:35%; display:inline-block;">Location</span>
-        <input style="width:60%;" name="location_id" id="location_id" required="" class="easyui-combobox">
+        <input style="width:60%;" name="area_id" id="area_id" required="" class="easyui-combobox">
+      </div>
+      <div class="fitem">
+          <span style="width:35%; display:inline-block;">Type</span>
+          <select style="width:60%;" name="type" required="" panelHeight="auto" class="easyui-combobox">
+              <option value="OPERATIONAL">OPERATIONAL</option>
+              <option value="DELIVERY">DELIVERY</option>
+          </select>
       </div>
       <div class="fitem">
         <span style="width:35%; display:inline-block;">Description</span>
@@ -152,8 +160,8 @@
       }]
     });
 
-    $('#location_id').combobox({
-      url: '<?= base_url('business_trip/locations/reads') ?>',
+    $('#area_id').combobox({
+      url: '<?= base_url('business_trip/areas/reads') ?>',
       valueField: 'id',
       textField: 'name',
       prompt: 'Choose Location',

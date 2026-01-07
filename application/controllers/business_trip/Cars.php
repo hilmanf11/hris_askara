@@ -37,12 +37,12 @@ class Cars extends CI_Controller
     public function reads()
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
-        $location_id = $this->input->get('location_id') ? $this->input->get('location_id') : "";
+        $area_id = $this->input->get('area_id') ? $this->input->get('area_id') : "";
 
         $this->db->select('a.*');
         $this->db->from('cars a');
         $this->db->like('a.name', $post);
-        $this->db->like('a.location_id', $location_id);
+        $this->db->like('a.area_id', $area_id);
 
         $this->db->order_by('a.name', 'asc');
         $send = $this->db->get()->result_array();
@@ -66,7 +66,7 @@ class Cars extends CI_Controller
         ");
 
         $this->db->from('cars a');
-        $this->db->join('locations l', 'l.id = a.location_id', 'left');
+        $this->db->join('areas l', 'l.id = a.area_id', 'left');
 
         $this->db->where('a.deleted', 0);
 
@@ -160,7 +160,7 @@ class Cars extends CI_Controller
         ");
 
         $this->db->from('cars a');
-        $this->db->join('locations l', 'l.id = a.location_id', 'left');
+        $this->db->join('areas l', 'l.id = a.area_id', 'left');
 
         $this->db->where('a.deleted', 0);
 

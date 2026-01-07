@@ -60,7 +60,7 @@ class Employees extends CI_Controller
 
     public function readFulls()
     {
-        $this->db->select('a.name, a.national_id as nik, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.name as position_name, a.email, a.mobile_phone');
+        $this->db->select('a.name, a.national_id as nik, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.name as position_name, a.email, a.mobile_phone, a.number as id');
         $this->db->from('employees a');
         $this->db->join('divisions c', 'a.division_id = c.id');
         $this->db->join('departements d', 'a.departement_id = d.id');

@@ -152,7 +152,7 @@ class Expense_specifications extends CI_Controller
         if ($option == "excel") {
             $format  = date("Ymd");
             header("Content-type: application/vnd-ms-excel");
-            header("Content-Disposition: attachment; filename=locations_$format.xls");
+            header("Content-Disposition: attachment; filename=expense_specifications_$format.xls");
         }
 
 
@@ -225,12 +225,12 @@ class Expense_specifications extends CI_Controller
                     <td>' . $data['valid_date'] . '</td>
                     <td>' . $data['category_name'] . '</td>
                     <td>' . $data['area_name'] . '</td>
-                    <td>' . $data['director_amount'] . '</td>
-                    <td>' . $data['asst_manager_amount'] . '</td>
-                    <td>' . $data['manager_amount'] . '</td>
-                    <td>' . $data['leader_amount'] . '</td>
-                    <td>' . $data['staff_amount'] . '</td>
-                    <td>' . $data['operator_amount'] . '</td>
+                    <td style="text-align:right;">' . $this->formatAmount($data['director_amount']) . '</td>
+                    <td style="text-align:right;">' . $this->formatAmount($data['manager_amount']) . '</td>
+                    <td style="text-align:right;">' . $this->formatAmount($data['asst_manager_amount']) . '</td>
+                    <td style="text-align:right;">' . $this->formatAmount($data['leader_amount']) . '</td>
+                    <td style="text-align:right;">' . $this->formatAmount($data['staff_amount']) . '</td>
+                    <td style="text-align:right;">' . $this->formatAmount($data['operator_amount']) . '</td>
                     <td>' . $data['description'] . '</td>';
             $no++;
         }
@@ -238,4 +238,13 @@ class Expense_specifications extends CI_Controller
         $html .= '</table></body></html>';
         echo $html;
     }
+
+    function formatAmount($value)
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+        return number_format((float)$value, 2, '.', ',');
+    }
+
 }

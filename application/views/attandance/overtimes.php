@@ -129,6 +129,10 @@
                 <span style="width:30%; display:inline-block;">Meal</span>
                 <input type="checkbox" id="meal" name="meal" data-options="on:1,off:0" value="1">
             </div>
+            <div class="fitem" hidden>
+                <span style="width:30%; display:inline-block;">Plan Duration <small style="color:red;">(hour)</small></span>
+                <input style="width:60%;" name="plan_duration_hour" required id="plan_duration_hour" class="easyui-numberbox">
+            </div>
             <div class="fitem">
                 <span style="width:30%; display:inline-block;">Duration <small style="color:red;">(hour)</small></span>
                 <input style="width:60%;" name="duration_hour" required id="duration_hour" class="easyui-numberbox">
@@ -734,29 +738,60 @@
         const transDate = $('#trans_date').datebox('getValue');
         const startTime = $('#start').val();
         const endTime = $('#end').val();
+        const employeeId = $('#employee_id').combogrid('getValue');
 
-        if (transDate && startTime && endTime) {
-            const timeBegin = new Date(`${transDate}T${startTime}`);
-            const timeEnd = new Date(`${transDate}T${endTime}`);
+        if (transDate && employeeId && !isZeroTime(startTime) && !isZeroTime(endTime)) {
+            $.ajax({
+                url: '<?php echo base_url('attandance/overtimes/overtimeSummary'); ?>',
+                method: 'POST',
+                data: {
+                    trans_date: transDate,
+                    employee_id: employeeId,
+                    start: startTime,
+                    end: endTime
+                },
+                dataType: 'json',
+                success: function(response) {
+                    $('#break_hour').numberbox('setValue', response.breaks);
+                    $('#duration_hour').numberbox('setValue', response.actual);
+                    $('#plan_duration_hour').numberbox('setValue', response.plan);
 
-            // Calculate the difference in hours
-            const diffInMilliseconds = timeEnd - timeBegin;
-            let durationInHours = Math.floor(diffInMilliseconds / (1000 * 60 * 60)); // Convert to hours
-
-            if (!isNaN(durationInHours)) {
-                let break_hour = 0;
-                if (change_break) {
-                    break_hour = $('#break_hour').numberbox('getValue');
-                } else {
-                    if (durationInHours >= 5) {
-                        break_hour = Math.floor(durationInHours / 5);
-                    }
-                    $('#break_hour').numberbox('setValue', break_hour);
+                    // if (response.start && response.end) {
+                    //     $('#start').maskedbox('setValue', response.start);
+                    //     $('#end').maskedbox('setValue', response.end);
+                    // } else {
+                    //     toastr.warning(response.message, "Information");
+                    // }
+                },
+                error: function(xhr, status, error) {
+                    // $('#start').maskedbox('setValue', '00:00:00');
+                    // $('#end').maskedbox('setValue', '00:00:00');
                 }
-                durationInHours = durationInHours - break_hour;
-                $('#duration_hour').numberbox('setValue', durationInHours);
-            }
+            });
         }
+
+        // if (transDate && startTime && endTime) {
+        //     const timeBegin = new Date(`${transDate}T${startTime}`);
+        //     const timeEnd = new Date(`${transDate}T${endTime}`);
+
+        //     // Calculate the difference in hours
+        //     const diffInMilliseconds = timeEnd - timeBegin;
+        //     let durationInHours = Math.floor(diffInMilliseconds / (1000 * 60 * 60)); // Convert to hours
+
+        //     if (!isNaN(durationInHours)) {
+        //         let break_hour = 0;
+        //         if (change_break) {
+        //             break_hour = $('#break_hour').numberbox('getValue');
+        //         } else {
+        //             if (durationInHours >= 5) {
+        //                 break_hour = Math.floor(durationInHours / 5);
+        //             }
+        //             $('#break_hour').numberbox('setValue', break_hour);
+        //         }
+        //         durationInHours = durationInHours - break_hour;
+        //         $('#duration_hour').numberbox('setValue', durationInHours);
+        //     }
+        // }
     }
 
     // Attach event listeners to start and end inputs
@@ -773,7 +808,7 @@
 
     $('#break_hour').numberbox({
         onChange: function() {
-            calculateDuration(change_break = true);
+            calculateBreak();
         }
     });
 
@@ -817,4 +852,17 @@
             fetchAttendance();
         }
     });
+
+    function calculateBreak() {
+        const break_hour = $('#break_hour').numberbox('getValue');
+        let plan_duration_hour = $('#plan_duration_hour').numberbox('getValue');
+        
+        plan_duration_hour = plan_duration_hour - break_hour;
+        $('#duration_hour').numberbox('setValue', plan_duration_hour);
+    }
+
+    function isZeroTime(time) {
+        const [h, m, s = '00'] = time.split(':').map(Number);
+        return h === 0 && m === 0 && s === 0;
+    }
 </script>

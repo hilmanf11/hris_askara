@@ -46,8 +46,10 @@ class Detail_payroll_report extends CI_Controller
             $filter_employee = $this->input->get('filter_employee');
             $filter_status_employee = $this->input->get('filter_status_employee');
 
+            $group_harian = ["20221213000002", "20221213000003"];
+
             $this->db->select('b.id as employee_id, b.position_id, b.number as employee_number, b.name as employee_name, c.name as division_name, i.name as position_name, j.name as group_name, k.name as contract_name,
-            d.name as departement_name, e.name as departement_sub_name, g.name as shift_name, h.days, b.date_sign');
+            d.name as departement_name, e.name as departement_sub_name, g.name as shift_name, h.days, b.date_sign, b.group_id');
             $this->db->from('employees b');
             $this->db->join('divisions c', 'b.division_id = c.id');
             $this->db->join('departements d', 'b.departement_id = d.id');
@@ -145,6 +147,8 @@ class Detail_payroll_report extends CI_Controller
             foreach ($records as $data) {
 
                 foreach ($dates as $date) {
+                    $is_harian = in_array($data['group_id'], $group_harian);
+
                     //Resignation
                     $this->db->select('*');
                     $this->db->from('resignations');
@@ -207,6 +211,11 @@ class Detail_payroll_report extends CI_Controller
                     $this->db->join('shift_details d', 'd.shift_id = c.id');
                     $this->db->where('b.employee_id', $data['employee_id']);
                     $this->db->where('d.days >=', $dayOfWeek);
+                    if ($dayOfWeek == 6) {
+                        $this->db->where('d.working', 'WEEKEND');
+                    } else if ($dayOfWeek >= 1 && $dayOfWeek <= 5) {
+                        $this->db->where('d.working', 'WEEKDAY');
+                    }
                     $shift = $this->db->get()->row();
 
                     $overtime = $this->computeOvertimes($data['employee_id'], $date);
@@ -225,6 +234,31 @@ class Detail_payroll_report extends CI_Controller
                         $shift_start = '00:00:00';
                         $shift_end = '00:00:00';
                     }
+
+                    if (!$is_harian) {
+                        $this->db->select('trans_date, description');
+                        $this->db->from('calendars');
+                        $this->db->where("trans_date",$date);
+                        $this->db->where("permit",1);
+                        $holiday_yes = $this->db->get()->row();
+
+                        if ($holiday_yes) {
+                            $shift_name = $holiday_yes->description;
+                            $shift_start = '00:00:00';
+                            $shift_end = '00:00:00';
+                        }
+                    }
+                    $this->db->select('trans_date, description');
+                    $this->db->from('calendars');
+                    $this->db->where("trans_date",$date);
+                    $this->db->where("permit",0);
+                    $holiday_no = $this->db->get()->row();
+                    if ($holiday_no) {
+                        $shift_name = $holiday_no->description;
+                        $shift_start = '00:00:00';
+                        $shift_end = '00:00:00';
+                    }
+
                     $html = '<tr>
                                 <td style="text-align:center;">' . $no . '</td>
                                 <td style="mso-number-format:\@;">' . $data['employee_number'] . '</td>

@@ -449,6 +449,7 @@ class Payrolls extends CI_Controller
             $this->db->from('calendars');
             $this->db->where('trans_date >=', $filter_from);
             $this->db->where('trans_date <=', $filter_to);
+            $this->db->where('permit', 0);
             $this->db->where_not_in('trans_date', $weekend_day);
             $calendar = $this->db->get()->result_array();
             $calendar_amount = empty($calendar) ? 0 : count($calendar);
@@ -458,10 +459,29 @@ class Payrolls extends CI_Controller
                 $w_calendars[] = $cal['trans_date'];
             }
 
-            //Permit yang non deduction atau tidak potong gaji
-            $permit_date = "'" . implode("', '", $weekend_day) . "'";
+            $calendar_leave_yes_amount = 0;
+            $w_calendars_leave_yes = [];
+            if (!$is_hl_operator) {
+                $this->db->select('trans_date');
+                $this->db->from('calendars');
+                $this->db->where('trans_date >=', $filter_from);
+                $this->db->where('trans_date <=', $filter_to);
+                $this->db->where('permit', 1);
+                $this->db->where_not_in('trans_date', $weekend_day);
+                $calendar_leave_yes = $this->db->get()->result_array();
+                $calendar_leave_yes_amount = empty($calendar_leave_yes) ? 0 : count($calendar_leave_yes);
 
-            $permitNonDeduction = $this->getPermitNonDeduction( $record['id'], $filter_from, $filter_to, $permit_date);
+                $w_calendars_leave_yes = array();
+                foreach ($calendar_leave_yes as $cal) {
+                    $w_calendars_leave_yes[] = $cal['trans_date'];
+                }
+            }
+
+            $hari_libur = array_merge($weekend_day, $w_calendars_leave_yes);
+            //Permit yang non deduction atau tidak potong gaji
+            $permit_date = "'" . implode("', '", $hari_libur) . "'";
+
+            $permitNonDeduction = $this->getPermitNonDeduction( $record['id'], $filter_from, $filter_to, $permit_date, $is_hl_operator);
             $arr_permit_combine = $permitNonDeduction['arr_permit_combine'];
             $arr_total_permit = $permitNonDeduction['arr_total_permit'];
             
@@ -546,6 +566,12 @@ class Payrolls extends CI_Controller
             if (count($w_calendars) > 0) {
                 $this->db->where_not_in('date_in', $w_calendars);
             }
+            if (!$is_hl_operator) {
+                if (count($w_calendars_leave_yes) > 0) {
+                    $this->db->where_not_in('date_in', $w_calendars_leave_yes);
+                }
+            }
+
             $this->db->group_by('date_in');
             $attandances = $this->db->get()->result_array();
 
@@ -555,7 +581,7 @@ class Payrolls extends CI_Controller
             }
             
             //Hitung HKW atau jumlah hari kerja
-            $hkw = (@count($weekday_day) - @$calendar_amount);
+            $hkw = (@count($weekday_day) - @$calendar_amount + $calendar_leave_yes_amount);
 
             //Hitung bereapa hari dia ga ada absen
             if ($is_resign) {
@@ -563,6 +589,10 @@ class Payrolls extends CI_Controller
                 $absen = ($hkw_before_resign - @$attandance_amount - @$changeDays_amount - @$arr_total_permit_absence_no - $arr_total_permit_absence);
             } else {
                 $absen = (@count($weekday_day) - @$calendar_amount - @$attandance_amount - @$changeDays_amount - @$arr_total_permit_absence_no - $arr_total_permit_absence);
+            }
+
+            if (!$is_hl_operator) {
+                $absen = $absen - $calendar_leave_yes_amount;   
             }
 
             //Hitung Hari dia masuk kerja
@@ -1720,6 +1750,8 @@ class Payrolls extends CI_Controller
                 <th width="20">No</th>
                 <th>Employee ID</th>
                 <th>Full Name</th>
+                <th>No. KTP</th>
+                <th>Status PTKP</th>
                 <th>Job Position</th>
                 <th>Organization</th>
                 '.$th.'
@@ -1848,7 +1880,7 @@ class Payrolls extends CI_Controller
                     <td style="mso-number-format:&quot;#,##0&quot;">'. round($total_overtime, 0) .'</td>
                     <td style="mso-number-format:&quot;#,##0&quot;">'. round($tax_allowance, 0) .'</td>
                     <td style="mso-number-format:&quot;#,##0&quot;">'. round($total_all_allowance, 0) .'</td>
-                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($record["deduction_absence_amount"], 0) .'</td>
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($record["total_all_deduction"], 0) .'</td>
                     <td style="mso-number-format:&quot;#,##0&quot;">'. round($potongan_lain, 0) .'</td>
                     <td style="mso-number-format:&quot;#,##0&quot;">'. round($jp_emp, 0) .'</td>
                     <td style="mso-number-format:&quot;#,##0&quot;">'. round($bpjs_emp, 0) .'</td>
@@ -1866,7 +1898,7 @@ class Payrolls extends CI_Controller
                     <td>'. number_format($total_overtime, 0, ".", ",") .'</td>
                     <td>'. number_format($tax_allowance, 0, ".", ",") .'</td>
                     <td>'. number_format($total_all_allowance, 0, ".", ",") .'</td>
-                    <td>'. number_format($record["deduction_absence_amount"], 0, ".", ",") .'</td>
+                    <td>'. number_format($record["total_all_deduction"], 0, ".", ",") .'</td>
                     <td>'. number_format($potongan_lain, 0, ".", ",") .'</td>
                     <td>'. number_format($jp_emp, 0, ".", ",") .'</td>
                     <td>'. number_format($bpjs_emp, 0, ".", ",") .'</td>
@@ -1884,6 +1916,8 @@ class Payrolls extends CI_Controller
                     <td>' . $no . '</td>
                     <td class="str">' . $record['number'] . '</td>
                     <td>' . $record['name'] . '</td>
+                    <td class="str">' . $record['national_id'] . '</td>
+                    <td>' . $record['marital'] . '</td>
                     <td>' . $record['position_name'] . '</td>
                     <td>' . $record['departement_sub_name'] . '</td>
                     '.$th2.'
@@ -1893,7 +1927,7 @@ class Payrolls extends CI_Controller
             $sum_total_overtime      += $total_overtime;
             $sum_tax_allowance       += $tax_allowance;
             $sum_total_all_allowance += $total_all_allowance;
-            $sum_deduction_absence   += $record['deduction_absence_amount'];
+            $sum_deduction_absence   += $record['total_all_deduction'];
             $sum_potongan_lain       += $potongan_lain;
             $sum_jp_emp              += $jp_emp;
             $sum_bpjs_emp            += $bpjs_emp;
@@ -1942,7 +1976,7 @@ class Payrolls extends CI_Controller
         if ($option === 'excel') {
             $html .= '
             <tr style="font-weight:bold; background:#f0f0f0;">
-                <td colspan="5" align="center">TOTAL</td>
+                <td colspan="7" align="center">TOTAL</td>
                 '.$th2_total.'
                 <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_total_overtime,0) .'</td>
                 <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_tax_allowance,0) .'</td>
@@ -1962,7 +1996,7 @@ class Payrolls extends CI_Controller
         } else {
             $html .= '
             <tr style="font-weight:bold; background:#f0f0f0;">
-                <td colspan="5" align="center">TOTAL</td>
+                <td colspan="7" align="center">TOTAL</td>
                 '.$th2_total.'
                 <td>'. number_format($sum_total_overtime,0,'.',',') .'</td>
                 <td>'. number_format($sum_tax_allowance,0,'.',',') .'</td>
@@ -2030,7 +2064,7 @@ class Payrolls extends CI_Controller
         ];
     }
 
-    private function getPermitNonDeduction($employeeId, $from, $to, $permit_date): array
+    private function getPermitNonDeduction($employeeId, $from, $to, $permit_date, $is_hl_operator = null): array
     {
         $q_permit = $this->db->query("SELECT b.number, b.name, COUNT(a.permit_date) as amount
                 FROM permit_types b
@@ -2050,6 +2084,22 @@ class Payrolls extends CI_Controller
         $arr_permit_number_ex = explode(",", substr($arr_permit_number, 0, -1));
         $arr_permit_amount_ex = explode(",", substr($arr_permit_amount, 0, -1));
         $arr_permit_combine = array_combine($arr_permit_number_ex, $arr_permit_amount_ex);
+
+        if (!$is_hl_operator) {
+            $cutiBersamaCalendar = $this->getCutiBersamaCount($from, $to);
+            $cutiBersamaPermit   = $this->getCutiBersamaPermitCount($employeeId, $from, $to);
+    
+            $cutiBersamaOtomatis = max(0, $cutiBersamaCalendar - $cutiBersamaPermit);
+    
+            // tambahkan ke CTA
+            if (isset($arr_permit_combine['cta'])) {
+                $arr_permit_combine['cta'] += $cutiBersamaOtomatis;
+            } else {
+                $arr_permit_combine['cta'] = $cutiBersamaOtomatis;
+            }
+    
+            $arr_total_permit += $cutiBersamaOtomatis;
+        }
 
         return [
             'arr_permit_combine' => $arr_permit_combine,
@@ -2171,6 +2221,7 @@ class Payrolls extends CI_Controller
             $this->db->select('trans_date');
             $this->db->from('calendars');
             $this->db->where('trans_date', $overtime['trans_date']);
+            $this->db->where('permit', 0);
             $calendars = $this->db->get()->result_array();
 
             $start = strtotime($overtime['trans_date']);
@@ -2444,4 +2495,31 @@ class Payrolls extends CI_Controller
             }
         }
     }
+
+    private function getCutiBersamaCount($from, $to): int
+    {
+        $this->db->select('COUNT(trans_date) as total');
+        $this->db->from('calendars');
+        $this->db->where('trans_date >=', $from);
+        $this->db->where('trans_date <=', $to);
+        $this->db->where('permit', 1);
+
+        return (int) $this->db->get()->row()->total;
+    }
+
+    private function getCutiBersamaPermitCount($employeeId, $from, $to): int
+    {
+        $this->db->select('COUNT(a.permit_date) as total');
+        $this->db->from('permits a');
+        $this->db->join('permit_types b', 'b.id = a.permit_type_id');
+        $this->db->where('a.employee_id', $employeeId);
+        $this->db->where('a.permit_date >=', $from);
+        $this->db->where('a.permit_date <=', $to);
+        $this->db->where('b.number', 'CT'); // CTA
+        $this->db->where('(a.approved_to = "" OR a.approved_to IS NULL)');
+
+        return (int) $this->db->get()->row()->total;
+    }
+
+
 }

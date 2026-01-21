@@ -30,7 +30,6 @@ class Employees extends CI_Controller
             $data['button'] = $this->getbutton($this->id_menu());
             $data['id_menu'] = $id_menu;
 
-
             $this->load->view('template/header', $data);
             $this->load->view('employee/employees');
         } else {
@@ -303,6 +302,7 @@ class Employees extends CI_Controller
         $departement_id = $this->input->post('departement_id');
         $contract_id = $this->input->post('contract_id');
         $source_id = $this->input->post('source_id');
+        $division_id = $this->input->post('division_id');
         $date_sign = base64_decode($this->input->post('date_sign'));
 
         $departement = $this->crud->read("departements", [], ["id" => $departement_id]);
@@ -324,21 +324,29 @@ class Employees extends CI_Controller
             $row = $this->db->get()->row();
 
             $requestcode = (int) @substr($row->kode, -4);
-            $requestcode++;
+           
+            do {
+                $requestcode++;
+                $autoID = $numberFormat . sprintf("%04s", $requestcode);
 
-            $autoID = $numberFormat . sprintf("%04s", $requestcode);
+                $exists = $this->crud->read("employees", [], ["number" => $autoID]);
+            } while (@$exists->id > 0);
         } else {
             $numberFormat = $source->number_id . $date;
 
             $this->db->select("max(number) as kode");
             $this->db->from("employees");
             $this->db->like("number", $numberFormat);
+            $this->db->where("division_id", $division_id);
             $row = $this->db->get()->row();
 
             $requestcode = (int) @substr($row->kode, -4);
-            $requestcode++;
+            do {
+                $requestcode++;
+                $autoID = $numberFormat . sprintf("%04s", $requestcode);
 
-            $autoID = $numberFormat . sprintf("%04s", $requestcode);
+                $exists = $this->crud->read("employees", [], ["number" => $autoID]);
+            } while (@$exists->id > 0);
         }
 
         die(json_encode(array("id" => $autoID)));

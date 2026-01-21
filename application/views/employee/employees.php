@@ -505,15 +505,16 @@
         var departement_id = $("#departement_id").combobox('getValue');
         var contract_id = $("#contract_id").combobox('getValue');
         var source_id = $("#source_id").combobox('getValue');
+        var division_id = $("#division_id").combobox('getValue');
         var date_sign = $("#date_sign").datebox('getValue');
 
-        if (departement_id == "" || contract_id == "" || date_sign == "") {
-            toastr.info("Please Choose Sign Date, Departement and Employee Type");
+        if (departement_id == "" || contract_id == "" || date_sign == "" || division_id == "") {
+            toastr.info("Please Choose Sign Date, Division, Departement and Employee Type");
         } else {
             $.ajax({
                 type: "post",
                 url: "<?= base_url('employee/employees/readNumber') ?>",
-                data: "departement_id=" + departement_id + "&contract_id=" + contract_id + "&source_id=" + source_id + "&date_sign=" + btoa(date_sign),
+                data: "departement_id=" + departement_id + "&contract_id=" + contract_id + "&source_id=" + source_id + "&date_sign=" + btoa(date_sign) + "&division_id=" + division_id,
                 dataType: "json",
                 success: function(number) {
                     $("#number").textbox("setValue", number.id);

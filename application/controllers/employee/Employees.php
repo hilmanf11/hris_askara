@@ -30,6 +30,7 @@ class Employees extends CI_Controller
             $data['button'] = $this->getbutton($this->id_menu());
             $data['id_menu'] = $id_menu;
 
+
             $this->load->view('template/header', $data);
             $this->load->view('employee/employees');
         } else {
@@ -67,6 +68,10 @@ class Employees extends CI_Controller
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
         $get = $this->input->get();
+
+        $startDate = isset($_POST['start_date']) ? $_POST['start_date'] : "";
+        $endDate = isset($_POST['end_date']) ? $_POST['end_date'] : "";
+
         $aprvDepartement = $this->checkApprovalAccess('employees');
 
         $session_id = $this->session->id;
@@ -79,9 +84,52 @@ class Employees extends CI_Controller
             $departement_id = $session_dept;
         }
 
+        $this->db->select('a.*, m.resign_date');
+        $this->db->from('employees a');
+        $this->db->join('resignations m', 'a.id = m.employee_id', 'left');
+        if (!$startDate && !$endDate) {
+            $this->db->where('a.status', $status);
+        }
+
+        if (isset($this->restrict_user)) {
+            $this->accessmodule->applyEmployeeRestriction($this->restrict_user, 'a');
+        }
+        if ($get) {
+            $this->db->like($get);
+        }
+        $this->db->like('a.departement_id', $departement_id);
+        $this->db->group_start();
+        $this->db->like('a.number', $post);
+        $this->db->or_like('a.name', $post);
+        $this->db->group_end();
+        if ($startDate && $endDate) {
+            $this->db->group_start();
+                $this->db->where('m.resign_date IS NULL', null, false);
+
+                // resign di dalam periode
+                $this->db->or_where('m.resign_date >=', $startDate);
+                $this->db->group_end();
+        }
+        $this->db->order_by('a.name', 'asc');
+        $records = $this->db->get()->result_array();
+        // print_r($this->db->last_query()); die;
+        echo json_encode($records);
+    }
+
+    public function readEmployees($status = 0)
+    {
+        $post = isset($_POST['q']) ? $_POST['q'] : "";
+        $get = $this->input->get();
+        $division_id = $this->input->post('division_id') ? $this->input->post('division_id') : "";
+        $departement_id = $this->input->post('departement_id') ? $this->input->post('departement_id') : "";
+        $departement_sub_id = $this->input->post('departement_sub_id') ? $this->input->post('departement_sub_id') : "";
+
         $this->db->select('*');
         $this->db->from('employees');
         $this->db->where('status', $status);
+        $this->db->like('division_id', $division_id);
+        $this->db->like('departement_id', $departement_id);
+        $this->db->like('departement_sub_id', $departement_sub_id);
 
         if (isset($this->restrict_user)) {
             $this->accessmodule->applyEmployeeRestriction($this->restrict_user);
@@ -89,7 +137,26 @@ class Employees extends CI_Controller
         if ($get) {
             $this->db->like($get);
         }
-        $this->db->like('departement_id', $departement_id);
+        $this->db->group_start();
+        $this->db->like('number', $post);
+        $this->db->or_like('name', $post);
+        $this->db->group_end();
+        $this->db->order_by('name', 'asc');
+        $records = $this->db->get()->result_array();
+        echo json_encode($records);
+    }
+
+    public function readDelivery($status = 0)
+    {
+        $post = isset($_POST['q']) ? $_POST['q'] : "";
+        $get = $this->input->get();
+
+        $this->db->select('*');
+        $this->db->from('employees');
+        $this->db->where('status', $status);
+
+        $this->db->like($get);
+        $this->db->where('departement_sub_id', '20241217000020');
         $this->db->group_start();
         $this->db->like('number', $post);
         $this->db->or_like('name', $post);

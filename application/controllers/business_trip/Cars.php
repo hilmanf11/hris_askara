@@ -41,10 +41,10 @@ class Cars extends CI_Controller
 
         $this->db->select('a.*');
         $this->db->from('cars a');
-        $this->db->like('a.name', $post);
+        $this->db->like('a.number', $post);
         $this->db->like('a.area_id', $area_id);
 
-        $this->db->order_by('a.name', 'asc');
+        $this->db->order_by('a.number', 'asc');
         $send = $this->db->get()->result_array();
         echo json_encode($send);
     }

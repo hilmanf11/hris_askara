@@ -37,16 +37,17 @@ class Locations extends CI_Controller
     public function reads()
     {
         $post = isset($_POST['q']) ? $_POST['q'] : "";
-        $division_id = $this->input->get('division_id') ? $this->input->get('division_id') : "";
         $area_id = $this->input->get('area_id') ? $this->input->get('area_id') : "";
+        $type_group = $this->input->get('type_group') ? $this->input->get('type_group') : "";
 
         $this->db->select('a.*, b.name as division_name, c.name as area_name');
         $this->db->from('locations a');
         $this->db->join('divisions b', 'a.division_id = b.id');
         $this->db->join('areas c', 'a.area_id = c.id');
-        $this->db->like('a.name', $post);
-        $this->db->like('a.division_id', $division_id);
         $this->db->like('a.area_id', $area_id);
+        if ($type_group) {
+            $this->db->where('a.group_type', $type_group);
+        }
         
         $this->db->order_by('a.name', 'asc');
         $send = $this->db->get()->result_array();

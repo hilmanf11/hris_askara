@@ -98,6 +98,8 @@ class Permits extends CI_Controller
 
         $sign_date = $employee->date_sign;
 
+        $first_leave_year = (int) date('Y', strtotime('+1 year', strtotime($sign_date)));
+
         $response = $records;
         $response['total_current'] = 0; // Sisa cuti tahun ini
         $response['total_previous'] = 0; // Sisa cuti tahun sebelumnya
@@ -113,15 +115,19 @@ class Permits extends CI_Controller
 
             $totalPermit_previous = 0;
 
-            if ($current_date <= $expiry_date) {
+            if ($current_date <= $expiry_date && $previous_year > $first_leave_year) {
                 // Ambil data cuti untuk tahun sebelumnya (untuk akumulasi)
-                $permits_previous = $this->crud->reads('permits', [
-                    "employee_id" => $employee_id,
-                    "DATE_FORMAT(permit_date, '%Y')" => $previous_year
-                ], ["permit_type_id" => $permitType->id]);
-                foreach ($permits_previous as $permit) {
-                    $totalPermit_previous += $permit->duration;
+                if (@$permitType->id) {
+                    $permits_previous = $this->crud->reads('permits', [
+                        "employee_id" => $employee_id,
+                        "DATE_FORMAT(permit_date, '%Y')" => $previous_year
+                    ], ["permit_type_id" => @$permitType->id]);
+
+                    foreach ($permits_previous as $permit) {
+                        $totalPermit_previous += $permit->duration;
+                    }
                 }
+
                 // Hitung sisa cuti tahun sebelumnya
                 $calendar_previous = $this->crud->reads("calendars", ["trans_date" => $previous_year], ["permit" => 1]);
                 $total_leave_previous = 12 - $totalPermit_previous - count($calendar_previous);
@@ -145,7 +151,11 @@ class Permits extends CI_Controller
             } else {
                 $response['total_current'] = 0;
             }
+        }
 
+        if (!(@$permitType->id)) {
+            $response['total_current'] = 0;
+            $response['total_previous'] = 0;
         }
 
         // Total sisa cuti (tahun ini + tahun sebelumnya yang masih berlaku)
@@ -250,7 +260,12 @@ class Permits extends CI_Controller
             }
         }
 
-        echo json_encode(@array_merge(['is_time_off' => $is_time_off, 'balance' => $balance], ["total_days" => @count($weekdays)]));
+        if (@$permitType->id) {
+            echo json_encode(@array_merge(['is_time_off' => $is_time_off, 'balance' => $balance], ["total_days" => @count($weekdays)]));
+        } else {
+            echo json_encode(@array_merge(['is_time_off' => 0, 'balance' => 0], ["total_days" => 0]));
+        }
+
     }
 
 

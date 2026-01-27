@@ -162,7 +162,7 @@
                     </div>
                     <div class="fitem">
                         <span style="width:30%; display:inline-block;">Group</span>
-                        <input style="width:60%;" id="filter_group" name="filter_group[]" class="easyui-combobox">
+                        <input style="width:60%;" id="filter_group" name="filter_group" class="easyui-combobox">
                     </div>
                     <div class="fitem">
                         <span style="width:30%; display:inline-block;">Status</span>
@@ -292,6 +292,7 @@
         var filter_employee = $("#filter_employee").combogrid('getValue');
         var filter_employee_type = $("#filter_employee_type").combobox('getValue');
         var filter_group = $("#filter_group").combobox('getValues');
+        filter_group = filter_group.join(',');
 
         if (filter_from == "" || filter_to == "") {
             toastr.warning("Please Enter Cut Off Period", "Filter Date");
@@ -724,7 +725,7 @@
             valueField: 'id',
             textField: 'name',
             prompt: "Choose All",
-            multiple: "true",
+            multiple: true,
             icons: [{
                 iconCls: 'icon-clear',
                 handler: function(e) {

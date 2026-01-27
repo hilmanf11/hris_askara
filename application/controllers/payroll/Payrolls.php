@@ -1114,7 +1114,7 @@ class Payrolls extends CI_Controller
             $ter        = $terCalc['ter'];
 
             if ($is_resign) {
-                $year = date('Y', strtotime($resign_date));
+                $year = date('Y', strtotime($filter_to));
                 $this->db->select('SUM(pph) AS total_pph', FALSE);
                 $this->db->from('payrolls_pph');
                 $this->db->where('employee_id', $record['id']);
@@ -1277,7 +1277,7 @@ class Payrolls extends CI_Controller
         $period_start = date("Y-m", strtotime($post['filter_from']));
         $period_end = date("Y-m", strtotime($post['filter_to']));
         $username = $this->session->username;
-        $filter_group = $this->input->get('filter_group');
+        $filter_group = $post['filter_group'];
         $filter_group_ex = explode(",", trim($filter_group));
 
         if ($username == "admin") {
@@ -1755,6 +1755,7 @@ class Payrolls extends CI_Controller
                 <th>Job Position</th>
                 <th>Organization</th>
                 '.$th.'
+                <th>Correction Plus</th>
                 <th>Total Overtime</th>
                 <th>Tax Allowance</th>
                 <th>Total Allowance</th>
@@ -1772,6 +1773,7 @@ class Payrolls extends CI_Controller
             </tr>';
 
         $no = 1;
+        $sum_total_correction_plus = 0;
         $sum_total_overtime       = 0;
         $sum_tax_allowance        = 0;
         $sum_total_all_allowance  = 0;
@@ -1861,10 +1863,12 @@ class Payrolls extends CI_Controller
             }
             $total_overtime = $record['overtime_amount_weekday'] + $record['overtime_amount_saturday'] + $record['overtime_amount_sunday'] + $record['overtime_amount_holiday'];
 
+            $corr_plus = $record['correction_plus'];
+
             if ($is_hl) {
-                $total_all_allowance = $tax_allowance + $total_overtime + $gaji_harian;
+                $total_all_allowance = $tax_allowance + $total_overtime + $gaji_harian + $corr_plus;
             } else {
-                $total_all_allowance = $tax_allowance + $tunjangan_tetap + $tunjangan_jabatan + $tunjangan_kinerja + $total_overtime;
+                $total_all_allowance = $tax_allowance + $tunjangan_tetap + $tunjangan_jabatan + $tunjangan_kinerja + $total_overtime + $corr_plus;
             }
 
             $bpjs_employee = json_decode($record['bpjs_employee'], true);
@@ -1877,6 +1881,7 @@ class Payrolls extends CI_Controller
             if ($option === 'excel') {
                 // ===== EXCEL (numeric, bisa dihitung) =====
                 $td_number = '
+                    <td style="mso-number-format:&quot;#,##0&quot;">'. round($corr_plus, 0) .'</td>
                     <td style="mso-number-format:&quot;#,##0&quot;">'. round($total_overtime, 0) .'</td>
                     <td style="mso-number-format:&quot;#,##0&quot;">'. round($tax_allowance, 0) .'</td>
                     <td style="mso-number-format:&quot;#,##0&quot;">'. round($total_all_allowance, 0) .'</td>
@@ -1895,6 +1900,7 @@ class Payrolls extends CI_Controller
             } else {
                 // ===== PDF (tampilan pakai koma) =====
                 $td_number = '
+                    <td>'. number_format($corr_plus, 0, ".", ",") .'</td>
                     <td>'. number_format($total_overtime, 0, ".", ",") .'</td>
                     <td>'. number_format($tax_allowance, 0, ".", ",") .'</td>
                     <td>'. number_format($total_all_allowance, 0, ".", ",") .'</td>
@@ -1924,6 +1930,7 @@ class Payrolls extends CI_Controller
                     '.$td_number.'
                     ';
             $no++;
+            $sum_total_correction_plus += $corr_plus;
             $sum_total_overtime      += $total_overtime;
             $sum_tax_allowance       += $tax_allowance;
             $sum_total_all_allowance += $total_all_allowance;
@@ -1978,6 +1985,7 @@ class Payrolls extends CI_Controller
             <tr style="font-weight:bold; background:#f0f0f0;">
                 <td colspan="7" align="center">TOTAL</td>
                 '.$th2_total.'
+                <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_total_correction_plus,0) .'</td>
                 <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_total_overtime,0) .'</td>
                 <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_tax_allowance,0) .'</td>
                 <td style="mso-number-format:&quot;#,##0&quot;">'. round($sum_total_all_allowance,0) .'</td>
@@ -1998,6 +2006,7 @@ class Payrolls extends CI_Controller
             <tr style="font-weight:bold; background:#f0f0f0;">
                 <td colspan="7" align="center">TOTAL</td>
                 '.$th2_total.'
+                <td>'. number_format($sum_total_correction_plus,0,'.',',') .'</td>
                 <td>'. number_format($sum_total_overtime,0,'.',',') .'</td>
                 <td>'. number_format($sum_tax_allowance,0,'.',',') .'</td>
                 <td>'. number_format($sum_total_all_allowance,0,'.',',') .'</td>

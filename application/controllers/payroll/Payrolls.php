@@ -2469,17 +2469,17 @@ class Payrolls extends CI_Controller
             foreach ($records as $record) {
                 $arr_final[] = array(
                     $record['bank_no'],
-                    $record['employee_name'],
+                    $this->csvQuote($record['employee_name']),
                     '',
                     '',
                     '',
                     'IDR',
                     $record['net_income'],
-                    $bulan_payroll,
+                    $this->csvQuote($bulan_payroll),
                     '',
                     'IBU',
                     '',
-                    $record['bank_name'],
+                    $this->csvQuote($record['bank_name']),
                     'Jakarta',
                     '',
                     '',
@@ -2500,7 +2500,7 @@ class Payrolls extends CI_Controller
                 "P",$today, $rekening, $totalRows, $total_income
             ));
             foreach ($arr_final as $row) {
-                fputcsv($output, $row);
+                fwrite($output, implode(',', $row) . "\n");
             }
         }
     }
@@ -2530,5 +2530,11 @@ class Payrolls extends CI_Controller
         return (int) $this->db->get()->row()->total;
     }
 
+    function csvQuote($value) {
+        $value = (string) $value;
+        // escape double quote sesuai standar CSV
+        $value = str_replace('"', '""', $value);
+        return '"' . $value . '"';
+    }
 
 }

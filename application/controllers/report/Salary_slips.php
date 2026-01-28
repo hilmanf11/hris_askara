@@ -1154,7 +1154,9 @@ class Salary_slips extends CI_Controller
             "COALESCE(TRIM(g.attandance), '') AS attandance,".
             "COALESCE(j.days, 5) AS days,".
             "TRIM(a.id) AS id,".
-            "TRIM(a.group_id) AS group_id"
+            "TRIM(a.group_id) AS group_id,".
+            "COALESCE(g.correction_plus, 0) AS correction_plus,".
+            "COALESCE(g.correction_minus, 0) AS correction_minus"
         )->from("employees a")
             ->join("divisions b", "a.division_id = b.id", "left")
             ->join("departements c", "a.departement_id = c.id", "left")
@@ -1277,6 +1279,8 @@ class Salary_slips extends CI_Controller
             $bpjs_employee = json_decode($row->bpjs_employee);
             $bpjs_company = json_decode($row->bpjs_company);
             $attandance = json_decode($row->attandance);
+            $correction_plus = $row->correction_plus;
+            $correction_minus = $row->correction_minus;
             $is_hl = $row->group_id == '20221213000002';
             $pagebreak = ($index != 0) ? 'style="page-break-before: always;"' : '';
             // die(var_dump($allowance));
@@ -1314,19 +1318,20 @@ class Salary_slips extends CI_Controller
             $sunday = floatval($row->sunday);
             $holiday = floatval($row->holiday);
             $sum_overtime = $weekday + $saturday + $sunday + $holiday;
-            $sum_earnings = $salary + $total_allowence + $tax + $sum_overtime;
+            $sum_earnings = $salary + $total_allowence + $tax + $sum_overtime + $correction_plus;
 
             $bpjs_emp = floatval($bpjs_employee->bpjs_employee ?? 0);
             $jht_emp = floatval($bpjs_employee->jht_employee ?? 0);
             $deduction = floatval($row->deduction);
             $jp_emp = floatval($bpjs_employee->jp_employee ?? 0);
             $pph21 = floatval($row->pph21);
-            $sum_deduction = $bpjs_emp + $jht_emp + $deduction + $jp_emp + $pph21;
+            $sum_deduction = $bpjs_emp + $jht_emp + $deduction + $jp_emp + $pph21 + $correction_minus;
 
             $salary = number_format($salary, 0, ',', '.');
             $tunjangan_tetap = number_format($tt, 0, ',', '.');
             $tax = number_format($tax, 0, ',', '.');
             $overtime = number_format($sum_overtime, 0, ',', '.');
+            $correction_plus = number_format($correction_plus, 0, ',', '.');
             $total_earnings = number_format($sum_earnings, 0, ',', '.');
 
             $bpjsk = number_format($bpjs_emp, 0, ',', '.');
@@ -1334,6 +1339,7 @@ class Salary_slips extends CI_Controller
             $deduction = number_format($deduction, 0, ',', '.');
             $jp = number_format($jp_emp, 0, ',', '.');
             $pph21 = number_format($pph21, 0, ',', '.');
+            $correction_minus = number_format($correction_minus, 0, ',', '.');
             $total_deduction = number_format($sum_deduction, 0, ',', '.');
 
             $total_home_pay = number_format(($row->thp), 0, ',', '.');
@@ -1395,6 +1401,7 @@ class Salary_slips extends CI_Controller
                             $div_tt
                             <tr><td>Tax Allowance</td><td class="value">$tax</td></tr>
                             <tr><td>Overtime ($overtime_hour)</td><td class="value">$overtime</td></tr>
+                            <tr><td>Correction Plus</td><td class="value">$correction_plus</td></tr>
                             <tr><td></td><td class="value">&nbsp;</td></tr>
                             $div_space
                             </tbody>
@@ -1411,6 +1418,8 @@ class Salary_slips extends CI_Controller
                             <tr><td>Potongan Absen</td><td class="value">$deduction</td></tr>
                             <tr><td>Jaminan Pensiun Employee</td><td class="value">$jp</td></tr>
                             <tr><td>PPH 21</td><td class="value">$pph21</td></tr>
+                            <tr><td>Correction Minus</td><td class="value">$correction_minus</td></tr>
+                            <tr><td></td><td class="value">&nbsp;</td></tr>
                         </tbody>
                         <tfoot><tr><td style="font-weight:700">Total deductions</td><td class="value" style="font-weight:700">$total_deduction</td></tr></tfoot>
                     </table>

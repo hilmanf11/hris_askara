@@ -393,6 +393,8 @@ class Approvals extends CI_Controller
             "change_days",
             "setup_salaries",
             "payrolls",
+            "dinas_request_employees",
+            "attandances",
         ];
 
         $data = [];

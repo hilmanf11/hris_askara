@@ -1,3 +1,158 @@
+<style>
+	.detail-header {
+  background: linear-gradient(90deg, #2b5cff, #3b82f6);
+  color: #fff;
+  padding: 14px 20px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close-btn {
+  color: #fff;
+  text-decoration: none;
+  font-size: 18px;
+}
+
+.detail-body {
+  padding: 20px;
+  overflow-y: auto;
+  height: calc(90vh - 50px);
+}
+
+.employee-box {
+  background: #f8f9fb;
+  border-radius: 10px;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.io-wrapper {
+  display: flex;
+  gap: 20px;
+}
+
+.io-card {
+  flex: 1;
+  border-radius: 12px;
+  padding: 15px;
+  border: 2px solid;
+}
+
+.lat-in {
+	margin-top: 2px;
+}
+
+.io-card.in {
+  border-color: #22c55e;
+}
+
+.io-card.out {
+  border-color: #f97316;
+}
+
+.io-title {
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.io-section {
+  margin-bottom: 14px;
+}
+
+.label {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.status {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.status.in {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status.out {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.img-box {
+  background: #f1f5f9;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.img-box img {
+  width: 100%;
+  height: 220px;
+  object-fit: contain;
+}
+
+.location {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.location.in {
+  background: #dcfce7;
+}
+
+.location.out {
+  background: #fff7ed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .io-wrapper {
+    flex-direction: column;
+  }
+
+  .employee-box {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+.employee-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  background: #f8f9fb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.employee-table td {
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.employee-table .label {
+  font-weight: 600;
+  width: 120px;
+  color: #333;
+}
+
+.location {
+  cursor: pointer;
+}
+
+.location:hover {
+  text-decoration: underline;
+  color: #2563eb;
+}
+
+
+</style>
 <body class="easyui-layout">
 
 	<!-- Header -->
@@ -194,7 +349,7 @@
 			<input class="easyui-textbox" id="approved_to" />
 			<input class="easyui-textbox" id="approved_by" />
 		</div>
-		<table id="dg_approval" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar_approval" data-options="fitColumns: true, rownumbers: true"></table>
+		<table id="dg_approval" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar_approval" data-options="rownumbers: true, nowrap: false"></table>
 	</div>
 
 	<!-- NOTIFICATIONS -->
@@ -235,6 +390,83 @@
 			</div>
 		</div>
 	</div>
+
+	<div id="dlg_history_detail"
+     class="easyui-dialog"
+     title="Attendance History Details"
+     data-options="closed:true,modal:true"
+     style="width:90%;max-width:1100px;height:700px;padding:0">
+		<!-- Body -->
+		<div class="detail-body">
+			<h1><b>Employee Information</b></h1>
+			<!-- Employee Info -->
+		<table class="employee-table">
+			<tr>
+				<td class="label">Name</td>
+				<td>: <span id="empName"></span></td>
+				<td class="label">ID</td>
+				<td>: <span id="empId"></span></td>
+			</tr>
+			<tr>
+				<td class="label">Department</td>
+				<td>: <span id="empDept"></span></td>
+				<td class="label">Date</td>
+				<td>: <span id="attDate"></span></td>
+			</tr>
+		</table>
+
+			<!-- IN & OUT -->
+			<div class="io-wrapper">
+				<!-- IN -->
+				<div class="io-card in">
+					<div class="io-title">Check In : <span id="timeIn"></span></div>
+
+					<div class="io-section">
+						<div class="label">Status:</div>
+						<div class="status in" id="statusIn"></div>
+					</div>
+
+					<div class="io-section">
+						<div class="label">Picture:</div>
+						<div class="img-box">
+							<img id="imgIn">
+						</div>
+					</div>
+
+					<div class="io-section">
+						<div class="label">Location:</div>
+						<div class="location in" id="locIn"></div>
+						<div class="location in" id="latIn" style="padding-top: 0;"></div>
+					</div>
+				</div>
+
+				<!-- OUT -->
+				<div class="io-card out">
+					<div class="io-title">Check Out : <span id="timeOut"></span></div>
+
+					<div class="io-section">
+						<div class="label">Status:</div>
+						<div class="status out" id="statusOut"></div>
+					</div>
+
+					<div class="io-section">
+						<div class="label">Picture:</div>
+						<div class="img-box">
+							<img id="imgOut">
+						</div>
+					</div>
+
+					<div class="io-section">
+						<div class="label">Location:</div>
+						<div class="location out" id="locOut"></div>
+						<div class="location out" id="latOut" style="padding-top: 0;"></div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
 </body>
 
 <script>
@@ -1476,6 +1708,180 @@
 						}]
 					],
 				}).datagrid('enableFilter');
+			} 
+			else if (table == "dinas_request_employees") {
+				$('#dg_approval').datagrid({
+					singleSelect: true,
+					rownumbers: true,
+					url: '<?= base_url('approvals/approvalDinasRequest/') ?>' + approved_to + "/" + approved_by,
+					nowrap: false,
+            fit: true,
+					columns: [
+						[{
+							field: 'emp_number',
+							width: 150,
+							halign: 'center',
+							title: "Employee ID",
+						}, {
+							field: 'employee_name',
+							width: 150,
+							halign: 'center',
+							title: "Employee Name",
+						}, {
+							field: 'division_name',
+							width: 150,
+							halign: 'center',
+							title: "Division",
+						}, {
+							field: 'departement_name',
+							width: 150,
+							halign: 'center',
+							title: "Departement",
+						}, {
+							field: 'departement_sub_name',
+							width: 150,
+							halign: 'center',
+							title: "Departement Sub",
+						}, {
+							field: 'dinas_request_no',
+							width: 150,
+							align: 'center',
+							title: "Request No",
+						}, {
+							field: 'trip_type',
+							width: 100,
+							halign: 'center',
+							title: "Tipe Trip",
+						}, {
+							field: 'area',
+							width: 150,
+							halign: 'center',
+							title: "Tujuan",
+						}, {
+							field: 'date_in',
+							width: 150,
+							halign: 'center',
+							title: "Est Berangkat Dinas",
+						}, {
+							field: 'date_out',
+							width: 150,
+							halign: 'center',
+							title: "Est Pulang Dinas",
+						},{
+							field: 'remarks',
+							width: 150,
+							halign: 'center',
+							title: "Remarks",
+						}, {
+							field: 'created_by',
+							width: 150,
+							halign: 'center',
+							title: "Created By",
+						}, {
+							field: 'created_date',
+							width: 150,
+							halign: 'center',
+							title: "Created Date",
+						}, {
+							field: 'action',
+							width: 150,
+							align: 'center',
+							title: "Action",
+							formatter: function(val, row) {
+								var approve = "approve('" + row.id + "','" + table + "')";
+								var disapprove = "disapprove('" + row.id + "','" + table + "')";
+								var a = '<a class="btn btn-success w-50" style="pointer-events: visible; opacity:1;" onclick="' + approve + '"><i class="fa fa-check"></i></a>';
+								var b = '<a class="btn btn-danger w-50" style="pointer-events: visible; opacity:1;" onclick="' + disapprove + '"><i class="fa fa-times"></i></a>';
+								return a + " " + b;
+							}
+						}]
+					],
+				}).datagrid('enableFilter');
+			}
+			else if (table == "attandances") {
+				$('#dg_approval').datagrid({
+					singleSelect: true,
+					rownumbers: true,
+					url: '<?= base_url('approvals/approvalAttandances/') ?>' + approved_to + "/" + approved_by,
+					nowrap: false,
+            fit: true,
+					columns: [
+						[{
+							field: 'day',
+							width: 150,
+							halign: 'center',
+							title: "Day",
+						}, {
+							field: 'date_in',
+							width: 150,
+							halign: 'center',
+							title: "Date In",
+						}, {
+							field: 'date_out',
+							width: 150,
+							halign: 'center',
+							title: "Date Out",
+						}, {
+							field: 'departement_name',
+							width: 150,
+							halign: 'center',
+							title: "Departement",
+						}, {
+							field: 'employee_number',
+							width: 150,
+							halign: 'center',
+							title: "Employee ID",
+						}, {
+							field: 'employee_name',
+							width: 150,
+							align: 'center',
+							title: "Employee Name",
+						}, {
+							field: 'type',
+							width: 100,
+							halign: 'center',
+							title: "Type",
+						}, {
+							field: 'shift_name',
+							width: 150,
+							halign: 'center',
+							title: "Shift",
+						}, {
+							field: 'time_in',
+							width: 150,
+							halign: 'center',
+							title: "Check In",
+						}, {
+							field: 'time_out',
+							width: 150,
+							halign: 'center',
+							title: "Check Out",
+						},{
+							field: 'history',
+							width: 150,
+							halign: 'center',
+							title: "History",
+							formatter: function(val, row) {
+								let rowAbsen = encodeURIComponent(JSON.stringify(row));
+								var history = "history('" + rowAbsen + "')";
+								var a = '<a class="btn btn-primary w-50" style="pointer-events: visible; opacity:1;" onclick="' + history + '"><i class="fa fa-eye"></i> view</a>';
+								return a;
+							}
+						},{
+							field: 'action',
+							width: 150,
+							align: 'center',
+							title: "Action",
+							formatter: function(val, row) {
+								var approve = "approve('" + row.id + "','" + table + "')";
+								var disapprove = "disapprove('" + row.id + "','" + table + "')";
+								var a = '<a class="btn btn-success w-50" style="pointer-events: visible; opacity:1;" onclick="' + approve + '"><i class="fa fa-check"></i></a>';
+								var b = '<a class="btn btn-danger w-50" style="pointer-events: visible; opacity:1;" onclick="' + disapprove + '"><i class="fa fa-times"></i></a>';
+								return a + " " + b;
+							}
+						}]
+					],
+				}).datagrid('enableFilter');
 			}
 		}
 	}
@@ -1745,6 +2151,100 @@
             return '<a href="<?= base_url('assets/image/cash_carry/') ?>' + value + '" target="_blank" class="btn btn-primary btn-sm" style="pointer-events:auto; opacity:1;"><i class="fa fa-eye"></i> View</a>';
         }
     };
+
+	async function history(rowStr) {
+		const row = JSON.parse(decodeURIComponent(rowStr));
+
+		empName.innerText = row.employee_name;
+		empDept.innerText = row.departement_name;
+		empId.innerText   = row.employee_number;
+		attDate.innerText = row.date_in;
+
+		timeIn.innerText  = row.time_in || '-';
+		timeOut.innerText = row.time_out || '-';
+
+		const statusType = row.status.split('_')[0];
+		statusIn.innerText  = 'Checked in via ' + statusType + ' App';
+		statusOut.innerText = 'Checked out via ' + statusType + ' App';
+
+		imgIn.src  = buildAttendanceImage(row.date_in, row.foto_in);
+		imgOut.src = buildAttendanceImage(row.date_out, row.foto_out);
+
+		loadLocations(row);
+		locIn.innerText  = 'Loading location...';
+		locOut.innerText = 'Loading location...';
+		
+		latIn.innerText  = `${row.lat_in}, ${row.lng_in}`;
+		latOut.innerText = `${row.lat_out}, ${row.lng_out}`;
+
+		locIn.dataset.lat = row.lat_in;
+		locIn.dataset.lng = row.lng_in;
+		latIn.dataset.lat = row.lat_in;
+		latIn.dataset.lng = row.lng_in;
+
+		locOut.dataset.lat = row.lat_out;
+		locOut.dataset.lng = row.lng_out;
+		latOut.dataset.lat = row.lat_out;
+		latOut.dataset.lng = row.lng_out;
+
+		['locIn','latIn','locOut','latOut'].forEach(id => {
+			document.getElementById(id).onclick = function () {
+				openMaps(this);
+			};
+		});
+
+
+		$('#dlg_history_detail').dialog('open');
+	}
+
+	async function loadLocations(row) {
+		const [addrIn, addrOut] = await Promise.all([
+			reverseGeocode(row.lat_in, row.lng_in),
+			reverseGeocode(row.lat_out, row.lng_out)
+		]);
+
+		locIn.innerText  = addrIn;
+		locOut.innerText = addrOut;
+	}
+
+
+	function buildAttendanceImage(date, filename) {
+		if (!filename) return `<?= base_url('assets/image/no-photo.png')  ?>`;
+
+		// date: YYYY-MM-DD → YYYYMM
+		const [y, m] = date.split('-');
+		const folder = y + m;
+
+		return `<?= base_url('assets/document/attendance/${folder}/${filename}')  ?>`;
+	}
+
+	async function reverseGeocode(lat, lng) {
+		if (!lat || !lng) return '-';
+
+		try {
+			const res = await fetch(
+				`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+			);
+			const data = await res.json();
+			return data.display_name || '-';
+		} catch (e) {
+			console.error(e);
+			return '-';
+		}
+	}
+
+	function openMaps(el) {
+		const lat = el.dataset.lat;
+		const lng = el.dataset.lng;
+
+		if (!lat || !lng) return;
+
+		window.open(
+			`https://www.google.com/maps?q=${lat},${lng}`,
+			'_blank'
+		);
+	}
+
 </script>
 
 </html>

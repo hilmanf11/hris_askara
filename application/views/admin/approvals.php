@@ -47,6 +47,7 @@
                 <span style="width:35%; display:inline-block;">Module</span>
                 <select style="width:60%;" name="table_name" id="table_name" required="true" data-options="prompt:'Select Module'" class="easyui-combobox">
                     <option value="users">Users</option>
+                    <option value="attandances">Attandances</option>
                     <option value="employees">Employees</option>
                     <option value="warning_letters">Warning Letters</option>
                     <option value="resignations">Resignations</option>
@@ -59,6 +60,7 @@
                     <option value="change_days">Change Days</option>
                     <option value="setup_salaries">Setup Salary</option>
                     <option value="payrolls">Payrolls</option>
+                    <option value="dinas_request_employees">Dinas Request</option>
                 </select>
             </div>
             <div class="fitem">

@@ -91,7 +91,7 @@ class Crud extends CI_Model
         return $records;
     }
 
-    function create($table, $values)
+    function create($table, $values, $logs = "")
     {
         if ($this->session->username != "") {
             $id = $this->autoid($table);
@@ -102,8 +102,17 @@ class Crud extends CI_Model
             ]);
 
             if ($this->db->insert($table, $data)) {
-                $this->logs("Create", json_encode($data), $table);
-                $this->approvals($table, $id);
+                if ($logs == "") {
+                    $this->logs("Create", json_encode($data), $table);
+                    if ($table == "attandances") {
+                        $is_outside_readius = isset($values['status_in']) ? $values['status_in'] : 0;
+                        if ($is_outside_readius == 1) {
+                            $this->approvals($table, $id);
+                        }
+                    } else {
+                        $this->approvals($table, $id);
+                    }
+                }
                 return json_encode(array("title" => "Good Job", "message" => "Data Saved Successfully", "theme" => "success"));
             } else {
                 return log_message('error', 'There is an error in your system or data');
@@ -113,7 +122,7 @@ class Crud extends CI_Model
         }
     }
 
-    function update($table, $where, $values)
+    function update($table, $where, $values, $logs = "")
     {
         if ($this->session->username != "") {
             $data   = array_merge($values, [
@@ -125,11 +134,21 @@ class Crud extends CI_Model
 
             $this->db->where($where);
             if ($this->db->update($table, $data)) {
-                $this->logs("Update Before", json_encode($dataBefore), $table);
-                $this->logs("Update New", json_encode($data), $table);
-                
-                $read = $this->read($table, [], $where);
-                $this->approvals($table, @$read->id);
+                if ($logs == "") {
+                    $this->logs("Update Before", json_encode($dataBefore), $table);
+                    $this->logs("Update New", json_encode($data), $table);
+                    
+                    $read = $this->read($table, [], $where);
+
+                    if ($table == "attandances") {
+                        $is_outside_readius = isset($values['status_out']) ? $values['status_out'] : 0;
+                        if ($is_outside_readius == 1) {
+                            $this->approvals($table, @$read->id);
+                        }
+                    } else {
+                        $this->approvals($table, @$read->id);
+                    }
+                }
 
                 return json_encode(array("title" => "Good Job", "message" => "Data Updated Successfully", "theme" => "success"));
             } else {
@@ -219,7 +238,12 @@ class Crud extends CI_Model
         $user = $this->read('users', [], ["username" => $this->session->username]);
         $employee = $this->read($table, [], ["id" => $table_id]);
 
-        $approval = $this->read('approvals', [], ["table_name" => $table, "employee_id" => @$employee->employee_id]);
+        if ($table == "attandances") {
+            $employee = $this->read('employees', [], ["number" => @$employee->number]);
+            $approval = $this->read('approvals', [], ["table_name" => $table, "employee_id" => @$employee->id]);
+        } else {
+            $approval = $this->read('approvals', [], ["table_name" => $table, "employee_id" => @$employee->employee_id]);
+        }
 
         $fieldExists = false;
         foreach ($fields as $field) {

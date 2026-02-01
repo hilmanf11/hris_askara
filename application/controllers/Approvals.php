@@ -25,7 +25,13 @@ class Approvals extends CI_Controller
         foreach ($datas as $data) {
             $id = $data->id;
             $user = $this->crud->read('users', [], ["username" => $data->approved_by]);
-            $approval = $this->crud->read('approvals', [], ["table_name" => $table_name, "employee_id" => @$data->employee_id]);
+
+            if ($table_name == 'attandances') {
+                $employee_id = $this->crud->read('employees', [], ['number' => $data->number])->id;
+            } else {
+                $employee_id = @$data->employee_id;
+            }
+            $approval = $this->crud->read('approvals', [], ["table_name" => $table_name, "employee_id" => @$employee_id]);
             
             if ($data->approved == 1) {
                 $users_id = @$approval->user_approval_2;
@@ -79,6 +85,41 @@ class Approvals extends CI_Controller
                 "approved" => $approved,
             );
 
+            if ($table_name == 'dinas_request_employees' || $table_name == 'attandances') {
+                $record = $this->crud->read($table_name, [], ["id" => $id]);
+                $formHistory = [
+                    "is_approve" => 1,
+                    "approved" => $approved - 1,
+                    "approved_by" => $this->session->username,
+                    "approved_date" => date('Y-m-d H:i:s'),
+                    "table_name" => $table_name,
+                    "table_id" => $id,
+                    "approved_data" => json_encode($record),
+                ];
+                $this->crud->create('approval_histories', $formHistory);
+            }
+
+            if ($table_name == 'attandances') {
+                $approvalUsers = [
+                    @$approval->user_approval_1,
+                    @$approval->user_approval_2,
+                    @$approval->user_approval_3,
+                    @$approval->user_approval_4,
+                    @$approval->user_approval_5,
+                ];
+
+                // buang yang kosong
+                $approvalUsers = array_filter($approvalUsers);
+
+                // user approval terakhir
+                $lastApprovalUser = end($approvalUsers);
+
+                if ($this->session->username == $lastApprovalUser) {
+                    $values['status_in'] = 0; // approved selesai
+                    $values['status_out'] = 0; // approved selesai
+                }
+            }
+
             $send = $this->db->update($table_name, $values, ["id" => $id]);
         }
 
@@ -91,7 +132,14 @@ class Approvals extends CI_Controller
         $tablename = $this->input->post('tablename');
         $data = $this->crud->read($tablename, [], ["id" => $id]);
         $user = $this->crud->read('users', [], ["username" => $data->approved_by]);
-        $approval = $this->crud->read('approvals', [], ["table_name" => $tablename, "employee_id" => @$data->employee_id]);
+
+        if ($tablename == 'attandances') {
+            $employee_id = $this->crud->read('employees', [], ['number' => $data->number])->id;
+        } else {
+            $employee_id = @$data->employee_id;
+        }
+
+        $approval = $this->crud->read('approvals', [], ["table_name" => $tablename, "employee_id" => @$employee_id]);
 
         if ($data->approved == 1) {
             $users_id = @$approval->user_approval_2;
@@ -155,7 +203,44 @@ class Approvals extends CI_Controller
             "approved" => $approved,
         );
 
+
+        if ($tablename == 'dinas_request_employees' || $tablename == 'attandances') {
+            $record = $this->crud->read($tablename, [], ["id" => $id]);
+            $formHistory = [
+                "is_approve" => 1,
+                "approved" => $approved - 1,
+                "approved_by" => $this->session->username,
+                "approved_date" => date('Y-m-d H:i:s'),
+                "table_name" => $tablename,
+                "table_id" => $id,
+                "approved_data" => json_encode($record),
+            ];
+            $this->crud->create('approval_histories', $formHistory);
+        }
+
+        if ($tablename == 'attandances') {
+           $approvalUsers = [
+                @$approval->user_approval_1,
+                @$approval->user_approval_2,
+                @$approval->user_approval_3,
+                @$approval->user_approval_4,
+                @$approval->user_approval_5,
+            ];
+
+            // buang yang kosong
+            $approvalUsers = array_filter($approvalUsers);
+
+            // user approval terakhir
+            $lastApprovalUser = end($approvalUsers);
+
+            if ($this->session->username == $lastApprovalUser) {
+                $values['status_in'] = 0; // approved selesai
+                $values['status_out'] = 0; // approved selesai
+            }
+        }
+
         $send = $this->db->update($tablename, $values, ["id" => $id]);
+
         if($send){
             echo json_encode(array("title" => "Approved", "message" => "Data Approved Successfully", "theme" => "success"));
         } else {
@@ -228,7 +313,49 @@ class Approvals extends CI_Controller
 
         /* Default */
         foreach ($datas as $data) {
-            $send = $this->crud->delete($table_name, ["id" => $data->id]);
+            if ($table_name == 'attandances') {
+                if ($data->approved == 1) {
+                    $approved = 2;
+                } elseif ($data->approved == 2) {
+                    $approved = 3;
+                } elseif ($data->approved == 3) {
+                    $approved = 4;
+                } elseif ($data->approved == 4) {
+                    $approved = 5;
+                } else {
+                    $approved = 0;
+                }
+
+                $values = array(
+                    "approved_by" => $this->session->username,
+                    "approved_date" => date('Y-m-d H:i:s'),
+                    "approved" => $approved,
+                    "approved_to" => '',
+                );
+
+                $formHistory = [
+                    "is_approve" => 0,
+                    "approved" => $approved - 1,
+                    "approved_by" => $this->session->username,
+                    "approved_date" => date('Y-m-d H:i:s'),
+                    "table_name" => $table_name,
+                    "table_id" => $data->id,
+                    "approved_data" => json_encode($data),
+                ];
+                $this->crud->create('approval_histories', $formHistory);
+
+                if ($data->status_in == 1) {
+                    $values['status_in'] = 2; // disapproved
+                }
+
+                if ($data->status_out == 1) {
+                    $values['status_out'] = 2; // disapproved
+                }
+
+                $send = $this->db->update($table_name, $values, ["id" => $data->id]);
+            } else {
+                $send = $this->crud->delete($table_name, ["id" => $data->id]);
+            }
         }
 
         echo json_encode(array("title" => "Disapproved", "message" => "Data Disapproved Successfully", "theme" => "success"));
@@ -239,8 +366,53 @@ class Approvals extends CI_Controller
         $id = $this->input->post('id');
         $tablename = $this->input->post('tablename');
 
-        /* Default */
-        $send = $this->crud->delete($tablename, ["id" => $id]);
+        if ($tablename == 'attandances') {
+            $data = $this->crud->read($tablename, [], ["id" => $id]);
+
+            if ($data->approved == 1) {
+                $approved = 2;
+            } elseif ($data->approved == 2) {
+                $approved = 3;
+            } elseif ($data->approved == 3) {
+                $approved = 4;
+            } elseif ($data->approved == 4) {
+                $approved = 5;
+            } else {
+                $approved = 0;
+            }
+
+            $values = array(
+                "approved_by" => $this->session->username,
+                "approved_date" => date('Y-m-d H:i:s'),
+                "approved" => $approved,
+                "approved_to" => '',
+            );
+
+            $formHistory = [
+                "is_approve" => 0,
+                "approved" => $approved - 1,
+                "approved_by" => $this->session->username,
+                "approved_date" => date('Y-m-d H:i:s'),
+                "table_name" => $tablename,
+                "table_id" => $id,
+                "approved_data" => json_encode($data),
+            ];
+            $this->crud->create('approval_histories', $formHistory);
+
+            if ($data->status_in == 1) {
+                $values['status_in'] = 2; // disapproved
+            }
+
+            if ($data->status_out == 1) {
+                $values['status_out'] = 2; // disapproved
+            }
+
+            $send = $this->db->update($tablename, $values, ["id" => $id]);
+        } else {
+            /* Default */
+            $send = $this->crud->delete($tablename, ["id" => $id]);
+        }
+
         echo json_encode(array("title" => "Disapproved", "message" => "Data Disapproved Successfully", "theme" => "success"));
     }
 
@@ -274,12 +446,12 @@ class Approvals extends CI_Controller
     public function approvalCount()
     {
         $this->db->select('b.name as fullname, a.approved_to, a.approved_by, b.avatar');
-        $this->db->from('cash_carries a');
+        $this->db->from('overtimes a');
         $this->db->join('users b', 'a.approved_by = b.username');
         $this->db->join('users c', 'a.approved_to = c.username');
         $this->db->where('a.approved_to', $this->session->username);
         $this->db->group_by('a.approved_by');
-        $cash_carries = $this->db->get()->result_object();
+        $overtimes = $this->db->get()->result_object();
 
         $this->db->select('b.name as fullname, a.approved_to, a.approved_by, b.avatar');
         $this->db->from('payrolls a');
@@ -313,7 +485,25 @@ class Approvals extends CI_Controller
         $this->db->group_by('a.approved_by');
         $change_days = $this->db->get()->result_object();
 
-        $totalRows = (count($cash_carries) + count($payrolls) + count($setup_salaries) + count($permits) + count($change_days));
+        //Dinas Request
+        $this->db->select('b.name as fullname, a.approved_to, a.approved_by, b.avatar');
+        $this->db->from('dinas_request_employees a');
+        $this->db->join('users b', 'a.approved_by = b.username');
+        $this->db->join('users c', 'a.approved_to = c.username');
+        $this->db->where('a.approved_to', $this->session->username);
+        $this->db->group_by('a.approved_by');
+        $dinas_request_employees = $this->db->get()->result_object();
+
+        //Attandances
+        $this->db->select('b.name as fullname, a.approved_to, a.approved_by, b.avatar');
+        $this->db->from('attandances a');
+        $this->db->join('users b', 'a.approved_by = b.username');
+        $this->db->join('users c', 'a.approved_to = c.username');
+        $this->db->where('a.approved_to', $this->session->username);
+        $this->db->group_by('a.approved_by');
+        $attandances = $this->db->get()->result_object();
+
+        $totalRows = (count($overtimes) + count($payrolls) + count($setup_salaries) + count($permits) + count($change_days) + count($dinas_request_employees) + count($attandances));
         if ($totalRows > 0) {
             echo '<span class="badge">' . $totalRows . '</span>';
         } else {
@@ -325,12 +515,12 @@ class Approvals extends CI_Controller
     {
         //Cash Carries
         $this->db->select('b.name as fullname, a.approved_to, a.approved_by, b.avatar');
-        $this->db->from('cash_carries a');
+        $this->db->from('overtimes a');
         $this->db->join('users b', 'a.approved_by = b.username');
         $this->db->join('users c', 'a.approved_to = c.username');
         $this->db->where('a.approved_to', $this->session->username);
         $this->db->group_by('a.approved_by');
-        $cash_carries = $this->db->get()->result_object();
+        $overtimes = $this->db->get()->result_object();
 
         //Payrolls
         $this->db->select('b.name as fullname, a.approved_to, a.approved_by, b.avatar');
@@ -368,9 +558,27 @@ class Approvals extends CI_Controller
         $this->db->group_by('a.approved_by');
         $change_days = $this->db->get()->result_object();
 
-        if (count($cash_carries) > 0) {
-            foreach ($cash_carries as $cash_carry) {
-                $this->approvalMessage($cash_carry->avatar, $cash_carry->fullname, $cash_carry->approved_to, $cash_carry->approved_by, "cash_carries");
+        //Dinas Request
+        $this->db->select('b.name as fullname, a.approved_to, a.approved_by, b.avatar');
+        $this->db->from('dinas_request_employees a');
+        $this->db->join('users b', 'a.approved_by = b.username');
+        $this->db->join('users c', 'a.approved_to = c.username');
+        $this->db->where('a.approved_to', $this->session->username);
+        $this->db->group_by('a.approved_by');
+        $dinas_request_employees = $this->db->get()->result_object();
+
+        //Attandances
+        $this->db->select('b.name as fullname, a.approved_to, a.approved_by, b.avatar');
+        $this->db->from('attandances a');
+        $this->db->join('users b', 'a.approved_by = b.username');
+        $this->db->join('users c', 'a.approved_to = c.username');
+        $this->db->where('a.approved_to', $this->session->username);
+        $this->db->group_by('a.approved_by');
+        $attandances = $this->db->get()->result_object();
+
+        if (count($overtimes) > 0) {
+            foreach ($overtimes as $overtime) {
+                $this->approvalMessage($overtime->avatar, $overtime->fullname, $overtime->approved_to, $overtime->approved_by, "overtimes");
             }
         }
 
@@ -395,6 +603,18 @@ class Approvals extends CI_Controller
         if(count($change_days) > 0) {
             foreach ($change_days as $change_day) {
                 $this->approvalMessage($change_day->avatar, $change_day->fullname, $change_day->approved_to, $change_day->approved_by, "change_days");
+            }
+        }
+
+        if(count($dinas_request_employees) > 0) {
+            foreach ($dinas_request_employees as $dinas_request_employee) {
+                $this->approvalMessage($dinas_request_employee->avatar, $dinas_request_employee->fullname, $dinas_request_employee->approved_to, $dinas_request_employee->approved_by, "dinas_request_employees");
+            }
+        }
+
+        if(count($attandances) > 0) {
+            foreach ($attandances as $attandance) {
+                $this->approvalMessage($attandance->avatar, $attandance->fullname, $attandance->approved_to, $attandance->approved_by, "attandances");
             }
         }
     }
@@ -569,7 +789,7 @@ class Approvals extends CI_Controller
                 b.name as employee_name,
                 f.name as fullname
             ');
-        $this->db->from('cash_carries a');
+        $this->db->from('overtimes a');
         $this->db->join('employees b', 'a.employee_id = b.id');
         $this->db->join('divisions c', 'b.division_id = c.id');
         $this->db->join('departements d', 'b.departement_id = d.id');
@@ -753,4 +973,114 @@ class Approvals extends CI_Controller
 
         die(json_encode($records));
     }
+
+    public function approvalDinasRequest($approved_to, $approved_by)
+    {
+        $this->db->select("
+            dr.request_date,
+            dr.trip_type,
+
+            div.name AS division_name,
+            dept.name AS departement_name,
+            sub.name AS departement_sub_name,
+
+            emp.name AS employee_name,
+
+            dto.date_in,
+            dto.date_out,
+
+            dtr.departure_date,
+            dtr.return_date,
+
+            COALESCE(dto.group_type, dtr.group_type) AS group_type,
+
+            COALESCE(dto.area_id, dtr.area_id) AS area_id,
+
+            COALESCE(dto.area_text, dtr.area_text) AS area_text,
+
+            COALESCE(dto.remarks, dtr.remarks) AS remarks,
+            emp.number as emp_number,
+
+            dre.*
+        ");
+        $this->db->from('dinas_request_employees dre');
+        $this->db->join('dinas_requests dr', 'dre.dinas_request_no = dr.request_no');
+        $this->db->join('divisions div', 'div.id = dre.division_id', 'left');
+        $this->db->join('departements dept', 'dept.id = dre.departement_id', 'left');
+        $this->db->join('departement_subs sub', 'sub.id = dre.departement_sub_id', 'left');
+        $this->db->join('employees emp', 'emp.id = dre.employee_id', 'left');
+
+        // TRIP
+        $this->db->join('dinas_trip_one dto', 'dto.dinas_request_no = dr.request_no', 'left');
+
+        $this->db->join('dinas_trip_round dtr', 'dtr.dinas_request_no = dr.request_no', 'left');
+
+        $this->db->where('dre.approved_to', $approved_to);
+        $this->db->where('dre.approved_by', $approved_by);
+        $this->db->order_by('dre.created_date', 'DESC');
+        $query = $this->db->get();
+
+        $rows = [];
+        foreach ($query->result() as $r) {
+
+            if ($r->group_type == 'GROUP') {
+                $area = $this->crud->read('areas', [], ['id' => $r->area_id])->name;
+            } else {
+                $area = $r->area_text;
+            }
+
+            $rows[] = [
+                'id'                    => $r->id,
+                'request_date'          => $r->request_date,
+                'dinas_request_no'            => $r->dinas_request_no,
+                'division_name'         => $r->division_name,
+                'departement_name'      => $r->departement_name,
+                'departement_sub_name'  => $r->departement_sub_name,
+                'employee_name'         => $r->employee_name,
+                'emp_number'         => $r->emp_number,
+
+                // PRIORITAS ONE → ROUND
+                'date_in'  => $r->date_in ?: $r->departure_date,
+                'date_out' => $r->date_out ?: $r->return_date,
+
+                'area'     => $area,
+                'created_date'     => $r->created_date,
+                'created_by'     => $r->created_by,
+                'updated_date'     => $r->updated_date,
+                'updated_by'     => $r->updated_by,
+                'trip_type'     => $r->trip_type,
+                'remarks'     => $r->remarks,
+            ];
+        }
+
+        die(json_encode($rows));
+    }
+
+    public function approvalAttandances($approved_to, $approved_by)
+    {
+        $approved_to = urldecode($approved_to);
+        $approved_by = urldecode($approved_by);
+
+        $this->db->select('a.*,
+                DAYNAME(a.date_in) AS day,
+                d.name as departement_name,
+                b.number as employee_number,
+                b.name as employee_name,
+                c.name as type,
+            ');
+        $this->db->from('attandances a');
+        $this->db->join('employees b', 'a.number = b.number');
+        $this->db->join('departements d', 'b.departement_id = d.id');
+        $this->db->join('contracts c', "b.contract_id = c.id");
+        $this->db->where('a.approved_to', $approved_to);
+        $this->db->where('a.approved_by', $approved_by);
+        $this->db->order_by('b.name', 'ASC');
+        $records = $this->db->get()->result_array();
+
+        die(json_encode($records));
+    }
+    
+    
+
+    
 }

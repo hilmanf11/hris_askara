@@ -1,17 +1,180 @@
+<style>
+  .detail-header {
+    background: linear-gradient(90deg, #2b5cff, #3b82f6);
+    color: #fff;
+    padding: 14px 20px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .close-btn {
+    color: #fff;
+    text-decoration: none;
+    font-size: 18px;
+  }
+
+  .detail-body {
+    padding: 20px;
+    overflow-y: auto;
+    height: calc(90vh - 50px);
+  }
+
+  .employee-box {
+    background: #f8f9fb;
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .io-wrapper {
+    display: flex;
+    gap: 20px;
+  }
+
+  .io-card {
+    flex: 1;
+    border-radius: 12px;
+    padding: 15px;
+    border: 2px solid;
+  }
+
+  .lat-in {
+    margin-top: 2px;
+  }
+
+  .io-card.in {
+    border-color: #22c55e;
+  }
+
+  .io-card.out {
+    border-color: #f97316;
+  }
+
+  .io-title {
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+
+  .io-section {
+    margin-bottom: 14px;
+  }
+
+  .label {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .status {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
+  .status.in {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .status.out {
+    background: #fff7ed;
+    color: #9a3412;
+  }
+
+  .img-box {
+    background: #f1f5f9;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .img-box img {
+    width: 100%;
+    height: 220px;
+    object-fit: contain;
+  }
+
+  .location {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+
+  .location.in {
+    background: #dcfce7;
+  }
+
+  .location.out {
+    background: #fff7ed;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .io-wrapper {
+      flex-direction: column;
+    }
+
+    .employee-box {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+
+  .employee-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    background: #f8f9fb;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .employee-table td {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .employee-table .label {
+    font-weight: 600;
+    width: 120px;
+    color: #333;
+  }
+
+  .location {
+    cursor: pointer;
+  }
+
+  .location:hover {
+    text-decoration: underline;
+    color: #2563eb;
+  }
+
+</style>
+
 <!-- TABLE DATAGRID -->
 <table id="dg" class="easyui-datagrid" style="width:100%;" toolbar="#toolbar" data-options="rownumbers:true, singleSelect:false, fit:true, idField:'date_in', autoRowHeight:false, pageSize:20, pageList:[20,50,100,200], pagination:true">
     <thead>
         <tr>
-            <th field="ck" checkbox="true"></th>
-            <th data-options="field:'dayname',width:150">Day</th>
-            <th data-options="field:'date_in',width:150">Date In</th>
-            <th data-options="field:'date_out',width:150">Date Out</th>
-            <th data-options="field:'departement_name',width:200">Departement</th>
-            <th data-options="field:'number',width:120">Employee ID</th>
-            <th data-options="field:'name',width:200">Employee Name</th>
-            <th data-options="field:'contract_name',width:100">Type</th>
-            <th data-options="field:'time_in',width:150">Check In</th>
-            <th data-options="field:'time_out',width:150">Check Out</th>
+            <th rowspan="2" field="ck" checkbox="true"></th>
+            <th rowspan="2" data-options="field:'dayname',width:150">Day</th>
+            <th rowspan="2" data-options="field:'date_in',width:150">Date In</th>
+            <th rowspan="2" data-options="field:'date_out',width:150">Date Out</th>
+            <th rowspan="2" data-options="field:'departement_name',width:200">Departement</th>
+            <th rowspan="2" data-options="field:'number',width:120">Employee ID</th>
+            <th rowspan="2" data-options="field:'name',width:200">Employee Name</th>
+            <th rowspan="2" data-options="field:'contract_name',width:100">Type</th>
+            <th rowspan="2" data-options="field:'shift_name',width:120">Shift</th>
+            <th rowspan="2" data-options="field:'time_in',width:150">Check In</th>
+            <th rowspan="2" data-options="field:'time_out',width:150">Check Out</th>
+            <th rowspan="2" data-options="field:'history',width:150,halign:'center',align:'center',formatter:historyFormatter,styler:statusStyler2">History</th>
+            <th colspan="3" data-options="width:100,halign:'center',align:'center'">Approval</th>
+        </tr>
+        <tr>
+            <th data-options="field:'approved',width:150,halign:'center',align:'center',styler:statusStyler, formatter:statusFormatter">Status</th>
+            <th data-options="field:'approved_by',width:150,halign:'center',align:'center'">By</th>
+            <th data-options="field:'approved_date',width:150,halign:'center',align:'center'">Date</th>
         </tr>
     </thead>
 </table>
@@ -117,6 +280,82 @@
         <ul id="remarks">
 
         </ul>
+    </div>
+</div>
+
+<div id="dlg_history_detail"
+    class="easyui-dialog"
+    title="Attendance History Details"
+    data-options="closed:true,modal:true"
+    style="width:90%;max-width:1100px;height:700px;padding:0">
+    <!-- Body -->
+    <div class="detail-body">
+        <h1><b>Employee Information</b></h1>
+        <!-- Employee Info -->
+    <table class="employee-table">
+        <tr>
+            <td class="label">Name</td>
+            <td>: <span id="empName"></span></td>
+            <td class="label">ID</td>
+            <td>: <span id="empId"></span></td>
+        </tr>
+        <tr>
+            <td class="label">Department</td>
+            <td>: <span id="empDept"></span></td>
+            <td class="label">Date</td>
+            <td>: <span id="attDate"></span></td>
+        </tr>
+    </table>
+
+        <!-- IN & OUT -->
+        <div class="io-wrapper">
+            <!-- IN -->
+            <div class="io-card in">
+                <div class="io-title">Check In : <span id="timeIn"></span></div>
+
+                <div class="io-section">
+                    <div class="label">Status:</div>
+                    <div class="status in" id="statusIn"></div>
+                </div>
+
+                <div class="io-section">
+                    <div class="label">Picture:</div>
+                    <div class="img-box">
+                        <img id="imgIn">
+                    </div>
+                </div>
+
+                <div class="io-section">
+                    <div class="label">Location:</div>
+                    <div class="location in" id="locIn"></div>
+                    <div class="location in" id="latIn" style="padding-top: 0;"></div>
+                </div>
+            </div>
+
+            <!-- OUT -->
+            <div class="io-card out">
+                <div class="io-title">Check Out : <span id="timeOut"></span></div>
+
+                <div class="io-section">
+                    <div class="label">Status:</div>
+                    <div class="status out" id="statusOut"></div>
+                </div>
+
+                <div class="io-section">
+                    <div class="label">Picture:</div>
+                    <div class="img-box">
+                        <img id="imgOut">
+                    </div>
+                </div>
+
+                <div class="io-section">
+                    <div class="label">Location:</div>
+                    <div class="location out" id="locOut"></div>
+                    <div class="location out" id="latOut" style="padding-top: 0;"></div>
+                </div>
+            </div>
+
+        </div>
     </div>
 </div>
 
@@ -583,4 +822,131 @@
             return new Date();
         }
     }
+
+    function statusStyler(value, row, index) {        
+        if (row.status_in == 2 || row.status_out == 2) {
+            return 'background: #FF5F5F; color:white;';
+        } else {
+            if (row.approved_to == "" || row.approved_to == null) {
+                return 'background: #53D636; color:white;';
+            } else {
+                return 'background: #ffc456; color:black;';
+            }
+        }
+    }
+    //FORMATTER STATUS
+    function statusFormatter(value, row) {
+        if (row.status_in == 2 || row.status_out == 2) {
+            return 'Rejected';
+        } else {
+            if (row.approved_to == "" || row.approved_to == null) {
+                return 'Approved';
+            } else {
+                return 'Checked';
+            }
+        }
+    };
+
+    function statusStyler2(value, row, index) {        
+        return 'background: #0369b8; color:white;';
+    }
+
+    function historyFormatter(value, row) {
+        let rowAbsen = encodeURIComponent(JSON.stringify(row));
+        var history = "history('" + rowAbsen + "')";
+        var a = '<a style="cursor:pointer;" onclick="' + history + '"><i class="fa fa-eye"></i> view</a>';
+        return a;
+    };
+
+    async function history(rowStr) {
+		const row = JSON.parse(decodeURIComponent(rowStr));
+
+		empName.innerText = row.name;
+		empDept.innerText = row.departement_name;
+		empId.innerText   = row.number;
+		attDate.innerText = row.date_in;
+
+		timeIn.innerText  = row.time_in || '-';
+		timeOut.innerText = row.time_out || '-';
+
+		const statusType = row.status.split('_')[0];
+		statusIn.innerText  = 'Checked in via ' + statusType;
+		statusOut.innerText = 'Checked out via ' + statusType;
+
+		imgIn.src  = buildAttendanceImage(row.date_in, row.foto_in);
+		imgOut.src = buildAttendanceImage(row.date_out, row.foto_out);
+
+		loadLocations(row);
+		locIn.innerText  = 'Loading location...';
+		locOut.innerText = 'Loading location...';
+		
+		latIn.innerText  = `${row.lat_in}, ${row.lng_in}`;
+		latOut.innerText = `${row.lat_out}, ${row.lng_out}`;
+
+		locIn.dataset.lat = row.lat_in;
+		locIn.dataset.lng = row.lng_in;
+		latIn.dataset.lat = row.lat_in;
+		latIn.dataset.lng = row.lng_in;
+
+		locOut.dataset.lat = row.lat_out;
+		locOut.dataset.lng = row.lng_out;
+		latOut.dataset.lat = row.lat_out;
+		latOut.dataset.lng = row.lng_out;
+
+		['locIn','latIn','locOut','latOut'].forEach(id => {
+			document.getElementById(id).onclick = function () {
+				openMaps(this);
+			};
+		});
+
+		$('#dlg_history_detail').dialog('open');
+	}
+
+	async function loadLocations(row) {
+		const [addrIn, addrOut] = await Promise.all([
+			reverseGeocode(row.lat_in, row.lng_in),
+			reverseGeocode(row.lat_out, row.lng_out)
+		]);
+
+		locIn.innerText  = addrIn;
+		locOut.innerText = addrOut;
+	}
+
+
+	function buildAttendanceImage(date, filename) {
+		if (!filename) return `<?= base_url('assets/image/no-photo.png')  ?>`;
+
+		// date: YYYY-MM-DD → YYYYMM
+		const [y, m] = date.split('-');
+		const folder = y + m;
+
+		return `<?= base_url('assets/document/attendance/${folder}/${filename}')  ?>`;
+	}
+
+	async function reverseGeocode(lat, lng) {
+		if (!lat || !lng) return '-';
+
+		try {
+			const res = await fetch(
+				`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+			);
+			const data = await res.json();
+			return data.display_name || '-';
+		} catch (e) {
+			console.error(e);
+			return '-';
+		}
+	}
+
+	function openMaps(el) {
+		const lat = el.dataset.lat;
+		const lng = el.dataset.lng;
+
+		if (!lat || !lng) return;
+
+		window.open(
+			`https://www.google.com/maps?q=${lat},${lng}`,
+			'_blank'
+		);
+	}
 </script>

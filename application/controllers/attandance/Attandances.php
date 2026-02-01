@@ -75,7 +75,20 @@ class Attandances extends CI_Controller
                 c.name as division_name, 
                 d.name as departement_name, 
                 e.name as departement_sub_name, 
-                g.name as contract_name");
+                g.name as contract_name,
+                b.approved_by,
+                b.approved_to,
+                b.approved_date,
+                b.status_in,
+                b.status_out,
+                b.foto_in,
+                b.foto_out,
+                b.status,
+                b.lat_in,
+                b.lng_in,
+                b.lat_out,
+                b.lng_out
+                ");
             $this->db->from('employees a');
             $this->db->join('attandances b', 'a.number = b.number');
             $this->db->join('divisions c', 'a.division_id = c.id');
@@ -104,11 +117,27 @@ class Attandances extends CI_Controller
             $this->db->limit($rows, $offset);
             //Get Data Array
             $employees = $this->db->get()->result_array();
+            $record = [];
+            foreach ($employees as $key => $value) {
+                $record[] = $value;
+
+                $dayOfWeek = date('N', strtotime($value['date_in'])); // 1 (Mon) to 7 (Sun)
+
+                $this->db->select("d.start, d.end, d.days, d.working, d.tolerance, c.name, d.name as shift_name");
+                $this->db->from('shift_employees b');
+                $this->db->join('shifts c', 'c.id = b.shift_id');
+                $this->db->join('shift_details d', 'd.shift_id = c.id');
+                $this->db->where('b.employee_id', $value['id']);
+                $this->db->where('d.days >=', $dayOfWeek);
+                $shift = $this->db->get()->row();
+
+                $record[$key]['shift_name'] = isset($shift->name) ? $shift->name : '';
+            }
             
             // die(json_encode($employees));
 
             $datas['total'] = $totalRows;
-            $datas = array_merge($datas, ['rows' => @$employees]);
+            $datas = array_merge($datas, ['rows' => @$record]);
             echo json_encode($datas);
         }
     }

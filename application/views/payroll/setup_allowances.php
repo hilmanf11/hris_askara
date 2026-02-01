@@ -255,6 +255,7 @@
             pageList: [20, 50, 100, 500, 1000],
             pageSize: 20,
             onEndEdit: function(index, row) {
+
                 var employee_id = row.employee_id;
                 var allowance_name = row.allowance_name;
                 var amount = row.amount;
@@ -262,7 +263,7 @@
                 $.ajax({
                     type: "post",
                     url: "<?= base_url('payroll/setup_allowances/createOrUpdate') ?>",
-                    data: "employee_id=" + employee_id + "&allowance_name=" + allowance_name + "&amount=" + amount,
+                    data: "employee_id=" + employee_id + "&allowance_name=" + allowance_name + "&amount=" + amount + "&id=" + row.id,
                     dataType: "json",
                     success: function(json) {
                         if (json.theme == "success") {
@@ -454,7 +455,7 @@
                             }],
                             onSelect: function(departement_sub) {
                                 $('#filter_employee').combogrid({
-                                    url: '<?= base_url('employee/employees/reads?departement_sub_id=') ?>' + departement_sub.id,
+                                    url: '<?= base_url('payroll/setup_allowances/readEmployees?departement_sub_id=') ?>' + departement_sub.id,
                                     panelWidth: 450,
                                     idField: 'id',
                                     textField: 'name',
@@ -487,7 +488,7 @@
         });
 
         $('#filter_employee').combogrid({
-            url: '<?= base_url('employee/employees/reads') ?>',
+            url: '<?= base_url('payroll/setup_allowances/readEmployees') ?>',
             panelWidth: 450,
             idField: 'id',
             textField: 'name',
@@ -527,7 +528,7 @@
         });
 
         $('#employee_id').combogrid({
-            url: '<?= base_url('employee/employees/reads') ?>',
+            url: '<?= base_url('payroll/setup_allowances/readEmployees') ?>',
             panelWidth: 450,
             idField: 'id',
             textField: 'name',

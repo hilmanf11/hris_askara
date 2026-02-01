@@ -1048,7 +1048,7 @@ class Overtimes extends CI_Controller
         $this->db->where('trans_date', $date);
         $holiday = $this->db->get()->row();
 
-        if ($is_harian && $holiday->permit == 1) {
+        if ($is_harian && @$holiday->permit == 1) {
             return 'WORK';
         }
 

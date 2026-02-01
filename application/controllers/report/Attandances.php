@@ -99,7 +99,7 @@ class Attandances extends CI_Controller
                 <meta http-equiv="pragma" content="no-cache">
             <head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 10px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}</style><body>';
 
-            $this->db->select("a.id, a.number, a.position_id, a.name, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.warning_letter, a.date_sign, c.logo");
+            $this->db->select("a.id, a.number, a.position_id, a.name, c.name as division_name, d.name as departement_name, e.name as departement_sub_name, f.warning_letter, a.date_sign, c.logo, a.group_id");
             $this->db->from('employees a');
             $this->db->join('divisions c', 'a.division_id = c.id');
             $this->db->join('departements d', 'a.departement_id = d.id');
@@ -130,7 +130,11 @@ class Attandances extends CI_Controller
             $arr_staff_up = ["20221213000002", "20241213000001", "20241213000002", "20241213000003", "20241213000004", "20241213000005"];
             //BOARD OF DIRECTOR, DIRECTOR, MANAGER, ASST. MANAGER, LEADER, STAFF
 
+            $group_harian = ["20221213000002", "20221213000003"];
+
             foreach ($records as $record) {
+                $is_harian = in_array($record['group_id'], $group_harian);
+
                 if (!empty($record['warning_letter'])) {
                     if ($record['warning_letter'] != "4") {
                         $warning_letter = "SP " . $record['warning_letter'];
@@ -208,6 +212,7 @@ class Attandances extends CI_Controller
                     <tr>
                         <th width="20" rowspan="2">No</th>
                         <th rowspan="2" style="text-align:center;">Date</th>
+                        <th rowspan="2" style="text-align:center;">Day</th>
                         <th colspan="5" style="text-align:center;">Attandance</th>
                         <th colspan="4" style="text-align:center;">Overtime</th>
                         <th rowspan="2" style="text-align:center;">Duration</th>
@@ -244,6 +249,7 @@ class Attandances extends CI_Controller
                     $this->db->select('description');
                     $this->db->from('calendars');
                     $this->db->where('trans_date', $working_date);
+                    // $this->db->where('permit', 0);
                     $holiday = $this->db->get()->row();
 
                     //Resignation
@@ -476,6 +482,7 @@ class Attandances extends CI_Controller
                         $html .= '  <tr ' . $style . '>
                                         <td>' . $no . '</td>
                                         <td>' . date('d F Y', strtotime($working_date)) . '</td>
+                                        <td>' . date('l', strtotime($working_date)) . '</td>
                                         <td>' . $shiftName . '</td>
                                         <td>' . @$shift->start . '</td>
                                         <td>' . @$shift->end . '</td>
@@ -494,6 +501,7 @@ class Attandances extends CI_Controller
                         $html .= '<tr ' . $style . '>
                                     <td>' . $no . '</td>
                                     <td>' . date('d F Y', strtotime($working_date)) . '</td>
+                                    <td>' . date('l', strtotime($working_date)) . '</td>
                                     <td>' . $shiftName . '</td>
                                     <td>' . @$shift->start . '</td>
                                     <td>' . @$shift->end . '</td>

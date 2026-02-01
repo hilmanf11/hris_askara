@@ -1287,13 +1287,10 @@ class Salary_slips extends CI_Controller
 
             $logo = '';
             if (!empty($row->logo)) {
-                $imgData = file_get_contents($row->logo);
-
-                // Deteksi tipe mime (opsional tapi bagus digunakan)
-                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $division_logo = base_url('assets/image/division/' . $row->logo);
 
                 // Format untuk img src
-                $logo = '<img src="data:'.finfo_buffer($finfo, $imgData).';base64,'.base64_encode($imgData).'" style="width: 70px; height: 70px;">';
+                $logo = '<img src="'.$division_logo.'" style="width: 70px; height: 70px;">';
             }
 
             $div_tt = '';

@@ -209,8 +209,8 @@ class Expense_specifications extends CI_Controller
                 <th>Name Category</th>
                 <th>Lokasi</th>
                 <th>Director</th>
-                <th>Asst. Manager</th>
                 <th>Manager</th>
+                <th>Asst. Manager</th>
                 <th>Leader</th>
                 <th>Staff</th>
                 <th>Operator</th>

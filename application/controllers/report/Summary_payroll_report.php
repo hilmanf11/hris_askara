@@ -48,6 +48,7 @@ class Summary_payroll_report extends CI_Controller
             $filter_departement_sub = $this->input->get('filter_departement_sub');
             $filter_employee = $this->input->get('filter_employee');
             $filter_group = $this->input->get('filter_group');
+            $group_harian = ["20221213000002", "20221213000003"];
 
             $header_html = '<html><head><title>Print Data</title></head><style>body {font-family: Arial, Helvetica, sans-serif;}#customers {border-collapse: collapse;width: 100%;font-size: 10px;}#customers td, #customers th {border: 1px solid #ddd;padding: 2px;}#customers tr:nth-child(even){background-color: #f2f2f2;}#customers tr:hover {background-color: #ddd;}#customers th {padding-top: 2px;padding-bottom: 2px;text-align: left;color: black;}#ttd {border-collapse: collapse;width: 100%;font-size: 10px;}#ttd td, #ttd th {padding: 2px;}</style>
             <style> .str{ mso-number-format:\@; } </style>
@@ -175,7 +176,8 @@ class Summary_payroll_report extends CI_Controller
                     g.name as shift_name,
                     h.days,
                     i.name as position_name,
-                    j.number as marital_number");
+                    j.number as marital_number,
+                    a.group_id");
                 $this->db->from('employees a');
                 $this->db->join('divisions c', 'a.division_id = c.id');
                 $this->db->join('departements d', 'a.departement_id = d.id');
@@ -223,7 +225,9 @@ class Summary_payroll_report extends CI_Controller
                         }
                     }
 
-                    $hkw = $this->getHkw($filter_from, $filter_to, $data['days'], $data['number'], $data['employee_id']);
+                    $is_harian = in_array($data['group_id'], $group_harian);
+
+                    $hkw = $this->getHkw($filter_from, $filter_to, $data['days'], $data['number'], $data['employee_id'], $is_harian);
                     $hkw_text = $hkw['hkw'];
 
                     if ($is_resign) {
@@ -346,7 +350,7 @@ class Summary_payroll_report extends CI_Controller
         }
     }
 
-    private function getHkw($filter_from, $filter_to, $days, $employee_number, $employee_id)
+    private function getHkw($filter_from, $filter_to, $days, $employee_number, $employee_id, $is_harian = null)
     {
         $start = strtotime($filter_from);
         $finish = strtotime($filter_to);
@@ -389,7 +393,7 @@ class Summary_payroll_report extends CI_Controller
         $this->db->from('calendars');
         $this->db->where('trans_date >=', $filter_from);
         $this->db->where('trans_date <=', $filter_to);
-        $this->db->where('description !=', "Weekend");
+        $this->db->where('permit', 0);
         if (count($weekend_day) > 0) {
             $this->db->where_not_in('trans_date', $weekend_day);
         }

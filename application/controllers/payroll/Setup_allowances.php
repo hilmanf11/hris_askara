@@ -287,87 +287,48 @@ class Setup_allowances extends CI_Controller
         if ($this->input->post()) {
 
             $post = $this->input->post();
-
             $employee_id = $post['employee_id'];
-
             $allowance_name = $post['allowance_name'];
-
             $amount = $post['amount'];
+            $id = $post['id'];
 
 
-
-            $setup_allowances = $this->crud->read("setup_allowances", [], ["employee_id" => $employee_id]);
+            $setup_allowances = $this->crud->read("setup_allowances", [], ["id" => $id]);
 
             $allowance = $this->crud->read('allowances', [], ["name" => $allowance_name]);
 
-
-
-            if (empty($setup_allowances)) {
-
-                if ($allowance) {
-
-                    $amount = $allowance->amount;
-
-                } else {
-
-                    $amount = $amount;
-
-                }
-
-
+            if ($setup_allowances->allowance_id == $allowance->id) {
+                $amount = $amount;
 
                 $postFinal = array(
-
-                    "employee_id" => $post['employee_id'],
-
-                    "allowance_id" => @$allowance->id,
-
                     "amount" => $amount,
-
                 );
 
-
-
-                $send   = $this->crud->create('setup_allowances', $postFinal);
-
+                $send = $this->crud->update('setup_allowances', ["id" => $id], $postFinal);
                 echo $send;
-
             } else {
+                $setup_allowance = $this->crud->read("setup_allowances", [], ["allowance_id" => $allowance->id, "employee_id" => $employee_id]);
 
-                if ($allowance->id == $setup_allowances->allowance_id) {
+                $amount = $allowance->amount;
 
-                    $amount = $amount;
+                if (empty($setup_allowance)) {
+
+                    $postFinal = array(
+                        "employee_id" => $post['employee_id'],
+                        "allowance_id" => @$allowance->id,
+                        "amount" => $amount,
+
+                    );
+
+                    $send   = $this->crud->create('setup_allowances', $postFinal);
+                    echo $send;
 
                 } else {
-
-                    $amount = $allowance->amount;
-
+                    show_error("Employee and Allowance has been created");
                 }
-
-
-
-                $postFinal = array(
-
-                    "employee_id" => $employee_id,
-
-                    "allowance_id" => @$allowance->id,
-
-                    "amount" => $amount,
-
-                );
-
-
-
-                $send = $this->crud->update('setup_allowances', ["employee_id" => $post['employee_id']], $postFinal);
-
-                echo $send;
-
             }
-
         } else {
-
             show_error("Cannot Process your request");
-
         }
 
     }
@@ -430,9 +391,21 @@ class Setup_allowances extends CI_Controller
 
             $post = $this->input->post();
 
-            $send = $this->crud->update('setup_allowances', ["id" => $id], $post);
+            $setup_allowance_old = $this->crud->read("setup_allowances", [], ["id" => $id]);
 
-            echo $send;
+            $setup_allowance_new = $this->crud->read("setup_allowances", [], ["allowance_id" => $post['allowance_id'], "employee_id" => $post['employee_id']]);
+
+            if (!empty($setup_allowance_new) && $setup_allowance_old->id != @$setup_allowance_new->id) {
+
+                show_error("Employee and Allowance has been created");
+
+            } else {
+                
+                $send = $this->crud->update('setup_allowances', ["id" => $id], $post);
+    
+                echo $send;
+            }
+
 
         } else {
 

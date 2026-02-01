@@ -16,8 +16,8 @@ class Users extends CI_Controller
         $this->load->model('whatsapp');
 
         //VALIDASI FORM
-        $this->form_validation->set_rules('name', 'Name', 'required|min_length[5]|max_length[50]');
-        $this->form_validation->set_rules('username', 'Username', 'required|min_length[5]|max_length[30]|is_unique[users.username]');
+        $this->form_validation->set_rules('name', 'Name', 'required|min_length[3]|max_length[50]');
+        $this->form_validation->set_rules('username', 'Username', 'required|min_length[3]|max_length[30]|is_unique[users.username]');
         $this->form_validation->set_rules('password', 'Password', 'required|min_length[5]|max_length[30]');
         $this->form_validation->set_rules('email', 'Email', 'required|min_length[5]|max_length[30]|is_unique[users.email]|valid_email');
     }
